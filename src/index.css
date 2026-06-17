@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #2563eb, #7c3aed, #14b8a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@keyframes activityMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.activity-marquee {
+  animation: activityMarquee 38s linear infinite;
+}
+
+.activity-marquee:hover {
+  animation-play-state: paused;
+}
+
+.activity-3d-card {
+  transform-style: preserve-3d;
+  transform: perspective(1000px) rotateX(3deg) rotateY(-8deg);
+}
+@keyframes activityMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.activity-marquee {
+  animation: activityMarquee 34s linear infinite;
+}
+
+.activity-marquee:hover {
+  animation-play-state: paused;
+}
+
+.activity-3d-card {
+  transform-style: preserve-3d;
+  transform: perspective(1000px) rotateX(2deg) rotateY(-6deg);
+}
+
+@keyframes activityMarquee3D {
+  0% {
+    transform: translateX(0) translateZ(0);
+  }
+  100% {
+    transform: translateX(-50%) translateZ(0);
+  }
+}
+
+.activity-marquee-perspective {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.activity-marquee-3d {
+  animation: activityMarquee3D 36s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.activity-marquee-3d:hover {
+  animation-play-state: paused;
+}
+
+.activity-pill-3d {
+  transform: perspective(900px) rotateY(-14deg) rotateX(4deg) translateZ(18px);
+  transform-style: preserve-3d;
+}
+
+.activity-pill-3d:nth-child(even) {
+  transform: perspective(900px) rotateY(12deg) rotateX(3deg) translateZ(8px);
+}
+
+.activity-pill-3d:hover {
+  transform: perspective(900px) rotateY(0deg) rotateX(0deg) translateZ(34px)
+    scale(1.03);
+}
+
+.activity-showcase-3d {
+  transform-style: preserve-3d;
+  transform: perspective(1100px) rotateX(3deg) rotateY(-7deg);
+}
+
+.activity-showcase-3d:hover {
+  transform: perspective(1100px) rotateX(0deg) rotateY(0deg);
+}

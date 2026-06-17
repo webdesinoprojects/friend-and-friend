@@ -1,0 +1,158 @@
+export const chartData = [
+  { name: "Mon", bookings: 4, revenue: 2500 },
+  { name: "Tue", bookings: 8, revenue: 4200 },
+  { name: "Wed", bookings: 6, revenue: 3600 },
+  { name: "Thu", bookings: 10, revenue: 6500 },
+  { name: "Fri", bookings: 14, revenue: 9200 },
+  { name: "Sat", bookings: 18, revenue: 12800 },
+  { name: "Sun", bookings: 12, revenue: 8500 },
+];
+
+export const providers = [
+  {
+    name: "Arjun Malhotra",
+    profession: "Product Designer",
+    city: "Bengaluru",
+    price: "₹500/hr",
+    rating: "4.9",
+    gender: "Male",
+  },
+  {
+    name: "Sneha Iyer",
+    profession: "Marketing Manager",
+    city: "Bengaluru",
+    price: "₹600/hr",
+    rating: "4.8",
+    gender: "Female",
+  },
+  {
+    name: "Rohan Shetty",
+    profession: "Software Engineer",
+    city: "Pune",
+    price: "₹550/hr",
+    rating: "4.7",
+    gender: "Male",
+  },
+];
+export const activities = [
+  {
+    name: "Movie",
+    icon: "🎬",
+    text: "Watch films with a verified companion.",
+    tag: "Entertainment",
+  },
+  {
+    name: "Dinner",
+    icon: "🍽️",
+    text: "Enjoy meals, cafe talks and friendly conversations.",
+    tag: "Social",
+  },
+  {
+    name: "Gaming",
+    icon: "🎮",
+    text: "Find someone for console, mobile or arcade gaming.",
+    tag: "Fun",
+  },
+  {
+    name: "Shopping",
+    icon: "🛍️",
+    text: "Get a shopping buddy for malls, markets or styling help.",
+    tag: "Lifestyle",
+  },
+  {
+    name: "City Tour",
+    icon: "🏙️",
+    text: "Explore local spots with someone who knows the city.",
+    tag: "Travel",
+  },
+  {
+    name: "Events",
+    icon: "🎤",
+    text: "Attend concerts, fests, expos and public events.",
+    tag: "Public Plans",
+  },
+  {
+    name: "Cafe Meetup",
+    icon: "☕",
+    text: "Plan calm conversations at verified public cafes.",
+    tag: "Meetup",
+  },
+  {
+    name: "Gym Buddy",
+    icon: "🏋️",
+    text: "Find motivation for workouts, walks and fitness plans.",
+    tag: "Fitness",
+  },
+  {
+    name: "Sports",
+    icon: "⚽",
+    text: "Play cricket, football, badminton or casual sports.",
+    tag: "Outdoor",
+  },
+  {
+    name: "Study Partner",
+    icon: "📚",
+    text: "Connect for focused study, practice or learning sessions.",
+    tag: "Learning",
+  },
+  {
+    name: "Language Practice",
+    icon: "🗣️",
+    text: "Practice English, Hindi or regional languages together.",
+    tag: "Skill",
+  },
+  {
+    name: "Photography Walk",
+    icon: "📸",
+    text: "Explore photo spots and capture city moments.",
+    tag: "Creative",
+  },
+  {
+    name: "Wedding Guest",
+    icon: "💐",
+    text: "Book a verified companion for family or social functions.",
+    tag: "Occasion",
+  },
+  {
+    name: "Business Event",
+    icon: "💼",
+    text: "Attend conferences, networking meets or expos confidently.",
+    tag: "Professional",
+  },
+  {
+    name: "Food Walk",
+    icon: "🍜",
+    text: "Discover street food, cafes and popular food places.",
+    tag: "Food",
+  },
+  {
+    name: "Museum Visit",
+    icon: "🏛️",
+    text: "Explore museums, galleries and cultural places.",
+    tag: "Culture",
+  },
+  {
+    name: "Board Games",
+    icon: "🎲",
+    text: "Meet for board games, chess, cards or group play.",
+    tag: "Indoor",
+  },
+  {
+    name: "Local Guide",
+    icon: "🧭",
+    text: "Get help navigating a new city or local area.",
+    tag: "Guide",
+  },
+  {
+    name: "Senior Companion",
+    icon: "🤝",
+    text: "Friendly support for walks, cafes and public outings.",
+    tag: "Care",
+  },
+  {
+    name: "Festival Buddy",
+    icon: "🎉",
+    text: "Celebrate public festivals, fairs and community events.",
+    tag: "Celebration",
+  },
+];
