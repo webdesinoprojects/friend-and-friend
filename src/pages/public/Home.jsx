@@ -1,305 +1,1568 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BadgeCheck,
-  Calendar,
-  CheckCircle2,
+  CalendarCheck2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Coffee,
   CreditCard,
+  Gamepad2,
+  Heart,
   MapPin,
   MessageCircle,
   ShieldCheck,
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  Sparkles,
   Star,
-  User,
-  Users,
+  Ticket,
+  UserRoundCheck,
+  Utensils,
   X,
 } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import homeBg from "../../assets/home-bg.jpg";
-import meetupPanel from "../../assets/meetup-panel.jpg";
-import { activities } from "../../data/mockData";
-import { PrimaryButton, SecondaryButton } from "../../components/common/Button";
+import api from "../../api/api";
+import { getCachedProviders, listProviders } from "../../api/providers";
+import { demoProviders } from "../../data/demoProviders";
+import friendsHero from "../../assets/buddybook-friends-hero.webp";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
+import ProviderCard from "../../components/users/ProviderCard";
 
-export default function Home() {
-  const steps = [
-    {
-      icon: User,
-      title: "Create account",    },
-    {
-      icon: BadgeCheck,
-      title: "Verify identity", },
-    {
-      icon: Calendar,
-      title: "Choose your plan",    },
-    {
-      icon: MapPin,
-      title: "Meet safely",    },
-  ];
-
-  const benefits = [
-    {
-      icon: ShieldCheck,
-      title: "Verified community",
-      text: "Designed around KYC, safer onboarding and visible trust signals.",
-    },
-    {
-      icon: MessageCircle,
-      title: "Private in-app chat",
-      text: "Connect before the meetup without exposing personal contact details.",
-    },
-    {
-      icon: CreditCard,
-      title: "Platform payments",
-      text: "Cleaner payment flow for users, providers, refunds and admin control.",
-    },
-    {
-      icon: Users,
-      title: "Real-world activities",
-      text: "Useful for movies, shopping, dinner, gaming, city tours and events.",
-    },
-  ];
-
-  const safetyItems = [
-    "Mobile + Email OTP",
-    "KYC Verification",
-    "Face Selfie Check",
-    "Live Location During Booking",
-    "In-App Chat Only",
-    "Admin Reports & Disputes",
-  ];
-  const [activeStep, setActiveStep] = useState(null);
-const ActiveStepIcon = activeStep?.icon;
-
-const stepDetails = [
+const profiles = [
   {
-    label: "Step 01",
-    heading: "Account setup",
-    badge: "Start here",
-    time: "2 min setup",
-    points: [
-      "Create profile with mobile and email.",
-      "Choose user or provider role.",
-      "Accept platform safety rules.",
-    ],
-    timeline: ["Signup", "Role", "Safety rules"],
+    name: "Ananya Sharma",
+    city: "New Delhi",
+    activity: "Coffee & conversation",
+    rating: "4.9",
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=85",
   },
   {
-    label: "Step 02",
-    heading: "Trust verification",
-    badge: "KYC layer",
-    time: "Verified access",
-    points: [
-      "Complete identity document verification.",
-      "Add face selfie for profile trust.",
-      "Admin reviews suspicious accounts.",
-    ],
-    timeline: ["KYC", "Selfie", "Approval"],
+    name: "Rohan Mehta",
+    city: "Mumbai",
+    activity: "Movies & city walks",
+    rating: "4.8",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=85",
   },
   {
-    label: "Step 03",
-    heading: "Booking process",
-    badge: "Plan safely",
-    time: "Public meetup",
-    points: [
-      "Choose activity, date and time.",
-      "Select a public meetup location.",
-      "Confirm request through platform flow.",
-    ],
-    timeline: ["Activity", "Location", "Confirm"],
+    name: "Meera Iyer",
+    city: "Bengaluru",
+    activity: "Food & local events",
+    rating: "4.9",
+    image:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=85",
   },
   {
-    label: "Step 04",
-    heading: "Safe meetup",
-    badge: "Live support",
-    time: "During booking",
-    points: [
-      "Chat inside the app before meeting.",
-      "Use live location during active booking.",
-      "Report issues through support system.",
-    ],
-    timeline: ["Chat", "Location", "Report"],
+    name: "Kabir Singh",
+    city: "Jaipur",
+    activity: "Live music & local food",
+    rating: "4.8",
+    image:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=85",
   },
 ];
 
+const activities = [
+  { name: "Coffee", icon: Coffee, tone: "bg-[#fff0cf]" },
+  { name: "Movies", icon: Ticket, tone: "bg-[#ffe0e0]" },
+  { name: "Dinner", icon: Utensils, tone: "bg-[#dff1e9]" },
+  { name: "Shopping", icon: ShoppingBag, tone: "bg-[#e5e2ff]" },
+  { name: "Gaming", icon: Gamepad2, tone: "bg-[#dfeeff]" },
+  { name: "City walk", icon: MapPin, tone: "bg-[#f6e1ff]" },
+];
+
+const safetyItems = [
+  {
+    icon: BadgeCheck,
+    title: "Identity verified",
+    text: "KYC and face checks add visible trust before a booking begins.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Private communication",
+    text: "Plan inside BuddyBOOK without sharing personal contact details.",
+  },
+  {
+    icon: CreditCard,
+    title: "Protected bookings",
+    text: "Clear payment records support cancellations, refunds and disputes.",
+  },
+  {
+    icon: MapPin,
+    title: "Public meetup first",
+    text: "Choose public locations and use live location during active plans.",
+  },
+];
+
+const steps = [
+  ["1", "Create your profile", "Join as a member or provider and complete basic verification."],
+  ["2", "Browse verified companions", "Filter by activity, city, availability, price and community rating."],
+  ["3", "Plan inside BuddyBOOK", "Choose a public place, date and time, then confirm the booking."],
+  ["4", "Meet with confidence", "Use protected chat, live location and platform support when needed."],
+];
+
+const publicSearchDefaults = {
+  keyword: "",
+  city: "All",
+  state: "All",
+  gender: "All",
+  activity: "All",
+  maxPrice: "All",
+  rating: "All",
+};
+const PROVIDERS_PER_PAGE = 12;
+
+export default function Home() {
+  const heroLayerRef = useRef(null);
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    } catch {
+      return null;
+    }
+  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [providerLoading, setProviderLoading] = useState(false);
+  const [publicProviders, setPublicProviders] = useState(() =>
+    mergePublicProviders(demoProviders, getCachedProviders())
+  );
+  const [publicFilters, setPublicFilters] = useState(publicSearchDefaults);
+  const [providerPage, setProviderPage] = useState(1);
+  const [siteContent, setSiteContent] = useState({});
+
+  useEffect(() => {
+    let mounted = true;
+
+    api
+      .get("/auth/me")
+      .then(({ data }) => {
+        const currentUser = data?.user || data?.data?.user || data?.data;
+        if (!mounted || !currentUser?.id) return;
+
+        setUser(currentUser);
+        localStorage.setItem("buddybook_auth_user", JSON.stringify(currentUser));
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get("/admin/content")
+      .then(({ data }) => {
+        if (mounted) setSiteContent(data?.data || {});
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const openSearch = () => setDrawerOpen(true);
+    window.addEventListener("buddybook:open-public-search", openSearch);
+    return () => {
+      window.removeEventListener("buddybook:open-public-search", openSearch);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    let mounted = true;
+    setProviderLoading(true);
+
+    listProviders({ verified: true, _t: Date.now() })
+      .then((rows) => {
+        if (!mounted) return;
+        setPublicProviders(mergePublicProviders(demoProviders, rows));
+      })
+      .catch(() => {
+        if (mounted) setPublicProviders(demoProviders);
+      })
+      .finally(() => {
+        if (mounted) setProviderLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    let mounted = true;
+    listProviders({ verified: true, _t: Date.now() })
+      .then((rows) => {
+        if (mounted) setPublicProviders(mergePublicProviders(demoProviders, rows));
+      })
+      .catch(() => {
+        if (mounted) setPublicProviders(mergePublicProviders(demoProviders, getCachedProviders()));
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    let animationFrame = null;
+
+    const updateHeroDepth = () => {
+      if (animationFrame) return;
+
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        const heroStage = heroLayerRef.current;
+        if (!heroStage) return;
+
+        const distance = Math.max(window.innerHeight * 0.85, 1);
+        const progress = Math.min(Math.max(window.scrollY / distance, 0), 1);
+        const reduceMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+
+        if (reduceMotion) {
+          heroStage.style.filter = "none";
+          heroStage.style.transform = "none";
+          heroStage.style.opacity = "1";
+          heroStage.style.borderRadius = "0px";
+          heroStage.style.boxShadow = "none";
+          return;
+        }
+
+        const isMobile = window.innerWidth < 1024;
+        const scale = 1 - progress * (isMobile ? 0.04 : 0.14);
+        const translateY = isMobile ? 0 : progress * 18;
+
+heroStage.style.filter = "none";
+        heroStage.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
+        heroStage.style.opacity = `${1 - progress * 0.008}`;
+        heroStage.style.borderRadius = `${progress * (isMobile ? 22 : 38)}px`;
+        heroStage.style.boxShadow = `0 ${progress * 35}px ${progress * 90}px rgba(24, 27, 42, ${progress * 0.24})`;
+      });
+    };
+
+    updateHeroDepth();
+    window.addEventListener("scroll", updateHeroDepth, { passive: true });
+    window.addEventListener("resize", updateHeroDepth);
+
+    return () => {
+      window.removeEventListener("scroll", updateHeroDepth);
+      window.removeEventListener("resize", updateHeroDepth);
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
+  const firstName = useMemo(
+    () => user?.fullName?.trim().split(/\s+/)[0] || "",
+    [user]
+  );
+
+  const discoverRoute = "#community";
+  const publicCities = useMemo(
+    () => ["All", ...uniqueValues(publicProviders.map((item) => item.city))],
+    [publicProviders]
+  );
+  const publicStates = useMemo(
+    () => ["All", ...uniqueValues(publicProviders.map((item) => item.state))],
+    [publicProviders]
+  );
+  const publicActivities = useMemo(
+    () => [
+      "All",
+      ...uniqueValues(publicProviders.flatMap((item) => item.activities || [])),
+    ],
+    [publicProviders]
+  );
+  const filteredPublicProviders = useMemo(() => {
+    const keyword = publicFilters.keyword.trim().toLowerCase();
+
+    return publicProviders.filter((provider) => {
+      const activities = provider.activities || [];
+      const searchable = [
+        provider.name,
+        provider.profession,
+        provider.city,
+        provider.state,
+        provider.gender,
+        ...activities,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!keyword || searchable.includes(keyword)) &&
+        (publicFilters.city === "All" || provider.city === publicFilters.city) &&
+        (publicFilters.state === "All" || provider.state === publicFilters.state) &&
+        (publicFilters.gender === "All" ||
+          String(provider.gender || "").toLowerCase() ===
+            publicFilters.gender.toLowerCase()) &&
+        (publicFilters.activity === "All" ||
+          activities.includes(publicFilters.activity)) &&
+        (publicFilters.maxPrice === "All" ||
+          Number(provider.price || 0) <= Number(publicFilters.maxPrice)) &&
+        (publicFilters.rating === "All" ||
+          Number(provider.rating || 0) >= Number(publicFilters.rating))
+      );
+    });
+  }, [publicFilters, publicProviders]);
+  const homepageTestimonials = useMemo(
+    () => normalizeSiteTestimonials(siteContent.testimonials),
+    [siteContent.testimonials]
+  );
+  const providerPageCount = Math.max(
+    1,
+    Math.ceil(filteredPublicProviders.length / PROVIDERS_PER_PAGE)
+  );
+  const paginatedPublicProviders = useMemo(() => {
+    const safePage = Math.min(providerPage, providerPageCount);
+    const start = (safePage - 1) * PROVIDERS_PER_PAGE;
+    return filteredPublicProviders.slice(start, start + PROVIDERS_PER_PAGE);
+  }, [filteredPublicProviders, providerPage, providerPageCount]);
+
+  useEffect(() => {
+    setProviderPage(1);
+  }, [publicFilters]);
+
+  useEffect(() => {
+    if (providerPage > providerPageCount) setProviderPage(providerPageCount);
+  }, [providerPage, providerPageCount]);
+
   return (
-    <div className="min-h-screen bg-[#e8e8e4] text-black">
+    <div className="min-h-screen overflow-x-hidden bg-[#fffaf3] text-[#171b30]">
       <PublicNavbar />
 
       <main>
-        {/* HERO */}
-<section
-  className="relative overflow-hidden bg-white"
-  style={{
-    backgroundImage: `url(${homeBg})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  }}
->
-  {/* MOBILE ONLY SOFT OVERLAY */}
-  <div className="pointer-events-none absolute inset-0 bg-white/75 sm:bg-white/60 lg:bg-transparent" />
+        <section className="hero-shell relative top-0 z-0 overflow-hidden bg-[#d9dce3] lg:min-h-screen">
+          <div ref={heroLayerRef} className="hero-stage hero-pattern relative min-h-screen origin-center overflow-hidden px-5 pb-16 pt-28 sm:px-8 lg:h-full lg:px-12 lg:pb-20 lg:pt-36">
+          <BackgroundSparkles />
 
-  <div className="relative mx-auto max-w-7xl px-4 pt-24 pb-10 sm:px-5 sm:pt-28 sm:pb-14 md:pt-32 md:pb-20 lg:pt-36 lg:pb-24">
-    <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-      {/* LEFT CONTENT */}
-      <div className="mx-auto max-w-xl text-center lg:mx-0 lg:max-w-3xl lg:text-left">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/40 bg-[#b5e48c] px-3.5 py-2 text-xs font-black text-black shadow-sm backdrop-blur-md sm:mb-5 sm:px-4 sm:text-sm">
-          <ShieldCheck size={17} />
-          Verified. Platonic. Public-meetup focused.
-        </div>
-
-        <h1 className="text-[2.45rem] font-black leading-[0.95] tracking-tight text-black sm:text-5xl md:text-4xl lg:text-7xl">
-          Find a trusted buddy for every plan.
-        </h1>
-
-        <p className="mx-auto mt-4 max-w-md text-base leading-7 text-black/70 sm:mt-6 sm:max-w-2xl sm:text-lg sm:leading-8 lg:mx-0">
-          Book verified companions for movies, dinner, shopping, gaming, tours
-          and events.
-        </p>
-
-        <div className="relative z-30 mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row lg:justify-start">
-          <Link
-            to="/register"
-            className="inline-flex w-full transform-gpu items-center justify-center rounded-2xl border border-black bg-black px-6 py-3.5 text-sm font-black text-white shadow-[0_18px_40px_rgba(0,0,0,0.18)] transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:bg-[#a2d2ff] hover:text-black hover:shadow-[0_25px_55px_rgba(0,0,0,0.25)] sm:w-auto sm:py-3"
-          >
-            Find a Buddy
-          </Link>
-
-          <Link
-            href="/contact"
-            className="inline-flex w-full transform-gpu items-center justify-center rounded-2xl border border-black/10 bg-white/90 px-6 py-3.5 text-sm font-black text-black shadow-sm backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:bg-black hover:text-white sm:w-auto sm:py-3"
-          >
-            Contact Us
-          </Link>
-        </div>
-
-        {/* MOBILE BETTER CHIPS */}
-        <div className="mt-6 flex max-w-full gap-3 overflow-x-auto pb-2 sm:mt-8 sm:grid sm:max-w-2xl sm:grid-cols-4 sm:overflow-visible sm:pb-0">
-          {["KYC Flow", "Face Check", "Live Location", "Safe Chat"].map(
-            (item) => (
-              <div
-                key={item}
-                className="min-w-[135px] rounded-2xl border border-black/10 bg-[#dee2e6]/95 p-3 text-center text-xs font-black text-black shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white sm:min-w-0"
-              >
-                <CheckCircle2 className="mx-auto mb-1 text-black" size={18} />
-                {item}
+          <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+            <div className="animate-rise">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#e9cbb2] bg-white/85 px-4 py-2 text-xs font-black text-[#bc6e36] shadow-sm backdrop-blur">
+                <ShieldCheck size={15} />
+                Verified people. Real plans. Safer meetups.
               </div>
-            )
-          )}
-        </div>
-      </div>
 
-      {/* RIGHT IMAGE PANEL */}
-      <div className="group relative z-0 mt-2 lg:z-20 lg:mt-0">
-        {/* SOFT GLOW */}
-        <div className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-[#a2d2ff]/30 blur-2xl transition duration-500 group-hover:bg-[#a2d2ff]/40 sm:-inset-5 sm:rounded-[2.7rem]" />
-
-        {/* FLOATING TOP BADGE */}
-        <div className="absolute -left-4 top-32 z-10 hidden rounded-2xl border border-black/10 bg-white/90 px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl transition duration-500 group-hover:-translate-y-2 group-hover:scale-105 md:block">
-          <div className="flex items-center gap-2 border-2 border-transparent">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#b5e48c] text-black">
-              <ShieldCheck size={17} />
-            </div>
-            <div>
-              <p className="text-xs font-black text-black">Verified</p>
-              <p className="text-[11px] font-bold text-black/55">
-                Safe profile flow
+              <p className="mt-7 text-sm font-black text-[#d67f3d]">
+                {user
+                  ? `Welcome back${firstName ? `, ${firstName}` : ""}`
+                  : ""}
               </p>
-            </div>
-          </div>
-        </div>
 
-        {/* FLOATING RIGHT BADGE */}
-        <div className="absolute -right-4 top-24 z-10 hidden rounded-2xl border border-[#979dac] bg-black px-4 py-3 text-white shadow-[0_18px_40px_rgba(0,0,0,0.22)] transition duration-500 group-hover:-translate-y-2 group-hover:scale-105 lg:block">
-          <div className="flex items-center gap-2">
-            <MapPin size={17} className="text-[#a2d2ff]" />
-            <div>
-              <p className="text-xs font-black">Public places</p>
-              <p className="text-[11px] font-bold text-white/60">
-                Meetup focused
-              </p>
-            </div>
-          </div>
-        </div>
+              <h1 className="mt-3 max-w-[650px] text-[2.8rem] font-black leading-[1.02] tracking-tight sm:text-6xl lg:text-[4.8rem]">
+                {getHeroTitleParts(siteContent.heroTitle).main}
+                <span className="block text-[#e08c4c]">
+                  {getHeroTitleParts(siteContent.heroTitle).highlight}
+                </span>
+              </h1>
 
-        {/* MAIN IMAGE CARD */}
-        <div className="relative z-0 transform-gpu overflow-hidden rounded-[1.8rem] border-2 border-black/40 bg-white/80 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.16)] backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-[1.01] group-hover:shadow-[0_35px_90px_rgba(0,0,0,0.22)] sm:rounded-[2.3rem] sm:border-black/50 sm:p-3 lg:group-hover:-translate-y-2 lg:group-hover:scale-[1.02]">
-          <div className="relative overflow-hidden rounded-[1.35rem] sm:rounded-[1.8rem]">
-            <img
-              src={meetupPanel}
-              alt="People meeting safely in a cafe"
-              className="h-[310px] w-full object-cover object-center transition duration-700 group-hover:scale-105 sm:h-[430px] sm:object-[70%_center] lg:h-[500px]"
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to={discoverRoute}
+                  className="group inline-flex items-center justify-center gap-2 rounded-md bg-[#171b30] px-7 py-4 text-sm font-black text-white shadow-[0_16px_35px_rgba(23,27,48,0.2)] transition hover:-translate-y-1 hover:bg-[#d77f40]"
+                >
+                  {siteContent.heroHighlight || "Browse Indian providers"}
+                  <ArrowRight size={17} className="transition group-hover:translate-x-1" />
+                </Link>
+                               
+
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-black text-black/45">
+                {["KYC profiles", "Public places", "Private chat", "Secure payments"].map(
+                  (item) => (
+                    <span key={item} className="flex items-center gap-1.5">
+                      <Check size={14} className="text-[#d67f3d]" /> {item}
+                    </span>
+                  )
+                )}
+              </div>
+
+              <div className="mt-10 grid max-w-xl grid-cols-3 border-t border-[#dbc7b7]/65 pt-7">
+                {[
+                  [siteContent.statVerifiedMembers || "300+", siteContent.statVerifiedMembersLabel || "Verified members"],
+                  [siteContent.statPlansCreated || "1,456", siteContent.statPlansCreatedLabel || "Plans created"],
+                  [siteContent.statAverageRating || "4.8", siteContent.statAverageRatingLabel || "Average rating"],
+                ].map(([value, label]) => (
+                  <div key={label} className="pr-3">
+                    <p className="text-2xl font-black sm:text-3xl">{value}</p>
+                    <p className="mt-1 text-[11px] font-bold leading-4 text-black/40 sm:text-xs">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <HeroVisual user={user} />
+          </div>
+          </div>
+        </section>
+
+        <div className="page-stack relative z-20 -mt-6 overflow-hidden rounded-t-[2rem] bg-[#fffaf3] shadow-[0_-28px_70px_rgba(53,35,23,0.16)] sm:rounded-t-[2.5rem]">
+        <section className="border-y border-black/5 bg-white px-5 py-7 sm:px-8">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {activities.map(({ name, icon: Icon, tone }) => (
+              <Link
+                key={name}
+                to="#providers"
+                className="group flex items-center gap-3 rounded-md px-3 py-3 transition hover:bg-[#fff6ea]"
+              >
+                <span className={`grid h-10 w-10 place-items-center rounded-md ${tone}`}>
+                  <Icon size={18} />
+                </span>
+                <span className="text-sm font-black group-hover:text-[#c97031]">{name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="px-5 py-20 sm:px-8 lg:py-28">
+          <div className="mx-auto max-w-7xl">
+            <SectionHeading
+              eyebrow="Safety by design"
+              title={siteContent.trustTitle || "Trust tools for every part of the meetup"}
+              text="BuddyBOOK gives members clear identity, communication, payment and location signals before a plan begins."
             />
 
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/82 via-black/20 to-transparent" />
-
-            {/* TOP MINI LABEL */}
-            <div className="absolute left-3 top-3 rounded-full border border-white/25 bg-white/20 px-3 py-1.5 text-[11px] font-black text-white shadow-lg backdrop-blur-xl sm:left-5 sm:top-5 sm:px-4 sm:py-2 sm:text-xs">
-              Safe social planning
+            <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {safetyItems.map(({ icon: Icon, title, text }, index) => (
+                <article
+                  key={title}
+                  className="group animate-rise rounded-lg border border-black/10 bg-white p-6 shadow-[0_14px_40px_rgba(73,48,30,0.06)] transition duration-300 hover:-translate-y-2 hover:border-[#e6a572]/60 hover:shadow-[0_22px_55px_rgba(73,48,30,0.12)]"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <span className="grid h-11 w-11 place-items-center rounded-md bg-[#fff0df] text-[#c97031] transition group-hover:bg-[#171b30] group-hover:text-white">
+                    <Icon size={20} />
+                  </span>
+                  <h3 className="mt-5 text-lg font-black">{title}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-black/50">{text}</p>
+                </article>
+              ))}
             </div>
+          </div>
+        </section>
 
-            {/* MOBILE FLOATING RATING */}
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/65 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur-xl sm:hidden">
-              <Star size={12} className="fill-white" />
-              4.9
-            </div>
+        <PublicServiceExploreSection
+          providers={paginatedPublicProviders}
+          totalProviders={filteredPublicProviders.length}
+          loading={providerLoading}
+          filters={publicFilters}
+          cities={publicCities}
+          states={publicStates}
+          activities={publicActivities}
+          page={providerPage}
+          pageCount={providerPageCount}
+          title={siteContent.communityTitle || "Explore more Meet - India"}
+          content={siteContent}
+          onPage={setProviderPage}
+          onFilter={(key, value) =>
+            setPublicFilters((current) => ({ ...current, [key]: value }))
+          }
+          onReset={() => setPublicFilters(publicSearchDefaults)}
+        />
 
-            {/* BOTTOM CONTENT CARD */}
-            <div className="absolute bottom-3 left-3 right-3 sm:bottom-5 sm:left-5 sm:right-5">
-              <div className="rounded-2xl border border-white/25 bg-white/20 p-4 text-white shadow-xl backdrop-blur-xl transition duration-500 group-hover:bg-white/25 sm:rounded-3xl sm:p-5">
-                <div className="mb-2 flex items-center justify-between gap-3 sm:mb-3">
-                  <p className="rounded-full bg-[#a2d2ff] px-3 py-1 text-xs font-black text-black sm:text-sm">
-                    Public meetup
-                  </p>
-
-                  <div className="hidden items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-white sm:flex">
-                    <Star size={13} className="fill-white" />
-                    4.9
-                  </div>
+        <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
+          <SectionSparkles tone="green" />
+          <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="relative min-h-[500px]">
+              <img
+                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&auto=format&fit=crop&q=85"
+                alt="Friends enjoying a public meetup"
+                className="absolute inset-0 h-full w-full rounded-lg object-cover"
+              />
+              <div className="animate-float absolute right-4 top-7 rounded-lg bg-white p-4 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-md bg-[#e6f3ec] text-[#267a5b]">
+                    <CalendarCheck2 size={19} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-black">Plan confirmed</p>                  </div>
                 </div>
-
-                <h3 className="text-xl font-black leading-tight sm:text-2xl">
-                  Coffee, conversation and safe planning
-                </h3>
-
-                <p className="mt-2 text-xs leading-5 text-white/85 sm:text-sm sm:leading-6">
-                  Choose activity, place and time before connecting safely
-                  through in-app chat.
+              </div>
+              <div className="absolute bottom-5 left-5 right-5 rounded-lg bg-[#fffaf3] p-5 text-white shadow-xl backdrop-blur sm:right-auto sm:w-[330px]">
+                <div className="flex items-center gap-2 text-[#e08c4c]">
+                  <ShieldCheck size={18} />
+                  <p className="text-xs font-black uppercase tracking-[0.12em]">Meet safely</p>
+                </div>
+                <p className="mt-3 text-sm font-semibold leading-6 text-black">
+                  Keep your chat, location and booking history inside BuddyBOOK.
                 </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* BOTTOM STATS */}
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-2 sm:mt-5 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
-          {[
-            ["Verified", "Profile checks"],
-            ["Public", "Meetup places"],
-            ["Support", "Report system"],
-          ].map(([title, text]) => (
-            <div
-              key={title}
-              className="min-w-[145px] transform-gpu rounded-2xl border border-black/10 bg-[#dee2e6]/95 p-4 text-center shadow-lg backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:bg-white hover:shadow-[0_22px_45px_rgba(0,0,0,0.16)] sm:min-w-0"
-            >
-              <div className="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-full bg-black text-white transition">
-                <CheckCircle2 size={16} />
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">How it works</p>
+              <h2 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">
+                Four clear steps from an idea to a real plan
+              </h2>
+              <div className="mt-9 grid gap-6">
+                {steps.map(([number, title, text]) => (
+                  <div key={number} className="grid grid-cols-[50px_1fr] gap-4">
+                    <span className="grid h-12 w-12 place-items-center border-1 border-black rounded-md bg-[#f6d8b5] text-xs font-black text-black">{number}</span>
+                    <div>
+                      <h3 className="font-black">{title}</h3>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-black/50">{text}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <p className="text-base font-black text-black sm:text-lg">
-                {title}
-              </p>
-              <p className="mt-1 text-xs font-bold text-black/60">{text}</p>
             </div>
-          ))}
+          </div>
+        </section>
+
+
+
+<section className="px-5 pb-20 sm:px-8 lg:pb-28">
+           <div className="relative mx-auto grid max-w-7xl overflow-hidden rounded-lg bg-[#ffeedd] lg:grid-cols-[1.1fr_0.9fr]">
+             <SectionSparkles tone="light" />
+             <div className="relative z-10 p-8 text-white sm:p-12 lg:p-16">
+               <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">Become a verified buddy</p>
+               <h2 className="mt-4 max-w-2xl text-3xl text-black font-black leading-tight sm:text-5xl">
+                 Share your time, choose your schedule and earn safely.
+               </h2>
+               <p className="mt-5 max-w-xl text-sm font-semibold leading-7 text-black sm:text-base">
+                 Set the activities you enjoy, your hourly rate and your available days. Accept only the public plans that feel right for you.
+               </p>
+
+               <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                 {["Set your price", "Control availability", "Review each request", "Receive recorded payments"].map((item) => (
+                   <span key={item} className="flex items-center gap-2 text-sm font-bold text-black">
+                     <Check size={15} className="text-black" /> {item}
+                   </span>
+                 ))}
+               </div>
+
+               <Link
+                 to="/register?role=PROVIDER"
+                 className="mt-9 inline-flex items-center gap-2 rounded-md bg-[#ffd49f] px-7 py-4 text-sm font-black text-[#173f35] transition hover:-translate-y-1 hover:bg-white"
+               >
+                 Register as provider <ArrowRight size={17} />
+               </Link>
+             </div>
+
+<img
+                src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1100&auto=format&fit=crop&q=85"
+                alt="BuddyBOOK providers"
+                className="h-full min-h-[360px] w-full object-cover"
+              />
+            </div>
+          </section>
+
+          <TestimonialsSection testimonials={homepageTestimonials} />
+
         </div>
-      </div>
-    </div>
-  </div>
-</section>
       </main>
 
       <PublicFooter />
+      <PublicProviderDrawer
+        open={drawerOpen}
+        loading={providerLoading}
+        providers={filteredPublicProviders}
+        filters={publicFilters}
+        cities={publicCities}
+        states={publicStates}
+        activities={publicActivities}
+        onClose={() => setDrawerOpen(false)}
+        onFilter={(key, value) =>
+          setPublicFilters((current) => ({ ...current, [key]: value }))
+        }
+        onReset={() => setPublicFilters(publicSearchDefaults)}
+      />
+
+      <style>{`
+        .hero-pattern {
+          background-color: #fffaf3;
+          background-image: linear-gradient(rgba(220, 189, 164, 0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(220, 189, 164, 0.14) 1px, transparent 1px);
+          background-size: 64px 64px;
+        }
+        @keyframes float-soft {
+          0%, 100% { transform: translate3d(0, 0, 0); }
+          50% { transform: translate3d(0, -10px, 0); }
+        }
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.25; transform: scale(0.75) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1.1) rotate(12deg); }
+        }
+        @keyframes rise {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes provider-scroll-rise {
+          from { opacity: 0.28; transform: translateY(150px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-float { animation: float-soft 4.5s ease-in-out infinite; }
+        .animate-twinkle { animation: twinkle 3s ease-in-out infinite; }
+        .animate-rise { animation: rise 700ms ease-out both; }
+        .hero-stage {
+          transform-origin: center top;
+          will-change: filter, transform, opacity;
+        }
+        .page-stack > section {
+          position: relative;
+        }
+        .community-layer {
+          box-shadow: 0 -12px 48px rgba(68, 45, 29, 0.04);
+        }
+        @supports (animation-timeline: view()) {
+          .provider-reveal {
+            animation: provider-scroll-rise linear both;
+            animation-timeline: view();
+            animation-range: entry 0% cover 38%;
+          }
+        }
+        @media (max-width: 767px) {
+          .hero-depth {
+            transform-origin: center center;
+          }
+          .page-stack {
+            border-radius: 1.5rem 1.5rem 0 0;
+          }
+          .community-layer {
+            box-shadow: none;
+          }
+        }
+@media (prefers-reduced-motion: reduce) {
+           .animate-float, .animate-twinkle, .animate-rise, .provider-reveal { animation: none; }
+         }
+       `}</style>
+     </div>
+   );
+}
+
+const testimonials = [
+  {
+    name: "Priya Desai",
+    city: "Mumbai",
+    text: "Found a great movie buddy through BuddyBOOK. The KYC verification made me feel safe and the meetup was exactly as promised.",
+    rating: 5,
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=85",
+  },
+  {
+    name: "Arjun Kumar",
+    city: "Bengaluru",
+    text: "I love the cafe meetups I've had. The providers are genuine and the platform makes everything so easy.",
+    rating: 5,
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=85",
+  },
+  {
+    name: "Sneha Patel",
+    city: "Delhi",
+    text: "Been using BuddyBOOK for 2 months now. Always safe public meetups and great company for city walks.",
+    rating: 4,
+    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=85",
+  },
+  {
+    name: "Rohit Verma",
+    city: "Jaipur",
+    text: "The platform is well designed and the providers are verified. Had an amazing dinner meetup experience!",
+    rating: 5,
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=85",
+  },
+];
+
+function ProfileCollageSection({ profiles, title, layout = "side" }) {
+  if (!profiles?.length) return null;
+
+  return (
+    <section className="px-5 py-20 sm:px-8 lg:py-28">
+      <div className="mx-auto max-w-7xl">
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">{title}</p>
+        <h2 className="mt-2 max-w-2xl text-3xl font-black leading-tight sm:text-5xl">
+          Real meetups, real connections
+        </h2>
+
+{layout === "side" ? (
+           <div className="mt-10 grid gap-6 lg:grid-cols-2">
+             {profiles.map((profile, index) => (
+               <ProfileCollageCard key={profile.name} profile={profile} index={index} />
+             ))}
+           </div>
+        ) : (
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {profiles.map((profile, index) => (
+              <ProfileCollageCard key={profile.name} profile={profile} index={index} grid />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProfileCollageCard({ profile, index, grid = false }) {
+  return (
+    <div
+      className={`group overflow-hidden rounded-[2rem] border-2 border-[#e08c4c] bg-white shadow-[0_16px_45px_rgba(224,140,76,0.12)] transition hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(224,140,76,0.25)] ${
+        grid ? "rounded-[1.5rem]" : ""
+      }`}
+      style={{ animationDelay: `${index * 150}ms` }}
+    >
+      <div className={`relative ${grid ? "h-[140px]" : "h-[180px]"}`}>
+        <img
+          src={profile.image}
+          alt={profile.name}
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 ring-4 ring-[#e08c4c]/30 ring-inset rounded-[inherit]" />
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-black text-black">{profile.name}</h3>
+          <BadgeCheck size={14} className="text-[#e08c4c]" />
+        </div>
+        <p className="mt-1 text-xs font-bold text-black/45">{profile.city}</p>
+
+        <div className="mt-3 flex items-center gap-1 text-xs font-black text-[#e08c4c]">
+          <Star size={12} fill="currentColor" /> {profile.rating}
+        </div>
+      </div>
     </div>
   );
 }
+
+function TestimonialsSection({ testimonials }) {
+  const [current, setCurrent] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    setCurrent(0);
+  }, [testimonials.length]);
+
+  if (!testimonials.length) return null;
+
+  const next = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrent((prev) => (prev + 1) % testimonials.length);
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  const prev = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrent((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  const currentTestimonial = testimonials[current];
+
+  return (
+    <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
+      <SectionSparkles tone="green" />
+
+      <div className="relative z-10 mx-auto max-w-4xl">
+        <div className="text-center">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
+            What buddies say
+          </p>
+          <h2 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">
+            Testimonials from real members
+          </h2>
+        </div>
+
+        <div className="mt-12 relative">
+          <div
+            className={`transition-all duration-300 ${
+              isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
+            }`}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="relative">
+                <img
+                  src={currentTestimonial.image}
+                  alt={currentTestimonial.name}
+                  className="h-24 w-24 rounded-full object-cover border-4 border-[#e08c4c] shadow-xl"
+                />
+                <div className="absolute -bottom-2 -right-2 grid h-10 w-10 place-items-center rounded-full bg-[#e08c4c] text-white shadow-lg">
+                  <Quote size={18} />
+                </div>
+              </div>
+
+              <p className="mt-8 max-w-2xl text-lg font-semibold leading-8 text-black/70 sm:text-xl">
+                "{currentTestimonial.text}"
+              </p>
+
+              <div className="mt-6 flex items-center gap-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={18}
+                    className={i < currentTestimonial.rating ? "text-[#f59e0b]" : "text-black/20"}
+                    fill={i < currentTestimonial.rating ? "currentColor" : "none"}
+                  />
+                ))}
+              </div>
+
+              <p className="mt-3 text-base font-black text-black">
+                {currentTestimonial.name}
+                <span className="ml-2 text-sm font-semibold text-black/45">
+                  · {currentTestimonial.city}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={prev}
+              className="grid h-12 w-12 place-items-center rounded-full border-2 border-black/10 bg-white text-black transition hover:bg-[#ffeedd]"
+              aria-label="Previous testimonial"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div className="flex items-center gap-2">
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setCurrent(index)}
+                  className={`h-3 w-3 rounded-full transition ${
+                    index === current ? "bg-[#e08c4c] scale-125" : "bg-black/20"
+                  }`}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={next}
+              className="grid h-12 w-12 place-items-center rounded-full border-2 border-black/10 bg-white text-black transition hover:bg-[#ffeedd]"
+              aria-label="Next testimonial"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Quote() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14 3.5c0-1.38-1.12-2.5-2.5-2.5S9 2.12 9 3.5v8c0 1.38 1.12 2.5 2.5 2.5h4l-2 4h-2c-2.21 0-4-1.79-4-4v-6c0-1.1.9-2 2-2h4V3.5zM22 3.5c0-1.38-1.12-2.5-2.5-2.5S17 2.12 17 3.5v8c0 1.38 1.12 2.5 2.5 2.5h4l-2 4h-2c-2.21 0-4-1.79-4-4v-6c0-1.1.9-2 2-2h4V3.5h2z" />
+    </svg>
+  );
+}
+
+function HeroVisual({ user }) {
+  return (
+    <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
+      <div className="absolute inset-x-[4%] bottom-24 top-4 overflow-hidden rounded-t-[45%] rounded-b-lg sm:inset-x-[10%] sm:bottom-16 lg:inset-x-[8%]">
+        <img
+          src={friendsHero}
+          alt="Verified companions enjoying a public meetup"
+          className="h-full w-full object-cover object-[82%_center] transition duration-700 hover:scale-[1.025] sm:object-[78%_center] lg:object-[86%_center]"
+        />
+        <div className="absolute inset-0 bg-[#efb37f]/10" />
+      </div>
+
+      <div className="animate-float absolute left-0 top-[8%] z-20 rounded-lg bg-white px-4 py-3 shadow-[0_18px_45px_rgba(66,42,27,0.15)] sm:left-[2%]">
+        <div className="flex items-center gap-3">
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e8f5ee] text-[#267a5b]">
+            <UserRoundCheck size={17} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-black">300+ verified</p>
+            <p className="text-[10px] font-bold text-black/35">Growing community</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="animate-float absolute right-0 top-[23%] z-20 rounded-lg bg-[#171b30] px-4 py-3 text-white shadow-xl [animation-delay:700ms]">
+        <div className="flex items-center gap-3">
+          <MapPin size={17} className="text-[#f4ad75]" />
+          <div>
+            <p className="text-xs font-black">Public meetup</p>
+            <p className="text-[10px] font-bold text-white/45">Location selected</p>
+          </div>
+        </div>
+      </div>
+
+<div className="absolute bottom-0 left-1/2 z-30 w-[min(92%,340px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0">
+        <div className="flex items-start gap-3">
+          <img src={profiles[0].image} alt={profiles[0].name} className="h-16 w-16 shrink-0 rounded-full object-cover border-4 border-[#e08c4c]" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-black">{profiles[0].name}</h3>
+              <BadgeCheck size={15} className="shrink-0 text-[#e08c4c]" />
+            </div>
+            <p className="mt-1 text-xs font-bold text-black/45">
+              {profiles[0].city} · {profiles[0].rating} ★
+            </p>
+          </div>
+        </div>
+        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Upcoming plan</p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <div>
+            <p className="font-black">Coffee · 2 hours</p>
+            <p className="mt-1 text-xs font-bold text-black/38">Saturday, 5:30 PM</p>
+          </div>
+          <p className="text-lg font-black text-[#e08c4c]">₹800</p>
+        </div>
+      </div>
+
+      <div className="absolute left-[4%] top-[34%] z-20 grid h-12 w-12 place-items-center rounded-full bg-[#ed6572] text-white shadow-lg">
+        <Heart size={18} />
+      </div>
+      <div className="absolute right-[7%] top-[7%] z-20 grid h-14 w-14 place-items-center rounded-full bg-white text-[#d77f40] shadow-lg">
+        <Sparkles size={20} />
+      </div>
+
+      {user?.city ? (
+        <div className="absolute left-[38%] top-[11%] z-20 rounded-md bg-white/90 px-3 py-2 text-[10px] font-black shadow-lg backdrop-blur">
+          Near {user.city}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProfileCard({ profile, large = false }) {
+  const activity = Array.isArray(profile.activities)
+    ? profile.activities[0]
+    : profile.activity;
+
+  return (
+    <article className={large ? "group overflow-hidden rounded-lg border-2 border-[#e08c4c] bg-white shadow-[0_16px_45px_rgba(63,42,28,0.08)] transition hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(224,140,76,0.25)]" : "flex items-center gap-3"}>
+      {large ? (
+        <img src={profile.image} alt={profile.name} className="h-64 w-full object-cover object-top sm:h-72 border-4 border-[#e08c4c]/30 rounded-t-lg" />
+      ) : (
+        <img src={profile.image} alt={profile.name} className="h-14 w-10 shrink-0 rounded-md object-cover border-2 border-[#e08c4c]" />
+      )}
+
+      <div className={large ? "p-5" : "min-w-0 flex-1"}>
+        <div className="flex items-center gap-1.5">
+          <h3 className={`${large ? "text-lg" : "truncate text-sm"} font-black`}>{profile.name}</h3>
+          <BadgeCheck size={large ? 17 : 14} className="shrink-0 text-[#e08c4c]" />
+        </div>
+        <p className={`${large ? "mt-2" : "mt-0.5 truncate"} text-xs font-bold text-black/38`}>
+          {profile.city} {activity ? `- ${activity}` : ""}
+        </p>
+        <div className={`${large ? "mt-4" : "mt-1"} flex items-center gap-1 text-xs font-black text-[#e08c4c]`}>
+          <Star size={12} fill="currentColor" /> {profile.rating}
+          {large ? <span className="ml-2 text-black/30">Verified profile</span> : null}
+        </div>
+</div>
+    </article>
+  );
+}
+
+function BackgroundSparkles() {
+  const sparks = [
+    ["spark", "left-[3%] top-[12%]", "0ms", "text-[#dc955e]", 20],
+    ["star", "left-[9%] top-[31%]", "450ms", "text-[#e96975]", 14],
+    ["dot", "left-[15%] top-[8%]", "900ms", "bg-[#76ad98]", 10],
+    ["heart", "left-[20%] top-[72%]", "1350ms", "text-[#e96975]", 15],
+    ["spark", "left-[26%] top-[20%]", "1800ms", "text-[#d99058]", 15],
+    ["dot", "left-[31%] top-[84%]", "2250ms", "bg-[#e8ae7d]", 8],
+    ["star", "left-[36%] top-[9%]", "500ms", "text-[#dca064]", 18],
+    ["spark", "left-[41%] top-[42%]", "1050ms", "text-[#7eae9c]", 13],
+    ["heart", "left-[46%] top-[78%]", "1550ms", "text-[#e96975]", 14],
+    ["dot", "left-[50%] top-[16%]", "2050ms", "bg-[#ef6877]", 9],
+    ["spark", "left-[55%] top-[62%]", "2500ms", "text-[#d99058]", 20],
+    ["star", "left-[60%] top-[7%]", "300ms", "text-[#e6a875]", 13],
+    ["dot", "left-[64%] top-[88%]", "750ms", "bg-[#76ad98]", 11],
+    ["heart", "left-[69%] top-[35%]", "1200ms", "text-[#e96975]", 16],
+    ["spark", "left-[73%] top-[15%]", "1650ms", "text-[#d99058]", 17],
+    ["star", "left-[77%] top-[73%]", "2150ms", "text-[#7eae9c]", 14],
+    ["dot", "left-[81%] top-[47%]", "2600ms", "bg-[#e8ae7d]", 8],
+    ["spark", "left-[85%] top-[9%]", "600ms", "text-[#d99058]", 21],
+    ["heart", "left-[88%] top-[82%]", "1100ms", "text-[#e96975]", 13],
+    ["star", "left-[92%] top-[28%]", "1500ms", "text-[#dca064]", 16],
+    ["dot", "left-[95%] top-[64%]", "1950ms", "bg-[#76ad98]", 10],
+    ["spark", "left-[6%] top-[91%]", "2400ms", "text-[#d99058]", 14],
+    ["star", "left-[34%] top-[55%]", "2750ms", "text-[#e96975]", 12],
+    ["spark", "left-[58%] top-[91%]", "350ms", "text-[#7eae9c]", 16],
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {sparks.map(([type, position, delay, color, size], index) => {
+        const shared = `animate-twinkle absolute ${position} ${color}`;
+
+        if (type === "dot") {
+          return (
+            <span
+              key={`${position}-${index}`}
+              className={`${shared} rounded-full`}
+              style={{ width: size, height: size, animationDelay: delay }}
+            />
+          );
+        }
+
+        const Icon = type === "heart" ? Heart : type === "star" ? Star : Sparkles;
+        return (
+          <Icon
+            key={`${position}-${index}`}
+            size={size}
+            className={shared}
+            style={{ animationDelay: delay }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionSparkles({ tone }) {
+  const light = tone === "light";
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <Sparkles className={`animate-twinkle absolute left-[6%] top-[18%] ${light ? "text-white/25" : "text-[#62a087]/30"}`} size={24} />
+      <Star className={`animate-twinkle absolute right-[9%] top-[15%] ${light ? "text-[#ffd49f]/50" : "text-[#62a087]/30"}`} size={17} style={{ animationDelay: "800ms" }} />
+      <Heart className={`animate-twinkle absolute bottom-[14%] left-[44%] ${light ? "text-white/20" : "text-[#de8e61]/25"}`} size={18} style={{ animationDelay: "1500ms" }} />
+      <span className={`animate-float absolute bottom-[20%] right-[6%] h-2.5 w-2.5 rounded-full ${light ? "bg-[#ffd49f]/40" : "bg-[#62a087]/25"}`} />
+    </div>
+  );
+}
+
+function SectionHeading({ eyebrow, title, text }) {
+  return (
+    <div className="mx-auto max-w-3xl text-center">
+      <p className="text-sm font-black uppercase tracking-[0.18em] text-[#c97031]">{eyebrow}</p>
+      <h2 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">{title}</h2>
+      <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-black/48 sm:text-base">{text}</p>
+    </div>
+  );
+}
+
+function PublicServiceExploreSection({
+  providers,
+  totalProviders,
+  loading,
+  filters,
+  cities,
+  states,
+  activities,
+  page,
+  pageCount,
+  title,
+  content = {},
+  onPage,
+  onFilter,
+  onReset,
+}) {
+  const servicePills = [
+    ["City tour", "City walk"],
+    ["Events", "Event partner"],
+    ["Cafe meet", "Coffee meetup"],
+    ["Gaming", "Gaming session"],
+    ["Dinner", "Dinner plan"],
+    ["Shopping", "Shopping companion"],
+    ["Sports", "Cricket companion"],
+    ["Study partner", "Study buddy"],
+  ];
+
+  return (
+    <section id="community" className="border-y border-black/10 bg-white px-5 py-10 sm:px-8">
+      <span id="providers" className="block scroll-mt-28" />
+      <div className="mx-auto max-w-[1520px]">
+        <div className="flex flex-wrap items-center gap-3 border-b border-black/10 pb-5">
+          <p className="mr-2 text-xl font-black text-black">Service Type</p>
+          <button className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black">
+            Meet up
+          </button>
+          {servicePills.map(([label, value], index) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onFilter("activity", value)}
+              className={`rounded-full px-5 py-3 text-sm font-black transition ${
+                filters.activity === value
+                  ? "bg-[#ffd23f] text-black"
+                  : "bg-[#f8f8f8] text-black hover:bg-[#eeeeee]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <Link
+            to="/activities"
+            className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white"
+          >
+            View more services ({activities.length || 0}) <ArrowRight size={16} />
+          </Link>
+        </div>
+
+        <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="h-max rounded-2xl border border-black/10 bg-white p-6 lg:sticky lg:top-28">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-black text-black">Filter</h3>
+            </div>
+            <div className="mt-8 grid gap-6">
+              <label>
+                <span className="text-sm font-black text-black">{content.filterUsernameLabel || "Find username"}</span>
+                <input
+                  value={filters.keyword}
+                  onChange={(event) => onFilter("keyword", event.target.value)}
+                  placeholder="Enter username"
+                  className="mt-3 h-14 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
+                />
+              </label>
+              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} options={cities} onChange={(value) => onFilter("city", value)} />
+              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} options={states} onChange={(value) => onFilter("state", value)} />
+              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} options={activities} onChange={(value) => onFilter("activity", value)} />
+              <FilterRadioGroup
+                title={content.filterSortLabel || "Sort By"}
+                value={filters.rating === "4" ? "Highest Ratings" : "Recently Active"}
+                options={["Recently Active", "Highest Ratings"]}
+                onChange={(value) => onFilter("rating", value === "Highest Ratings" ? "4" : "All")}
+              />
+              <FilterRadioGroup title={content.filterPrivacyLabel || "Privacy"} value="Public" options={["Public", "Private"]} onChange={() => {}} />
+              <p className="-mt-4 text-xs font-semibold italic leading-5 text-black/50">
+                Unlock private profiles: 500+ loyalty points.
+              </p>
+              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} options={["All", "Male", "Female", "Non-binary", "Not specified"]} onChange={(value) => onFilter("gender", value)} />
+              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
+              <div className="grid max-w-[230px] grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="rounded-full border border-black/15 bg-white px-3 py-2.5 text-xs font-black"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full bg-black px-3 py-2.5 text-xs font-black text-white"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <div>
+            <h2 className="text-3xl font-black text-black">
+              {title}
+            </h2>
+            <p className="mt-2 text-sm font-bold text-black/45">
+              {totalProviders} provider profiles available
+            </p>
+
+            {loading ? (
+              <div className="mt-7 grid gap-x-5 gap-y-9 sm:grid-cols-2 xl:grid-cols-4">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <div key={index} className="h-[390px] animate-pulse rounded-2xl bg-[#f3f3f3]" />
+                ))}
+              </div>
+            ) : providers.length ? (
+              <div className="mt-7 grid gap-x-5 gap-y-9 sm:grid-cols-2 xl:grid-cols-4">
+                {providers.map((provider, index) => (
+                  <SmallIndianProviderCard key={provider.id} provider={provider} index={index} content={content} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-7 grid min-h-[360px] place-items-center rounded-2xl border border-dashed border-black/20 bg-[#fafafa] text-center">
+                <div>
+                  <Search size={34} className="mx-auto text-black" />
+                  <p className="mt-4 text-xl font-black">No profiles found</p>
+                  <p className="mt-2 text-sm font-semibold text-black/50">
+                    Provider profiles will appear here from backend data.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {pageCount > 1 ? (
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => onPage(Math.max(1, page - 1))}
+                  className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black text-black transition hover:bg-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: pageCount }, (_, index) => index + 1).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => onPage(item)}
+                    className={`grid h-11 w-11 place-items-center rounded-full text-sm font-black transition ${
+                      page === item
+                        ? "bg-black text-white"
+                        : "border border-black/10 bg-white text-black hover:bg-[#fffaf3]"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={page >= pageCount}
+                  onClick={() => onPage(Math.min(pageCount, page + 1))}
+                  className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black text-black transition hover:bg-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PublicServiceProviderCard({ provider, index }) {
+  const activity = provider.activities?.[0] || "e-meet";
+  const image = provider.image || provider.images?.[0] || "";
+  const sold = 59 + index * 21;
+  const booked = (index % 4) + 2;
+
+  return (
+    <Link to={`/providers/${provider.id}`} className="group block text-black">
+      <article>
+        <div className="relative aspect-[0.92] overflow-hidden rounded-2xl bg-[#eeeeee]">
+          {image ? (
+            <img src={image} alt={provider.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+          ) : (
+            <div className="grid h-full place-items-center text-4xl font-black">{provider.name?.[0] || "B"}</div>
+          )}
+          <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
+            {booked}× booked<br />Recently
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <h3 className="text-xl font-black">#{String(activity).toLowerCase().replace(/\s+/g, "-")}</h3>
+          <p className="mt-2 line-clamp-2 min-h-[44px] text-sm font-semibold leading-6 text-black">
+            {provider.bio || provider.headline || provider.profession || "Friendly companion for meetups"}
+          </p>
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-lg font-black">
+                🌈 {Number(provider.price || 25).toFixed(2)}/15min- {sold} sold
+              </p>
+              <p className="mt-1 text-sm font-bold text-black/40">~₹{Math.round(Number(provider.price || 25) * 74).toLocaleString("en-IN")} (INR)</p>
+            </div>
+            <p className="flex items-center gap-1 text-lg font-black">
+              <Star size={20} fill="black" className="text-black" />
+              {Number(provider.rating || 5).toFixed(1)}
+            </p>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src={image || profiles[0].image} alt="" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
+              <p className="truncate text-sm font-black">{provider.name} ({provider.age || 24})</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-1.5 text-[10px] font-black shadow-sm">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#ffcf33]">▶</span> {5 + index}s
+            </span>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function FilterRadioGroup({ title, value, options, onChange }) {
+  return (
+    <div>
+      <p className="text-sm font-black text-black">{title}</p>
+      <div className="mt-3 grid gap-3">
+        {options.map((option) => (
+          <label key={option} className="flex cursor-pointer items-center gap-3 text-lg font-medium text-black/65">
+            <input
+              type="radio"
+              checked={value === option}
+              onChange={() => onChange(option)}
+              className="h-5 w-5 accent-black"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SmallIndianProviderCard({ provider, index, content = {} }) {
+  const activity = provider.activities?.[0] || "Sports";
+  const image = provider.image || provider.images?.[0] || "";
+  const sold = 59 + index * 17;
+  const booked = (index % 4) + 2;
+
+  return (
+    <Link to={`/providers/${provider.id}`} className="group block text-black">
+      <article className="rounded-2xl bg-white">
+        <div className="relative aspect-[0.88] overflow-hidden rounded-2xl bg-[#eeeeee]">
+          {image ? (
+            <img
+              src={image}
+              alt={provider.name}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="grid h-full place-items-center text-4xl font-black">
+              {provider.name?.[0] || "B"}
+            </div>
+          )}
+          <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
+            {booked}x {content.providerCardBadgeText || "booked Recently"}
+          </span>
+        </div>
+
+        <div className="mt-3">
+          <h3 className="text-xl font-black">
+            {provider.name || "Verified Buddy"}
+          </h3>
+          <p className="mt-2 line-clamp-2 min-h-[44px] text-sm font-semibold leading-6 text-black">
+            {provider.bio ||
+              provider.headline ||
+              "Friendly company for coffee, movies, sports or city plans."}
+          </p>
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-lg font-black">
+                Rs {Number(provider.price || 500).toLocaleString("en-IN")}{content.providerCardPriceSuffix || "/hr"}
+              </p>
+              <p className="mt-1 text-xs font-bold text-black/40">
+                {sold} bookings completed
+              </p>
+            </div>
+            <p className="flex items-center gap-1 text-lg font-black">
+              <Star size={20} fill="black" className="text-black" />
+              {Number(provider.rating || 5).toFixed(1)}
+            </p>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function PublicProviderDrawer({
+  open,
+  loading,
+  providers,
+  filters,
+  cities,
+  states,
+  activities,
+  onClose,
+  onFilter,
+  onReset,
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-black/45 px-3 py-4 backdrop-blur-sm sm:px-5">
+      <div className="mx-auto flex h-full max-w-7xl flex-col overflow-hidden rounded-lg border border-black/10 bg-[#fffaf3] shadow-[0_30px_120px_rgba(0,0,0,0.28)]">
+        <div className="shrink-0 border-b border-black/10 bg-white p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d67f3d]">
+                Public explore
+              </p>
+              <h2 className="mt-1 text-2xl font-black text-[#171b30] sm:text-3xl">
+                Search verified providers
+              </h2>
+              <p className="mt-1 text-sm font-bold text-black/45">
+                Original backend profiles only. Login is required before connecting.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:bg-[#e9ecef]"
+              aria-label="Close provider search"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(240px,1.3fr)_repeat(5,minmax(130px,0.7fr))_auto]">
+            <label className="relative">
+              <Search
+                size={17}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-black/35"
+              />
+              <input
+                value={filters.keyword}
+                onChange={(event) => onFilter("keyword", event.target.value)}
+                placeholder="Name, city, activity..."
+                className="h-[54px] w-full rounded-md border border-black/10 bg-[#fbfaf7] pl-11 pr-4 text-sm font-bold outline-none transition focus:border-[#d67f3d]"
+              />
+            </label>
+
+            <DrawerFilter label="City" value={filters.city} options={cities} onChange={(value) => onFilter("city", value)} />
+            <DrawerFilter label="State" value={filters.state} options={states} onChange={(value) => onFilter("state", value)} />
+            <DrawerFilter label="Gender" value={filters.gender} options={["All", "Male", "Female", "Non-binary", "Not specified"]} onChange={(value) => onFilter("gender", value)} />
+            <DrawerFilter label="Activity" value={filters.activity} options={activities} onChange={(value) => onFilter("activity", value)} />
+            <DrawerFilter label="Max price" value={filters.maxPrice} options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
+            <DrawerFilter label="Rating" value={filters.rating} options={["All", "1", "2", "3", "4", "5"]} onChange={(value) => onFilter("rating", value)} />
+
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex h-[54px] items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-5 text-sm font-black text-[#d67f3d] transition hover:bg-[#fff4e6]"
+            >
+              <SlidersHorizontal size={16} /> Reset
+            </button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-black text-[#171b30]">
+                Recent provider profiles
+              </h3>
+              <p className="mt-1 text-sm font-bold text-black/45">
+                {providers.length} profiles available
+              </p>
+            </div>
+            <Link
+              to="/login"
+              className="hidden rounded-md bg-[#171b30] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-1 sm:inline-flex"
+            >
+              Get Started
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div
+                  key={index}
+                  className="h-[410px] animate-pulse rounded-2xl bg-white"
+                />
+              ))}
+            </div>
+          ) : providers.length ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {providers.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  link={`/providers/${provider.id}`}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid min-h-[320px] place-items-center rounded-lg border border-dashed border-black/15 bg-white text-center">
+              <div>
+                <Search size={30} className="mx-auto text-[#d67f3d]" />
+                <p className="mt-3 text-xl font-black">No provider profiles found</p>
+                <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-black/45">
+                  Only approved backend profiles appear here. Try a different filter or check again after providers publish their profiles.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DrawerFilter({ label, value, options, onChange }) {
+  return (
+    <label className="relative">
+      <span className="absolute left-3 top-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-black/35">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-[54px] w-full appearance-none rounded-md border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d]"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option === "All" ? "........." : option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) =>
+    String(a).localeCompare(String(b))
+  );
+}
+
+function normalizeSiteTestimonials(value) {
+  const rows = Array.isArray(value) ? value : [];
+  const cleaned = rows
+    .map((item, index) => ({
+      name: String(item?.name || "").trim(),
+      city: String(item?.city || item?.role || "").trim(),
+      text: String(item?.text || "").trim(),
+      rating: Math.min(5, Math.max(1, Number(item?.rating || 5))),
+      image:
+        item?.image ||
+        testimonials[index % testimonials.length]?.image ||
+        testimonials[0]?.image,
+    }))
+    .filter((item) => item.name && item.text);
+
+  return cleaned.length ? cleaned : testimonials;
+}
+
+function getHeroTitleParts(value) {
+  const fallback = "Make the plan. We will help you find the company.";
+  const text = String(value || fallback).trim();
+  const pieces = text.split(". ");
+
+  if (pieces.length >= 2) {
+    return {
+      main: `${pieces[0]}.`,
+      highlight: pieces.slice(1).join(". "),
+    };
+  }
+
+  return {
+    main: "Make the plan.",
+    highlight: text,
+  };
+}
+
+function onlyRealProviders(rows) {
+  return (Array.isArray(rows) ? rows : []).filter(
+    (provider) => provider?.id && !String(provider.id).startsWith("demo-")
+  );
+}
+
+function mergePublicProviders(...groups) {
+  const map = new Map();
+  groups.flat().forEach((provider) => {
+    if (!provider?.id) return;
+    map.set(provider.id, provider);
+  });
+  return Array.from(map.values());
+}
+

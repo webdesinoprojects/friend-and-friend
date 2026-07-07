@@ -1,5 +1,5 @@
-import { HeartHandshake } from "lucide-react";
 import { Link } from "react-router-dom";
+import Logo from "../common/Logo";
 
 export default function AuthLayout({ title, subtitle, children }) {
   return (
@@ -7,14 +7,8 @@ export default function AuthLayout({ title, subtitle, children }) {
       <div className="mx-auto flex min-h-screen max-w-6xl items-center px-5 py-10">
         <div className="grid w-full overflow-hidden rounded-[2rem] bg-white shadow-2xl lg:grid-cols-2">
           <div className="hidden bg-gradient-to-br from-blue-600 to-violet-700 p-12 text-white lg:block">
-            <div className="flex items-center gap-2">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-blue-600">
-                <HeartHandshake size={22} />
-              </div>
-
-              <span className="text-xl font-black tracking-tight text-white">
-                RentAFRND
-              </span>
+            <div className="w-fit rounded-2xl bg-white p-3 shadow-lg shadow-black/10">
+              <Logo />
             </div>
 
             <div className="mt-16">

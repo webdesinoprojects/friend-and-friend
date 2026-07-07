@@ -16,6 +16,15 @@ body {
   color: #0f172a;
 }
 
+html.buddybook-mono body {
+  filter: grayscale(1) contrast(1.08);
+}
+
+html.buddybook-mono img,
+html.buddybook-mono video {
+  filter: grayscale(1) contrast(1.05);
+}
+
 button,
 input,
 select,

@@ -1,383 +1,437 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import {
   ArrowRight,
   BadgeCheck,
-  Calendar,
+  CalendarCheck,
   CheckCircle2,
   MapPin,
+  MessageCircle,
+  Navigation,
   ShieldCheck,
-  User,
-  X,
+  Sparkles,
+  UserRoundPlus,
 } from "lucide-react";
 import PublicNavbar from "../../components/layout/PublicNavbar";
-import PublicFooter from "../../components/layout/PublicFooter";
+
+const steps = [
+  {
+    icon: UserRoundPlus,
+    number: "01",
+    kicker: "Account",
+    title: "Create your BuddyBOOK profile",
+    text: "Start with mobile verification, role selection and public profile details.",
+    drawerTitle: "Profile setup",
+    badge: "2 min setup",
+    points: [
+      "Register with mobile and optional email verification.",
+      "Choose whether you are joining as a user or provider.",
+    ],
+    flow: ["Signup", "Role"],
+  },
+  {
+    icon: BadgeCheck,
+    number: "02",
+    kicker: "Trust",
+    title: "Complete identity checks",
+    text: "KYC, selfie capture and admin review build confidence before anyone meets.",
+    drawerTitle: "Verification layer",
+    badge: "Verified access",
+    points: [
+      "Submit supported identity details for review.",
+      "Complete selfie or face verification when required.",
+    ],
+    flow: ["KYC", "Selfie"],
+  },
+  {
+    icon: CalendarCheck,
+    number: "03",
+    kicker: "Booking",
+    title: "Choose activity, time and place",
+    text: "Users pick a provider, public activity, schedule and safe meetup location.",
+    drawerTitle: "Booking plan",
+    badge: "Public plan",
+    points: [
+      "Browse providers by city, activity, price and availability.",
+      "View full provider profile before booking.",
+    ],
+    flow: ["Explore", "Profile"],
+  },
+  {
+    icon: MapPin,
+    number: "04",
+    kicker: "Meet",
+    title: "Meet safely with support signals",
+    text: "In-app chat, location cues and reporting tools keep the meetup accountable.",
+    drawerTitle: "Active meetup",
+    badge: "Live support",
+    points: [
+      "Use in-app chat before and during the booking.",
+      "Share live location during the active booking window.",
+    ],
+    flow: ["Chat", "Location"],
+  },
+];
+
+const supportPanels = [
+  {
+    icon: MessageCircle,
+    title: "Chat",
+    text: "Message inside booking only",
+    className: "right-[7%] top-[16%] rotate-[-3deg]",
+  },
+  {
+    icon: Navigation,
+    title: "Location",
+    text: "Share active meetup location",
+    className: "right-[17%] top-[43%] rotate-[4deg]",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Report",
+    text: "Escalate unsafe plans fast",
+    className: "right-[6%] bottom-[14%] rotate-[-2deg]",
+  },
+];
 
 export default function HowItWorks() {
-  const steps = [
-    {
-      icon: User,
-      title: "Create account",
-    },
-    {
-      icon: BadgeCheck,
-      title: "Verify identity",
-    },
-    {
-      icon: Calendar,
-      title: "Choose your plan",
-    },
-    {
-      icon: MapPin,
-      title: "Meet safely",
-    },
+  const [activeIndex, setActiveIndex] = useState(null);
+  const sectionRef = useRef(null);
+  const pathRef = useRef(null);
+  const nodePositions = [
+    "left-[5%] top-[69%]",
+    "left-[28%] top-[49%]",
+    "left-[56%] top-[39%]",
+    "left-[76%] top-[12%]",
+  ];
+  const popupPositions = [
+    "left-0 bottom-[calc(100%+0.9rem)] -translate-x-8",
+    "left-1/2 top-[calc(100%+0.9rem)] -translate-x-1/2",
+    "left-[calc(100%+0.9rem)] top-0",
+    "right-0 top-[calc(100%+0.9rem)]",
   ];
 
-  const [activeStep, setActiveStep] = useState(null);
-  const ActiveStepIcon = activeStep?.icon;
+  useEffect(() => {
+    const context = gsap.context(() => {
+      const path = pathRef.current;
+      const length = path?.getTotalLength?.() || 0;
 
-  const stepDetails = [
-    {
-      label: "Step 01",
-      heading: "Account setup",
-      badge: "Start here",
-      time: "2 min setup",
-      points: [
-        "Create profile with mobile and email.",
-        "Choose user or provider role.",
-        "Accept platform safety rules.",
-      ],
-      timeline: ["Signup", "Role", "Safety rules"],
-    },
-    {
-      label: "Step 02",
-      heading: "Trust verification",
-      badge: "KYC layer",
-      time: "Verified access",
-      points: [
-        "Complete identity document verification.",
-        "Add face selfie for profile trust.",
-        "Admin reviews suspicious accounts.",
-      ],
-      timeline: ["KYC", "Selfie", "Approval"],
-    },
-    {
-      label: "Step 03",
-      heading: "Booking process",
-      badge: "Plan safely",
-      time: "Public meetup",
-      points: [
-        "Choose activity, date and time.",
-        "Select public meetup location.",
-        "Confirm request through platform flow.",
-      ],
-      timeline: ["Activity", "Location", "Confirm"],
-    },
-    {
-      label: "Step 04",
-      heading: "Safe meetup",
-      badge: "Live support",
-      time: "During booking",
-      points: [
-        "Chat inside the app before meeting.",
-        "Use live location during active booking.",
-        "Report issues through support system.",
-      ],
-      timeline: ["Chat", "Location", "Report"],
-    },
-  ];
+      if (path && length) {
+        gsap.set(path, {
+          strokeDasharray: length,
+          strokeDashoffset: length,
+        });
+        gsap.to(path, {
+          strokeDashoffset: 0,
+          duration: 1.35,
+          ease: "power3.out",
+        });
+      }
+
+      gsap.from(".how-copy", {
+        y: 24,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power3.out",
+        stagger: 0.07,
+      });
+
+      gsap.from(".path-node", {
+        scale: 0.6,
+        y: 24,
+        opacity: 0,
+        duration: 0.58,
+        ease: "back.out(1.6)",
+        stagger: 0.1,
+        delay: 0.25,
+      });
+
+      gsap.from(".support-panel", {
+        x: 36,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power3.out",
+        stagger: 0.12,
+        delay: 0.45,
+      });
+    }, sectionRef);
+
+    return () => context.revert();
+  }, []);
+
+  const setActive = (index) => {
+    setActiveIndex(index);
+  };
 
   return (
-    <div className="min-h-screen bg-[#e8e8e4] text-black">
+    <div className="min-h-screen overflow-x-hidden bg-[#fffaf3] text-[#1f1a17]">
       <PublicNavbar />
 
-      <main className="pt-20">
+      <main className="pt-20 lg:min-h-[calc(100vh-5rem)]">
         <section
-          id="how"
-          className="relative overflow-hidden bg-[#e8e8e4] px-5 py-12">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(255,255,255,0.70),transparent_30%),radial-gradient(circle_at_85%_20%,rgba(173,232,244,0.80),transparent_32%),radial-gradient(circle_at_50%_100%,rgba(255,255,255,0.55),transparent_36%)]" />
-        
-          <div className="relative mx-auto max-w-7xl">
-            <div className="mb-8 text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-black text-black shadow-sm">
-                <ShieldCheck size={16} />
-                How BuddyBOOK works
-              </div>
-        
-              <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black tracking-tight text-black md:text-5xl">
-                Tap a step. See the complete safe flow.
-              </h2>
-        
-            </div>
-        
-            {/* USER TO PROVIDER FLOW */}
-            <div className="mb-9 rounded-[2rem] border-1 border-black  bg-white/80 p-4 shadow-[0_25px_70px_rgba(0,0,0,0.10)] backdrop-blur-xl">
-              <div className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr]">
-                <div className="rounded-[1.5rem] border-1 border-black  bg-white p-4 shadow-[0_18px_45px_rgba(0,0,0,0.10)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_25px_60px_rgba(0,0,0,0.14)]">
-                  <div className="flex items-center gap-4">
-                    <div className="grid h-16 w-16 place-items-center rounded-[1.3rem] bg-[#e8e8e4] text-4xl shadow-lg">
-                      👨
-                    </div>
-        
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-black/55">
-                        User
-                      </p>
-                      <h3 className="text-lg font-black text-black">
-                        Finds a verified buddy
-                      </h3>
-                      <p className="mt-1 text-xs leading-5 text-black/60">
-                        Chooses activity, time and safe public location.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-        
-                <div className="flex items-center justify-center">
-                  <div className="rounded-full border border-black bg-black px-5 py-2 text-xs font-black text-white shadow-lg">
-                    In-app booking flow
-                  </div>
-                </div>
-        
-                <div className="rounded-[1.5rem] border-1 border-black  bg-white p-4 shadow-[0_18px_45px_rgba(0,0,0,0.10)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_25px_60px_rgba(0,0,0,0.14)]">
-                  <div className="flex items-center gap-4">
-                    <div className="grid h-16 w-16 place-items-center rounded-[1.3rem] bg-[#e8e8e4] text-4xl shadow-lg">
-                      👩
-                    </div>
-        
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-black/55">
-                        Provider
-                      </p>
-                      <h3 className="text-lg font-black text-black">
-                        Accepts safe bookings
-                      </h3>
-                      <p className="mt-1 text-xs leading-5 text-black/60">
-                        Shares services, pricing and availability.
-                      </p>
-                    </div>
+          ref={sectionRef}
+          className="relative isolate min-h-[calc(100vh-5rem)] overflow-hidden px-4 py-6 sm:px-5 lg:px-8"
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.95),transparent_25%),radial-gradient(circle_at_82%_24%,rgba(255,210,183,0.48),transparent_26%),radial-gradient(circle_at_48%_100%,rgba(117,89,255,0.10),transparent_34%)]" />
+          <div className="pointer-events-none absolute -right-24 top-16 h-[34rem] w-[34rem] rounded-full bg-[#fff8ef]/75" />
+          <div className="pointer-events-none absolute bottom-8 left-10 h-36 w-36 rounded-full bg-white/70 blur-2xl" />
+
+          {supportPanels.map((panel) => {
+            const Icon = panel.icon;
+
+            return (
+              <div
+                key={panel.title}
+                className={`support-panel group absolute z-0 hidden w-52 rounded-[1.7rem] bg-white/38 p-4 shadow-[0_24px_70px_rgba(71,52,36,0.12)] backdrop-blur-md transition duration-300 hover:-translate-y-2 hover:bg-white/78 hover:shadow-[0_28px_90px_rgba(255,116,95,0.18)] xl:block ${panel.className}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fff0ec] text-[#ff745f]">
+                    <Icon size={20} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-black text-[#211713]">{panel.title}</p>
+                    <p className="text-xs font-bold text-[#7b6c61]">{panel.text}</p>
                   </div>
                 </div>
               </div>
-            </div>
-        
-            {/* DRAWER STEP CARDS */}
-        <div className="relative mx-auto max-w-7xl">
-          <div className="pointer-events-none absolute left-[10%] right-[10%] top-8 hidden h-1 rounded-full bg-gradient-to-r from-black/10 via-black/60 to-black/10 lg:block" />
-        
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(({ icon: Icon, title, text }, index) => {
-              const details = stepDetails[index];
-        
-              return (
-                <div key={title} className="relative">
-                  <div className="relative z-20 mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full border-4 border-black bg-black text-sm font-black text-white shadow-[0_16px_35px_rgba(0,0,0,0.22)]">
-                    0{index + 1}
-                  </div>
-        
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveStep({
-                        icon: Icon,
-                        title,
-                        text,
-                        index,
-                        ...details,
-                      })
-                    }
-                    className="group relative min-h-[250px] w-full transform-gpu overflow-hidden rounded-[2rem] border border-black/10 bg-white p-5 text-left text-black shadow-[0_24px_70px_rgba(0,0,0,0.12)] transition-all duration-500 ease-out hover:-translate-y-3 hover:scale-[1.03] hover:-rotate-1 hover:shadow-[0_40px_95px_rgba(0,0,0,0.22)]"
+            );
+          })}
+
+          <div className="relative z-10 mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+            <div className="relative">
+              <div className="pointer-events-none absolute -left-16 top-6 h-[24rem] w-[24rem] rounded-full bg-white/45" />
+
+              <div className="how-copy relative z-10 max-w-xl">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f26d54] shadow-sm">
+                  <ShieldCheck size={15} />
+                  Safe operation flow
+                </div>
+
+                <h1 className="mt-4 text-[clamp(2.1rem,4.8vw,4.8rem)] font-black leading-[0.98] tracking-tight text-[#17120f]">
+                  How BuddyBOOK keeps every meetup structured.
+                </h1>
+
+                <p className="mt-4 max-w-md text-sm font-semibold leading-7 text-[#75665b] sm:text-base">
+                  Hover on the zig-zag path. Each number opens transparent step details on the same screen.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href="/register"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#ff745f] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(255,116,95,0.28)] transition hover:-translate-y-0.5 hover:bg-[#ef604c]"
                   >
-                    {/* 3D LIGHT EFFECTS */}
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(255,255,255,0.50),rgba(173,232,244,0.18))]" />
-                    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#a2d2ff]/45 blur-2xl transition duration-500 group-hover:scale-125 group-hover:bg-[#b5e48c]/55" />
-                    <div className="pointer-events-none absolute -bottom-14 -left-14 h-36 w-36 rounded-full bg-black/10 blur-3xl transition duration-500 group-hover:bg-black/15" />
-        
-                    <div className="relative z-10">
-                      <div className="mb-5 flex items-center justify-between gap-3">
-                        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-black text-white shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 ">
-                          <Icon size={24} />
-                        </div>
-        
-                        <span className="rounded-full border border-black/10 bg-[#e8e8e4] px-3 py-1 text-[11px] font-black text-black shadow-sm transition duration-300 group-hover:bg-[#b5e48c]">
-                          {details.badge}
-                        </span>
-                      </div>
-        
-                      <p className="text-xs font-black uppercase tracking-[0.22em] text-black/45">
-                        {details.label}
-                      </p>
-        
-                      <h3 className="mt-2 text-xl font-black leading-tight text-black">
-                        {title}
-                      </h3>
-        
-                      <p className="mt-2 text-sm leading-6 text-black/60">
-                        {text}
-                      </p>
-        
-                      {/* IMPORTANT INFO ONLY */}
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {details.timeline.slice(0, 3).map((item) => (
-                          <span
-                            key={item}
-                            className="rounded-full border border-black/10 bg-[#e8e8e4] px-3 py-1 text-[11px] font-black text-black/70"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-        
-                      <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-black text-white shadow-lg shadow-black/20 transition-all duration-300">
-                        View details
-                        <ArrowRight
-                          size={14}
-                          className="transition duration-300 group-hover:translate-x-1"
-                        />
-                      </div>
-                    </div>
-                  </button>
+                    Get started
+                    <ArrowRight size={16} />
+                  </a>
+                  <a
+                    href="/safety"
+                    className="inline-flex items-center gap-2 rounded-full bg-white/65 px-6 py-3 text-sm font-black text-[#3a3029] transition hover:-translate-y-0.5 hover:bg-white"
+                  >
+                    Safety rules
+                  </a>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-          </div>
-        
-        {/* CUSTOM DRAWER */}
-        {activeStep && (
-          <div className="fixed inset-0 z-[9998]">
-            <button
-              type="button"
-              onClick={() => setActiveStep(null)}
-              className="absolute inset-0 bg-black/45 backdrop-blur-sm"
-              aria-label="Close drawer"
-            />
-        
-            <div className="absolute inset-x-3 bottom-3 mx-auto max-h-[82vh] max-w-xl overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_-28px_90px_rgba(0,0,0,0.32)] sm:inset-x-5">
-              <div className="relative overflow-hidden">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#a2d2ff]/50 blur-3xl" />
-                <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-[#b5e48c]/35 blur-3xl" />
-        
-                {/* DRAWER HEADER */}
-                <div className="relative z-10 border-b border-black/10 bg-white/85 px-5 py-4 backdrop-blur-xl">
-                  <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-black/20" />
-        
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black text-white shadow-lg">
-                        {ActiveStepIcon && <ActiveStepIcon size={23} />}
+              </div>
+
+              <div className="relative z-10 mt-8 grid gap-4 lg:hidden">
+                {steps.map((step, index) => {
+                  const Icon = step.icon;
+                  const active = activeIndex === index;
+
+                  return (
+                    <button
+                      key={step.title}
+                      type="button"
+                      onClick={() => setActiveIndex(active ? null : index)}
+                    className={`rounded-[1.5rem] p-3.5 text-left shadow-[0_16px_44px_rgba(71,52,36,0.09)] backdrop-blur-xl transition ${
+                        active ? "bg-white/80" : "bg-white/46"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${active ? "bg-[#ff745f] text-white" : "bg-[#fff0ec] text-[#ff745f]"}`}>
+                          <Icon size={22} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#ff745f]">
+                            {step.number} / {step.kicker}
+                          </p>
+                          <h3 className="mt-1 text-base font-black leading-tight text-[#17120f]">
+                            {step.title}
+                          </h3>
+                          <p className="mt-1.5 text-xs font-semibold leading-5 text-[#6f6158]">
+                            {step.text}
+                          </p>
+                        </div>
                       </div>
-        
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-black/45">
-                          {activeStep.label}
-                        </p>
-        
-                        <h3 className="mt-1 text-xl font-black leading-tight text-black">
-                          {activeStep.heading}
-                        </h3>
-        
-                        <p className="mt-1 text-xs font-bold leading-5 text-black/55">
-                          {activeStep.text}
-                        </p>
-                      </div>
-                    </div>
-        
+
+                      {active ? (
+                        <div className="mt-3">
+                          <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
+                            {step.flow.map((item, itemIndex) => (
+                              <div
+                                key={item}
+                                className="min-w-[96px] rounded-xl bg-white/62 px-3 py-2"
+                              >
+                                <p className="text-[10px] font-black text-[#ff745f]">
+                                  0{itemIndex + 1}
+                                </p>
+                                <p className="text-xs font-black text-[#251b16]">
+                                  {item}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-2 grid gap-1.5">
+                            {step.points.map((point) => (
+                              <div key={point} className="flex items-start gap-2">
+                                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#ff745f]" />
+                                <p className="text-xs font-bold leading-5 text-[#65564c]">
+                                  {point}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="relative hidden h-[min(650px,calc(100vh-7.2rem))] min-h-[520px] overflow-visible lg:block">
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox="0 0 840 560"
+                fill="none"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M48 414 C138 498 190 290 294 318 C390 344 420 414 526 242 C602 118 673 220 790 102"
+                  stroke="rgba(255,255,255,0.72)"
+                  strokeWidth="46"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M48 414 C138 498 190 290 294 318 C390 344 420 414 526 242 C602 118 673 220 790 102"
+                  stroke="rgba(255,116,95,0.16)"
+                  strokeWidth="18"
+                  strokeLinecap="round"
+                />
+                <path
+                  ref={pathRef}
+                  d="M48 414 C138 498 190 290 294 318 C390 344 420 414 526 242 C602 118 673 220 790 102"
+                  stroke="#ff745f"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              <div className="pointer-events-none absolute left-[5%] top-[69%] -translate-x-1/2 -translate-y-1/2 text-[clamp(4.5rem,12vw,11rem)] font-black leading-none text-white/50">
+                1
+              </div>
+              <div className="pointer-events-none absolute left-[28%] top-[49%] -translate-x-1/2 -translate-y-1/2 text-[clamp(4.5rem,12vw,11rem)] font-black leading-none text-white/45">
+                2
+              </div>
+              <div className="pointer-events-none absolute left-[56%] top-[39%] -translate-x-1/2 -translate-y-1/2 text-[clamp(4.5rem,12vw,11rem)] font-black leading-none text-white/45">
+                3
+              </div>
+              <div className="pointer-events-none absolute left-[76%] top-[12%] -translate-x-1/2 -translate-y-1/2 text-[clamp(4.5rem,12vw,11rem)] font-black leading-none text-white/50">
+                4
+              </div>
+
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const active = activeIndex === index;
+
+                return (
+                  <div
+                    key={step.title}
+                    onMouseEnter={() => setActive(index)}
+                    onMouseLeave={() => setActiveIndex(null)}
+                    onFocus={() => setActive(index)}
+                    onBlur={() => setActiveIndex(null)}
+                    className={`path-node group absolute z-20 -translate-x-1/2 -translate-y-1/2 ${nodePositions[index]}`}
+                    tabIndex={0}
+                  >
                     <button
                       type="button"
-                      onClick={() => setActiveStep(null)}
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 bg-[#e8e8e4] text-black transition hover:scale-105 hover:bg-black hover:text-white"
-                      aria-label="Close drawer"
+                      className={`grid h-14 w-14 place-items-center rounded-full text-base font-black shadow-[0_18px_42px_rgba(73,48,31,0.18)] transition duration-300 group-hover:-translate-y-2 ${
+                        active
+                          ? "bg-[#ff745f] text-white"
+                          : "bg-white/88 text-[#211713]"
+                      }`}
                     >
-                      <X size={17} />
+                      {index + 1}
                     </button>
-                  </div>
-                </div>
-        
-                {/* DRAWER BODY */}
-                <div className="relative z-10 max-h-[62vh] overflow-y-auto px-5 py-5">
-                  <div className="grid gap-4">
-                    {/* MINI STATUS CARD */}
-                    <div className="rounded-[1.6rem] border border-black/10 bg-[#e8e8e4] p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-black/45">
-                            Current stage
-                          </p>
-                          <h4 className="mt-1 text-lg font-black text-black">
-                            {activeStep.title}
-                          </h4>
-                        </div>
-        
-                        <span className="rounded-full bg-[#b5e48c] px-3 py-1 text-[11px] font-black text-black">
-                          {activeStep.time}
-                        </span>
-                      </div>
-        
-                      <div className="mt-4 h-2 rounded-full bg-white">
-                        <div
-                          className="h-full rounded-full bg-black transition-all duration-500"
-                          style={{
-                            width: `${((activeStep.index + 1) / steps.length) * 100}%`,
-                          }}
-                        />
-                      </div>
-        
-                      <p className="mt-2 text-[11px] font-bold text-black/50">
-                        Progress {activeStep.index + 1} of {steps.length}
-                      </p>
-                    </div>
-        
-                    {/* POINTS */}
-                    <div className="rounded-[1.6rem] border border-black/10 bg-white p-4 shadow-[0_16px_45px_rgba(0,0,0,0.08)]">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/45">
-                        Key actions
-                      </p>
-        
-                      <div className="mt-3 grid gap-2.5">
-                        {activeStep.points.map((point) => (
-                          <div
-                            key={point}
-                            className="flex items-start gap-3 rounded-2xl border border-black/10 bg-[#f8f9fa] p-3"
-                          >
-                            <div className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-black text-white">
-                              <CheckCircle2 size={14} />
-                            </div>
-        
-                            <p className="text-sm font-bold leading-6 text-black/65">
-                              {point}
+
+                    {active ? (
+                      <div
+                        className={`step-popup-${index} absolute z-40 w-[min(280px,32vw)] max-w-[280px] animate-[fadeIn_.18s_ease-out] rounded-[1.45rem] bg-white/42 p-3 shadow-[0_22px_60px_rgba(61,42,28,0.14)] backdrop-blur-2xl ${popupPositions[index]}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fff0ec] text-[#ff745f]">
+                            <Icon size={19} />
+                          </span>
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#ff745f]">
+                              {step.number} / {step.kicker}
+                            </p>
+                            <h3 className="mt-1 text-base font-black leading-tight text-[#17120f]">
+                              {step.title}
+                            </h3>
+                            <p className="mt-1.5 text-[11px] font-semibold leading-5 text-[#6f6158]">
+                              {step.text}
                             </p>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-        
-                    {/* MINI TIMELINE */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {activeStep.timeline.map((item, itemIndex) => (
-                        <div
-                          key={item}
-                          className="rounded-2xl border border-black/10 bg-[#dee2e6] p-3 text-center shadow-sm"
-                        >
-                          <p className="text-[10px] font-black text-black/40">
-                            0{itemIndex + 1}
-                          </p>
-                          <p className="mt-1 text-xs font-black text-black">
-                            {item}
-                          </p>
                         </div>
-                      ))}
-                    </div>
+
+                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
+                          {step.flow.map((item, itemIndex) => (
+                            <div
+                              key={item}
+                              className="min-w-[96px] rounded-xl bg-white/50 px-3 py-2"
+                            >
+                              <p className="text-[10px] font-black text-[#ff745f]">
+                                0{itemIndex + 1}
+                              </p>
+                              <p className="text-xs font-black text-[#251b16]">
+                                {item}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-1 max-h-[92px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+                          <div className="grid gap-1.5">
+                            {step.points.map((point) => (
+                              <div key={point} className="flex items-start gap-2">
+                                <CheckCircle2
+                                  size={15}
+                                  className="mt-0.5 shrink-0 text-[#ff745f]"
+                                />
+                                <p className="text-xs font-bold leading-5 text-[#65564c]">
+                                  {point}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
+                );
+              })}
+
+              <div className="pointer-events-none absolute left-[46%] top-[12%] hidden items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-xs font-black text-[#ff745f] shadow-sm backdrop-blur-md sm:flex">
+                <Sparkles size={14} />
+                Hover path steps
               </div>
             </div>
           </div>
-        )}
         </section>
       </main>
-
-      <PublicFooter />
     </div>
   );
 }
