@@ -1,0 +1,134 @@
+const ImageKit = require("imagekit");
+
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const IMAGEKIT_PROVIDER_FOLDER = "/buddybook/providers";
+
+function getImageKitClient() {
+  const { IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT } =
+    process.env;
+
+  if (!IMAGEKIT_PUBLIC_KEY || !IMAGEKIT_PRIVATE_KEY || !IMAGEKIT_URL_ENDPOINT) {
+    const error = new Error("ImageKit is not configured.");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return new ImageKit({
+    publicKey: IMAGEKIT_PUBLIC_KEY,
+    privateKey: IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: IMAGEKIT_URL_ENDPOINT,
+  });
+}
+
+function validateImage(file) {
+  if (!file) {
+    const error = new Error("Image file is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+    const error = new Error("Only JPG, PNG and WebP images are allowed.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (file.size > MAX_IMAGE_BYTES) {
+    const error = new Error("Image must be 3 MB or smaller.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+function getOptimizedUrl(url, transformation) {
+  if (!url) return "";
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}tr=${transformation}`;
+}
+
+async function uploadProviderImage(file, index = 0) {
+  validateImage(file);
+
+  const imagekit = getImageKitClient();
+  const extension = file.mimetype.split("/")[1].replace("jpeg", "jpg");
+  const uploaded = await imagekit.upload({
+    file: file.buffer,
+    fileName: `provider-${Date.now()}-${index}.${extension}`,
+    folder: IMAGEKIT_PROVIDER_FOLDER,
+    useUniqueFileName: true,
+  });
+
+  const url = uploaded.url;
+
+  return {
+    url: getOptimizedUrl(url, "f-webp,q-85"),
+    thumbnailUrl: getOptimizedUrl(url, "f-webp,q-80,w-420"),
+    fileId: uploaded.fileId,
+    width: uploaded.width,
+    height: uploaded.height,
+  };
+}
+
+function fileFromBase64Image(value) {
+  if (typeof value !== "string") return null;
+
+  const match = value.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/);
+  if (!match) return null;
+
+  const mimetype = match[1].replace("image/jpg", "image/jpeg");
+  const buffer = Buffer.from(match[2], "base64");
+
+  return {
+    buffer,
+    mimetype,
+    size: buffer.length,
+    originalname: `provider-upload.${mimetype.split("/")[1]}`,
+  };
+}
+
+async function uploadProviderBase64Image(value, index = 0) {
+  const file = fileFromBase64Image(value);
+  if (!file) {
+    const error = new Error("Invalid base64 image.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return uploadProviderImage(file, index);
+}
+
+function normalizeStoredImage(image) {
+  if (!image) return null;
+
+  if (typeof image === "string") {
+    if (image.startsWith("data:image/")) return null;
+    return {
+      url: image,
+      thumbnailUrl: getOptimizedUrl(image, "f-webp,q-80,w-420"),
+      fileId: null,
+    };
+  }
+
+  if (typeof image === "object" && image.url && !String(image.url).startsWith("data:image/")) {
+    return {
+      url: image.url,
+      thumbnailUrl:
+        image.thumbnailUrl || getOptimizedUrl(image.url, "f-webp,q-80,w-420"),
+      fileId: image.fileId || null,
+      width: image.width || null,
+      height: image.height || null,
+    };
+  }
+
+  return null;
+}
+
+module.exports = {
+  MAX_IMAGE_BYTES,
+  ALLOWED_MIME_TYPES,
+  uploadProviderImage,
+  uploadProviderBase64Image,
+  fileFromBase64Image,
+  normalizeStoredImage,
+};

@@ -1,0 +1,448 @@
+const prisma = require('../config/prisma');
+const {
+  normalizeStoredImage,
+  uploadProviderImage,
+  uploadProviderBase64Image,
+} = require('../utils/imagekit');
+
+const includeUser = { user: true };
+const providerListCache = new Map();
+const PROVIDER_LIST_CACHE_MS = 60 * 1000;
+const cardUserSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  phone: true,
+  profileImage: true,
+  city: true,
+  state: true,
+  gender: true,
+  role: true,
+  mobileVerified: true,
+  emailVerified: true,
+  kycStatus: true,
+  faceStatus: true,
+};
+const cardProviderSelect = {
+  id: true,
+  userId: true,
+  headline: true,
+  profession: true,
+  education: true,
+  height: true,
+  hobbies: true,
+  hourlyPrice: true,
+  availableCity: true,
+  languages: true,
+  availabilityDays: true,
+  activities: true,
+  bio: true,
+  profileImages: true,
+  profileQuestions: true,
+  providerSafetyAgreement: true,
+  approved: true,
+  createdAt: true,
+  updatedAt: true,
+  user: { select: cardUserSelect },
+};
+const cardProviderListSelect = {
+  id: true,
+  userId: true,
+  headline: true,
+  profession: true,
+  education: true,
+  height: true,
+  hobbies: true,
+  hourlyPrice: true,
+  availableCity: true,
+  languages: true,
+  availabilityDays: true,
+  activities: true,
+  bio: true,
+  profileQuestions: true,
+  providerSafetyAgreement: true,
+  approved: true,
+  createdAt: true,
+  updatedAt: true,
+  user: { select: cardUserSelect },
+};
+
+function withImageMode(provider, imageMode = 'none') {
+  if (!provider) return provider;
+  if (imageMode === 'all') return provider;
+
+  const images = Array.isArray(provider.profileImages) ? provider.profileImages : [];
+  const normalizedImages = images.map(normalizeStoredImage).filter(Boolean);
+
+  return {
+    ...provider,
+    profileImages: imageMode === 'first' ? normalizedImages.slice(0, 1) : [],
+    imageCount: normalizedImages.length || provider.imageCount || 0,
+  };
+}
+
+function sanitizeProviderImages(provider) {
+  if (!provider) return provider;
+  return {
+    ...provider,
+    profileImages: normalizeProfileImages(provider.profileImages),
+  };
+}
+
+function getCacheKey({ where, take, imageMode }) {
+  return JSON.stringify({ where, take: take || null, imageMode });
+}
+
+function getCachedList(key) {
+  const cached = providerListCache.get(key);
+  if (!cached) return null;
+  return {
+    ...cached,
+    fresh: Date.now() - cached.createdAt < PROVIDER_LIST_CACHE_MS,
+  };
+}
+
+function setCachedList(key, data) {
+  providerListCache.set(key, {
+    data,
+    createdAt: Date.now(),
+  });
+}
+
+function clearProviderListCache() {
+  providerListCache.clear();
+}
+
+async function fetchProviderList({ where, take, imageMode }) {
+  const providers = await prisma.providerProfile.findMany({
+    where,
+    select: imageMode === 'none' ? cardProviderListSelect : cardProviderSelect,
+    orderBy: { createdAt: 'desc' },
+    take,
+  });
+
+  return providers.map((provider) => withImageMode(provider, imageMode));
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+function normalizeProfileImages(images) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map(normalizeStoredImage)
+    .filter(Boolean);
+}
+
+function buildProfileData(body, { requireImages = false } = {}) {
+  const hasBase64Image = Array.isArray(body.profileImages)
+    ? body.profileImages.some((image) =>
+        typeof image === 'string'
+          ? image.startsWith('data:image/')
+          : String(image?.url || '').startsWith('data:image/')
+      )
+    : false;
+
+  if (hasBase64Image) {
+    const error = new Error('Upload provider images first. Base64 images cannot be saved.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const profileImages = normalizeProfileImages(body.profileImages);
+
+  if (requireImages && profileImages.length !== 4) {
+    const error = new Error('Exactly 4 provider images are required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    headline: normalizeText(body.headline) || null,
+    profession: normalizeText(body.profession) || null,
+    education: normalizeText(body.education) || null,
+    height: normalizeText(body.height) || null,
+    hobbies: normalizeText(body.hobbies) || null,
+    hourlyPrice: normalizeText(body.hourlyPrice) || null,
+    availableCity: normalizeText(body.availableCity) || null,
+    languages: normalizeText(body.languages) || null,
+    availabilityDays: normalizeText(body.availabilityDays) || null,
+    activities: normalizeText(body.activities) || normalizeText(body.hobbies) || null,
+    bio: normalizeText(body.bio) || null,
+    profileImages,
+    profileQuestions: Array.isArray(body.profileQuestions) ? body.profileQuestions : [],
+    providerSafetyAgreement: Boolean(body.providerSafetyAgreement),
+    approved: Boolean(body.approved),
+  };
+}
+
+function buildStats(provider) {
+  const price = Number(provider?.hourlyPrice || 0);
+  const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
+  const completedFields = [
+    provider?.headline,
+    provider?.profession,
+    provider?.hourlyPrice,
+    provider?.availableCity,
+    provider?.languages,
+    provider?.availabilityDays,
+    provider?.activities,
+    provider?.bio,
+    provider?.providerSafetyAgreement,
+    images.length === 4,
+  ].filter(Boolean).length;
+
+  const profileCompletion = Math.round((completedFields / 10) * 100);
+  const weeklyViews = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((name) => ({
+    name,
+    views: 0,
+    bookings: 0,
+    revenue: 0,
+  }));
+
+  return {
+    profileCompletion,
+    totalViews: 0,
+    totalBookings: 0,
+    totalRevenue: 0,
+    pendingRequests: 0,
+    rating: 0,
+    reviewCount: 0,
+    weeklyViews,
+  };
+}
+
+const createProvider = async (req, res) => {
+  try {
+    const {
+      userId,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+
+    const data = buildProfileData(req.body, { requireImages: true });
+
+    const provider = await prisma.providerProfile.create({
+      data: {
+        user: { connect: { id: userId } },
+        ...data,
+        approved: true,
+      },
+      include: includeUser,
+    });
+    clearProviderListCache();
+
+    return res.status(201).json({ success: true, data: sanitizeProviderImages(provider) });
+  } catch (err) {
+    console.error('createProvider error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const listProviders = async (req, res) => {
+  try {
+    // Support both `approved` and legacy `verified` query param from frontend
+    const { approved, verified, limit, imageMode = 'none' } = req.query;
+    const where = {};
+    const approvalFlag = approved !== undefined ? approved : verified;
+    if (approvalFlag !== undefined) where.approved = String(approvalFlag) === 'true';
+
+    const take = limit ? Number(limit) : undefined;
+    const cacheKey = getCacheKey({ where, take, imageMode });
+    const cached = imageMode === 'none' ? getCachedList(cacheKey) : null;
+
+    if (cached?.fresh) {
+      return res.json({ success: true, data: cached.data, cached: true });
+    }
+
+    if (cached?.data?.length) {
+      fetchProviderList({ where, take, imageMode })
+        .then((data) => setCachedList(cacheKey, data))
+        .catch((error) => console.error('provider list refresh error', error));
+
+      return res.json({ success: true, data: cached.data, cached: true, stale: true });
+    }
+
+    const data = await fetchProviderList({ where, take, imageMode });
+    if (imageMode === 'none') setCachedList(cacheKey, data);
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('listProviders error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getProvider = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const provider = await prisma.providerProfile.findUnique({
+      where: { id },
+      select: cardProviderSelect,
+    });
+    if (!provider) return res.status(404).json({ success: false, message: 'Not found' });
+    return res.json({ success: true, data: sanitizeProviderImages(provider) });
+  } catch (err) {
+    console.error('getProvider error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const uploadProviderImages = async (req, res) => {
+  try {
+    const files = Array.isArray(req.files) ? req.files : [];
+
+    const base64Images = Array.isArray(req.body?.images) ? req.body.images : [];
+
+    if (!files.length && !base64Images.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select at least one image to upload.',
+      });
+    }
+
+    const fileUploads = files
+      .slice(0, 4)
+      .map((file, index) => uploadProviderImage(file, index));
+    const base64Uploads = base64Images
+      .slice(0, Math.max(0, 4 - fileUploads.length))
+      .map((image, index) => uploadProviderBase64Image(image, index + files.length));
+    const images = await Promise.all([...fileUploads, ...base64Uploads]);
+
+    return res.json({
+      success: true,
+      images,
+    });
+  } catch (err) {
+    console.error('uploadProviderImages error', err);
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || 'Image upload failed.',
+    });
+  }
+};
+
+const getProviderImages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const provider = await prisma.providerProfile.findUnique({
+      where: { id },
+      select: { id: true, profileImages: true },
+    });
+
+    if (!provider) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+
+    const images = normalizeProfileImages(provider.profileImages);
+
+    return res.json({
+      success: true,
+      images,
+    });
+  } catch (err) {
+    console.error('getProviderImages error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getMyProvider = async (req, res) => {
+  try {
+    const provider = await prisma.providerProfile.findUnique({
+      where: { userId: req.user.id },
+      include: includeUser,
+    });
+
+    return res.json({
+      success: true,
+      data: sanitizeProviderImages(provider),
+      stats: buildStats(provider),
+    });
+  } catch (err) {
+    console.error('getMyProvider error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const upsertMyProvider = async (req, res) => {
+  try {
+    const data = buildProfileData(req.body, { requireImages: true });
+
+    const provider = await prisma.providerProfile.upsert({
+      where: { userId: req.user.id },
+      create: {
+        user: { connect: { id: req.user.id } },
+        ...data,
+        approved: true,
+      },
+      update: {
+        ...data,
+        approved: true,
+      },
+      include: includeUser,
+    });
+    clearProviderListCache();
+
+    if (req.user.role !== 'PROVIDER') {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { role: 'PROVIDER' },
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Provider profile saved.',
+      data: sanitizeProviderImages(provider),
+      stats: buildStats(provider),
+    });
+  } catch (err) {
+    console.error('upsertMyProvider error', err);
+    return res.status(err.statusCode || 500).json({ success: false, message: err.message });
+  }
+};
+
+const updateProvider = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const provider = await prisma.providerProfile.update({
+      where: { id },
+      data,
+    });
+    clearProviderListCache();
+
+    return res.json({ success: true, data: sanitizeProviderImages(provider) });
+  } catch (err) {
+    console.error('updateProvider error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteProvider = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.providerProfile.delete({ where: { id } });
+    clearProviderListCache();
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('deleteProvider error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  createProvider,
+  uploadProviderImages,
+  getProviderImages,
+  listProviders,
+  getProvider,
+  getMyProvider,
+  upsertMyProvider,
+  updateProvider,
+  deleteProvider,
+};

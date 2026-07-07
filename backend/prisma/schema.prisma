@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  PROVIDER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id              String             @id @default(cuid())
+  fullName        String
+  email           String?            @unique
+  phone           String             @unique
+  passwordHash    String?
+  dob             String?
+  gender          String?
+  city            String?
+  state           String?
+  role            UserRole
+  mobileVerified  Boolean            @default(false)
+  emailVerified   Boolean            @default(false)
+  kycStatus       VerificationStatus @default(PENDING)
+  faceStatus      VerificationStatus @default(PENDING)
+  referenceSelfie String?
+  profileImage    String?
+  isBlocked       Boolean            @default(false)
+  blockReason     String?
+  aadhaarLast4    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  otpTokens       OtpToken[]
+  kycVerification KycVerification?
+  userProfile     UserProfile?
+  providerProfile ProviderProfile?
+  loginAttempts   LoginAttempt[]
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  phone     String?
+  otp       String
+  type      String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model KycVerification {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  aadhaarLast4        String?
+  documentType        String?
+  documentNumberLast4 String?
+  documentUrl         String?
+  consentAccepted     Boolean            @default(false)
+  status              VerificationStatus @default(PENDING)
+  rejectionReason     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserProfile {
+  id                  String  @id @default(cuid())
+  userId              String  @unique
+  interests           String?
+  preferredActivities String?
+  activityPreferences String?
+  preferredLanguage   String?
+  bio                 String?
+  profileQuestions    Json?
+  emergencyContact    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProviderProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  headline   String?
+  profession String?
+  education  String?
+  height     String?
+  hobbies    String?
+
+  hourlyPrice      String?
+  availableCity    String?
+  languages        String?
+  availabilityDays String?
+  activities       String?
+  bio              String?
+  profileImages    Json?
+  profileQuestions Json?
+
+  providerSafetyAgreement Boolean @default(false)
+  approved                Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginAttempt {
+  id          String  @id @default(cuid())
+  userId      String?
+  email       String?
+  success     Boolean @default(false)
+  faceMatched Boolean @default(false)
+  message     String?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
