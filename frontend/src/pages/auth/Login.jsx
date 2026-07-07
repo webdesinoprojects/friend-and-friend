@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import Logo from "../../components/common/Logo";
 import {
@@ -16,6 +16,10 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = getSafeRedirect(
+    new URLSearchParams(location.search).get("redirect") || location.state?.redirect
+  );
 
   const [form, setForm] = useState({
     identifier: "",
@@ -30,7 +34,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const goToDashboard = () => {
-    navigate("/");
+    navigate(redirectTo);
   };
 
   const completeAuth = (data) => {
@@ -392,4 +396,9 @@ export default function Login() {
       </main>
     </div>
   );
+}
+
+function getSafeRedirect(value) {
+  if (!value || typeof value !== "string") return "/";
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
 }

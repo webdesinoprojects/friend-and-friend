@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  BriefcaseBusiness,
   CalendarCheck,
   ChevronDown,
   Heart,
@@ -25,7 +24,6 @@ const navItems = [
   { label: "How it works", to: "/how-it-works" },
   { label: "Explore", to: "/activities" },
   { label: "Safety", to: "/safety" },
-  { label: "Trust & Safety", to: "/trust-safety" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -42,7 +40,6 @@ const userWorkspace = [
 const providerWorkspace = [
   { label: "Dashboard", to: "/app/provider/dashboard", icon: LayoutDashboard },
   { label: "Provider Profile", to: "/app/provider/profile", icon: User },
-  { label: "Services", to: "/app/provider/services", icon: BriefcaseBusiness },
   { label: "Bookings", to: "/app/provider/bookings", icon: CalendarCheck },
   { label: "Earnings", to: "/app/provider/earnings", icon: Wallet },
   { label: "Reviews", to: "/app/provider/reviews", icon: Star },
@@ -72,8 +69,13 @@ export default function PublicNavbar() {
         setUser(nextUser);
         localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
       })
-      .catch(() => {
-        if (!localStorage.getItem("buddybook_token")) setUser(null);
+      .catch((error) => {
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem("buddybook_token");
+          localStorage.removeItem("buddybook_auth_user");
+        }
+        setUser(null);
       });
 
     const syncUser = () => {

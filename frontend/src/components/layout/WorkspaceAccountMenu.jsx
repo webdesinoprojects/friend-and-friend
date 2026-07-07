@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  BriefcaseBusiness,
   CalendarCheck,
   ChevronDown,
   Heart,
@@ -31,7 +30,6 @@ const userWorkspace = [
 const providerWorkspace = [
   { label: "Dashboard", to: "/app/provider/dashboard", icon: LayoutDashboard },
   { label: "Provider Profile", to: "/app/provider/profile", icon: User },
-  { label: "Services", to: "/app/provider/services", icon: BriefcaseBusiness },
   { label: "Bookings", to: "/app/provider/bookings", icon: CalendarCheck },
   { label: "Earnings", to: "/app/provider/earnings", icon: Wallet },
   { label: "Reviews", to: "/app/provider/reviews", icon: Star },

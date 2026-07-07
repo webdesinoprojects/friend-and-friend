@@ -36,6 +36,8 @@ router.post("/users/:id/unblock", adminOnly, adminController.unblockUser);
 router.post("/providers/:id/block", adminOnly, adminController.blockUser);
 router.post("/providers/:id/unblock", adminOnly, adminController.unblockUser);
 router.get("/bookings", adminOnly, adminController.getAdminBookings);
+router.get("/logins", adminOnly, adminController.getAdminLogins);
+router.get("/notifications", adminOnly, adminController.getAdminNotifications);
 router.get("/payments", adminOnly, adminController.getAdminPayments);
 
 module.exports = router;

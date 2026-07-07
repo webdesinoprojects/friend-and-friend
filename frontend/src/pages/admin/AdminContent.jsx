@@ -162,6 +162,7 @@ export default function AdminContent() {
             onAdd={addTestimonial}
             onRemove={removeTestimonial}
             onChange={updateTestimonial}
+            onMessage={setMessage}
           />
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
@@ -232,7 +233,7 @@ function ContentField({ fieldKey, label, type, value, onChange }) {
   );
 }
 
-function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange }) {
+function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange, onMessage }) {
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between gap-3">
@@ -255,7 +256,7 @@ function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange }) {
             hideUrl
             value={item.image || ""}
             onChange={(value) => onChange(index, "image", value)}
-            onMessage={setMessage}
+            onMessage={onMessage}
           />
           <ContentField fieldKey="text" label="Testimonial text" type="textarea" value={item.text} onChange={(key, value) => onChange(index, key, value)} />
           <button type="button" onClick={() => onRemove(index)} className="w-fit rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-black text-black">

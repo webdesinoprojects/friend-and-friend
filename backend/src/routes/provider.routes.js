@@ -33,7 +33,7 @@ function handleProviderImageUpload(req, res, next) {
 
 router.post('/', providerController.createProvider);
 router.get('/', providerController.listProviders);
-router.post('/images', protect, handleProviderImageUpload, providerController.uploadProviderImages);
+router.post('/images', handleProviderImageUpload, providerController.uploadProviderImages);
 router.get('/me/profile', protect, providerController.getMyProvider);
 router.put('/me/profile', protect, providerController.upsertMyProvider);
 router.get('/:id/images', providerController.getProviderImages);

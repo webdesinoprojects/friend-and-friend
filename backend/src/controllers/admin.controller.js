@@ -3,6 +3,7 @@ const path = require("path");
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const { uploadProviderImage } = require("../utils/imagekit");
+const { readBookings } = require("../utils/bookingStore");
 
 const contentPath = path.join(__dirname, "../../data/adminContent.json");
 const defaultContent = {
@@ -208,11 +209,16 @@ const getAdminUsers = async (req, res) => {
         fullName: true,
         email: true,
         phone: true,
+        dob: true,
+        gender: true,
         role: true,
         city: true,
         state: true,
+        profileImage: true,
         kycStatus: true,
         faceStatus: true,
+        referenceSelfie: true,
+        aadhaarLast4: true,
         mobileVerified: true,
         emailVerified: true,
         isBlocked: true,
@@ -222,7 +228,14 @@ const getAdminUsers = async (req, res) => {
           select: { headline: true, profession: true, approved: true, hourlyPrice: true },
         },
         userProfile: {
-          select: { interests: true },
+          select: {
+            interests: true,
+            preferredActivities: true,
+            activityPreferences: true,
+            preferredLanguage: true,
+            bio: true,
+            emergencyContact: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -263,6 +276,8 @@ const getAdminProviders = async (req, res) => {
         state: true,
         kycStatus: true,
         faceStatus: true,
+        referenceSelfie: true,
+        aadhaarLast4: true,
         profileImage: true,
         isBlocked: true,
         blockReason: true,
@@ -273,7 +288,16 @@ const getAdminProviders = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    return res.json({ success: true, data: providers });
+    return res.json({
+      success: true,
+      data: providers.map((provider) => ({
+        ...provider,
+        headline: provider.providerProfile?.headline || provider.providerProfile?.profession || "",
+        price: provider.providerProfile?.hourlyPrice || "",
+        approved: Boolean(provider.providerProfile?.approved),
+        activities: provider.providerProfile?.activities || "",
+      })),
+    });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch providers." });
   }
@@ -281,15 +305,59 @@ const getAdminProviders = async (req, res) => {
 
 const getAdminBookings = async (req, res) => {
   try {
+    return res.json({ success: true, data: readBookings() });
+  } catch {
+    return res.status(500).json({ success: false, message: "Failed to fetch bookings." });
+  }
+};
+
+const getAdminLogins = async (req, res) => {
+  try {
     const attempts = await prisma.loginAttempt.findMany({
-      select: { id: true, message: true, success: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        message: true,
+        success: true,
+        faceMatched: true,
+        createdAt: true,
+        user: { select: { fullName: true, phone: true, role: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
 
     return res.json({ success: true, data: attempts });
   } catch {
-    return res.status(500).json({ success: false, message: "Failed to fetch bookings." });
+    return res.status(500).json({ success: false, message: "Failed to fetch logins." });
+  }
+};
+
+const getAdminNotifications = async (req, res) => {
+  try {
+    const bookings = readBookings().slice(0, 20).map((booking) => ({
+      id: `booking-${booking.id}`,
+      type: "booking",
+      title: `New booking: ${booking.userName} with ${booking.providerName}`,
+      detail: `${booking.activity} - Rs ${Number(booking.amount || 0).toLocaleString("en-IN")}`,
+      createdAt: booking.createdAt,
+    }));
+    const logins = await prisma.loginAttempt.findMany({
+      select: { id: true, email: true, success: true, message: true, createdAt: true, user: { select: { fullName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    const loginRows = logins.map((login) => ({
+      id: `login-${login.id}`,
+      type: "login",
+      title: `${login.success ? "Login" : "Failed login"}: ${login.user?.fullName || login.email || "Account"}`,
+      detail: login.message || "Login activity",
+      createdAt: login.createdAt,
+    }));
+    const rows = [...bookings, ...loginRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return res.json({ success: true, data: rows });
+  } catch {
+    return res.json({ success: true, data: [] });
   }
 };
 
@@ -375,6 +443,8 @@ module.exports = {
   getAdminUsers,
   getAdminProviders,
   getAdminBookings,
+  getAdminLogins,
+  getAdminNotifications,
   getAdminPayments,
   uploadAdminImage,
   blockUser,

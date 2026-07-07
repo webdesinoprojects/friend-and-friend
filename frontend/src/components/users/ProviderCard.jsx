@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Heart, MapPin, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { getProviderImages } from "../../api/providers";
 import ProviderImageCarousel from "./ProviderImageCarousel";
 
@@ -47,50 +47,28 @@ export default function ProviderCard({
     };
   }, [initialImages, provider.id, provider.imageCount]);
 
-  const tags = Array.isArray(provider.activities)
-    ? provider.activities.slice(0, 2)
-    : [];
-
-  return (
-    <article
-      className={`group overflow-hidden border border-[#ecd9c8] bg-white shadow-[0_20px_55px_rgba(80,50,28,0.08)] transition duration-300 ease-out [transform-style:preserve-3d] hover:-translate-y-2 hover:rotate-x-[1deg] hover:rotate-y-[-1deg] hover:border-[#e4b184] hover:shadow-[0_28px_75px_rgba(134,79,42,0.16)] ${
-        compact || small ? "rounded-lg" : "rounded-2xl"
-      }`}
-    >
-      <div className={`relative overflow-hidden bg-[#fff3e6] ${compact ? "h-[86px]" : small ? "h-[150px]" : "h-[210px]"}`}>
-        <ProviderImageCarousel images={carouselImages} alt={provider.name} showControls />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" />
-
-        <div className={`absolute flex flex-col gap-2 ${compact ? "left-2 top-2" : "left-4 top-4"}`}>
-          <span
-            className={`inline-flex items-center gap-2 rounded-full bg-white/92 font-black text-black shadow-sm ${
-              compact ? "px-2 py-1 text-[8px]" : small ? "px-2.5 py-1.5 text-[9px]" : "px-3 py-2 text-[10px]"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-[#e08c4c]" />
-            Verified
-          </span>
-
-          {!compact && !small ? (
-            <span
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[10px] font-black ${
-                provider.available
-                  ? "bg-[#ffeedd] text-black"
-                  : "bg-[#fff4e6] text-[#92400e]"
-              }`}
-            >
-              {provider.available ? "Available now" : "Request schedule"}
-            </span>
-          ) : null}
+  const primaryActivity = Array.isArray(provider.activities) && provider.activities.length
+    ? provider.activities[0]
+    : "Public meetup";
+  const completedBookings = Number(provider.completedBookings || provider.bookingsCompleted || provider.reviews || 0);
+  const bookingBadge = `${Math.max(2, (completedBookings % 4) + 2)}x booked Recently`;
+  const cardContent = (
+    <>
+      <div className={`relative overflow-hidden rounded-[1.35rem] bg-[#f2f2f2] ${compact ? "h-[150px]" : small ? "h-[230px]" : "h-[320px]"}`}>
+        <ProviderImageCarousel images={carouselImages} alt={provider.name} />
+        <div className="absolute right-0 top-0 rounded-bl-2xl bg-black px-4 py-2 text-xs font-black text-white sm:text-sm">
+          {bookingBadge}
         </div>
-
         {typeof onSave === "function" ? (
           <button
             type="button"
-            onClick={onSave}
-            className={`absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/80 bg-white/95 text-slate-700 shadow-lg transition ${
-              saved ? "bg-[#d67f3d] text-white" : "hover:bg-[#fff4e6]"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSave();
+            }}
+            className={`absolute left-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/80 bg-white/95 text-black shadow-lg transition ${
+              saved ? "bg-black text-white" : "hover:bg-[#fff4e6]"
             }`}
           >
             <Heart size={18} fill={saved ? "currentColor" : "none"} />
@@ -98,64 +76,34 @@ export default function ProviderCard({
         ) : null}
       </div>
 
-      <div className={compact ? "space-y-1.5 p-2.5" : small ? "space-y-2.5 p-4" : "space-y-3 p-5"}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className={`truncate font-black text-slate-900 ${compact ? "text-[11px]" : small ? "text-sm" : "text-base"}`}>
-                {provider.name}
-              </h3>
-              <CheckCircle2 size={compact ? 11 : small ? 13 : 14} className="text-[#e08c4c]" />
-            </div>
-            <p className={`mt-1 truncate font-semibold text-slate-500 ${compact ? "text-[9px]" : small ? "text-xs" : "text-sm"}`}>
-              {provider.profession}
-            </p>
+      <div className={compact ? "p-3" : small ? "p-4" : "p-5"}>
+        <h3 className={`font-black text-black ${compact ? "text-lg" : small ? "text-2xl" : "text-3xl"}`}>
+          {provider.name}
+        </h3>
+        <p className={`mt-3 font-semibold leading-7 text-black ${compact ? "line-clamp-2 text-sm" : "line-clamp-3 text-base"}`}>
+          {provider.bio || provider.profession || `${primaryActivity} with safe public meetups.`}
+        </p>
+        <div className="mt-5 flex items-end justify-between gap-4">
+          <div>
+            <p className={`font-black text-black ${compact ? "text-lg" : "text-2xl"}`}>Rs {provider.price}/hr</p>
+            <p className="mt-1 text-sm font-black text-black/38">{completedBookings || 0} bookings completed</p>
           </div>
-
-          <div className={`rounded-full bg-[#fff4e6] font-black text-[#b65f24] ${compact ? "px-2 py-1 text-[8px]" : small ? "px-2.5 py-1 text-[9px]" : "px-3 py-1 text-[10px]"}`}>
-            Rs {provider.price}/hr
-          </div>
-        </div>
-
-        <div className={`flex items-center justify-between font-black text-slate-600 ${compact ? "text-[8px]" : small ? "text-[10px]" : "text-[11px]"}`}>
-          <span className="inline-flex items-center gap-1">
-            <Star size={compact ? 10 : small ? 12 : 14} className="text-[#f59e0b]" />
+          <p className="flex items-center gap-2 text-2xl font-black text-black">
+            <Star size={26} fill="currentColor" />
             {Number(provider.rating || 0).toFixed(1)}
-          </span>
-          <span className="inline-flex min-w-0 items-center gap-1 text-slate-400">
-            <MapPin size={compact ? 10 : small ? 12 : 14} />
-            <span className="truncate">{provider.city}</span>
-          </span>
+          </p>
         </div>
-
-        {!compact && !small ? (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-[#fff4e6] px-3 py-1 text-[10px] font-black text-[#b65f24]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {link ? (
-          <Link
-            to={link}
-            className={
-              compact
-                ? "block rounded-md bg-black px-2 py-1.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-[#fffaf3] transition hover:bg-[#fffaf3] hover:text-black"
-                : small
-                  ? "inline-flex w-full items-center justify-center rounded-md bg-black px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#fffaf3] shadow-[0_12px_22px_rgba(0,0,0,0.14)] transition hover:bg-[#fffaf3] hover:text-black"
-                : "inline-flex w-full items-center justify-center rounded-md bg-black px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-[#fffaf3] shadow-[0_16px_30px_rgba(0,0,0,0.16)] transition hover:bg-[#fffaf3] hover:text-black"
-            }
-          >
-            {compact ? "View" : "View profile"}
-          </Link>
-        ) : null}
       </div>
-    </article>
+    </>
+  );
+
+  const className = `group block overflow-hidden rounded-[1.35rem] bg-white text-black transition duration-300 hover:-translate-y-1 ${small ? "" : "shadow-[0_20px_55px_rgba(80,50,28,0.08)]"}`;
+
+  return link ? (
+    <Link to={link} className={className}>
+      {cardContent}
+    </Link>
+  ) : (
+    <article className={className}>{cardContent}</article>
   );
 }

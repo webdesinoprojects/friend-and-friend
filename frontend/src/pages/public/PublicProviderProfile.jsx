@@ -30,11 +30,17 @@ export default function PublicProviderProfile() {
     let mounted = true;
     getProvider(providerId)
       .then((row) => {
-        if (mounted) setProvider(row);
-        if (mounted) setSaved(isInWatchlist(row?.id));
-      })
-      .catch(() => {
         if (!mounted) return;
+        setProvider(row);
+        setSaved(isInWatchlist(row?.id));
+      })
+      .catch((error) => {
+        if (!mounted) return;
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem("buddybook_token");
+          localStorage.removeItem("buddybook_auth_user");
+        }
         const demoProvider = getDemoProvider(providerId);
         setProvider(demoProvider);
         setSaved(isInWatchlist(demoProvider?.id));
@@ -95,6 +101,15 @@ function PublicProviderDetail({ provider, saved, onSave }) {
   const activity = provider.activities?.[0] || "e-meet";
   const rating = Number(provider.rating || 5).toFixed(1);
   const price = Number(provider.price || 25);
+  const bookingPath = `/app/user/provider/${provider.id}/book?service=${encodeURIComponent(
+    activity
+  )}&duration=1`;
+  const providerAccount = isProviderAccount();
+  const schedulePath = providerAccount
+    ? "/app/provider/dashboard"
+    : isLoggedIn()
+    ? bookingPath
+    : `/login?redirect=${encodeURIComponent(bookingPath)}`;
 
   return (
     <div className="mt-6 overflow-hidden rounded-[2rem] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.16)] lg:grid lg:grid-cols-[380px_minmax(0,1fr)]">
@@ -180,7 +195,7 @@ function PublicProviderDetail({ provider, saved, onSave }) {
                 <span key={item} className="inline-flex items-center gap-1"><CheckCircle2 size={14} className="text-[#46b85a]" /> {item}</span>
               ))}
             </div>
-            <p className="mt-4 text-base font-black">🌈 {price}/hr - Book now</p>
+            <p className="mt-4 text-base font-black">Rs {price}/hr - Schedule a meeting</p>
             <p className="mt-1 text-sm font-bold text-black/40">~₹{Math.round(price * 74).toLocaleString("en-IN")} (INR)</p>
           </div>
           {hero ? <img src={hero} alt={provider.name} className="h-[240px] w-full rounded-xl object-cover" /> : null}
@@ -215,8 +230,8 @@ function PublicProviderDetail({ provider, saved, onSave }) {
               <p className="flex items-center gap-2 text-xl font-black"><Star fill="#ffcf33" className="text-[#ffcf33]" /> {rating}</p>
             </div>
           </div>
-          <Link to="/login" className="rounded-full bg-black px-6 py-3 text-center text-sm font-black text-white">
-            Book this buddy
+          <Link to={schedulePath} className="rounded-full bg-black px-6 py-3 text-center text-sm font-black text-white">
+            {providerAccount ? "Provider accounts cannot book" : "Schedule a meeting"}
           </Link>
         </div>
       </main>
@@ -235,6 +250,23 @@ function InfoRow({ label, value }) {
       <b className="text-right">{value}</b>
     </div>
   );
+}
+
+function isLoggedIn() {
+  return Boolean(
+    localStorage.getItem("buddybook_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("buddybook_auth_user")
+  );
+}
+
+function isProviderAccount() {
+  try {
+    const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return user?.role === "PROVIDER";
+  } catch {
+    return false;
+  }
 }
 
 function MiniStat({ icon: Icon, value, label }) {

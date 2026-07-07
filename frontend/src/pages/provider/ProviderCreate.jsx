@@ -37,27 +37,24 @@ const emptyForm = {
   providerSafetyAgreement: true,
 };
 
-const serviceOptions = [
-  ["Coffee meetup", 450],
-  ["Cafe hopping", 550],
-  ["City walk", 700],
-  ["Shopping companion", 650],
-  ["Movie partner", 600],
-  ["Dinner plan", 800],
-  ["Gaming session", 500],
-  ["Fitness buddy", 700],
-  ["Study buddy", 400],
-  ["Event partner", 900],
-  ["Concert buddy", 1000],
-  ["Food exploring", 750],
-  ["Photography walk", 850],
-  ["Bookstore visit", 450],
-  ["Museum visit", 650],
-  ["Local travel", 950],
-  ["Cricket companion", 600],
-  ["Language practice", 500],
-  ["Pet-friendly walk", 550],
-  ["Weekend hangout", 900],
+const cityOptions = ["Gurgaon", "Bengaluru", "Delhi", "Pune", "Mumbai", "Hyderabad"];
+const languageOptions = ["Hindi", "English", "Punjabi", "Bengali", "Tamil", "Telugu", "Marathi", "Gujarati"];
+const activityOptions = [
+  "City tour",
+  "Events",
+  "Cafe meet",
+  "Gaming",
+  "Dinner",
+  "Shopping",
+  "Sports",
+  "Study partner",
+  "Movies",
+  "Fitness buddy",
+  "Food exploring",
+  "Photography walk",
+  "Weekend hangout",
+  "Museum visit",
+  "Local travel",
 ];
 
 const dayOptions = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -66,6 +63,8 @@ export default function ProviderCreate() {
   const [user, setUser] = useState(() => readUser());
   const [form, setForm] = useState(emptyForm);
   const [slot, setSlot] = useState({ day: "Sat", date: "", time: "17:00" });
+  const [customActivity, setCustomActivity] = useState("");
+  const [customLanguage, setCustomLanguage] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -99,7 +98,12 @@ export default function ProviderCreate() {
     [form.activities]
   );
 
-  const toggleService = (name, price) => {
+  const selectedLanguages = useMemo(
+    () => splitList(form.languages),
+    [form.languages]
+  );
+
+  const toggleActivity = (name) => {
     const exists = selectedActivities.includes(name);
     const next = exists
       ? selectedActivities.filter((item) => item !== name)
@@ -107,8 +111,31 @@ export default function ProviderCreate() {
     setForm((current) => ({
       ...current,
       activities: next.join(", "),
-      hourlyPrice: current.hourlyPrice || String(price),
     }));
+  };
+
+  const toggleLanguage = (name) => {
+    const exists = selectedLanguages.includes(name);
+    const next = exists
+      ? selectedLanguages.filter((item) => item !== name)
+      : [...selectedLanguages, name];
+    updateField("languages", next.join(", "));
+  };
+
+  const addCustomActivity = () => {
+    const value = customActivity.trim();
+    if (!value) return;
+    const next = [...new Set([...selectedActivities, value])];
+    updateField("activities", next.join(", "));
+    setCustomActivity("");
+  };
+
+  const addCustomLanguage = () => {
+    const value = customLanguage.trim();
+    if (!value) return;
+    const next = [...new Set([...selectedLanguages, value])];
+    updateField("languages", next.join(", "));
+    setCustomLanguage("");
   };
 
   const addAvailabilitySlot = () => {
@@ -204,6 +231,11 @@ export default function ProviderCreate() {
       return;
     }
 
+    if (Number(form.hourlyPrice) < 500) {
+      setMessage({ type: "error", text: "Hourly price must be Rs 500 or more." });
+      return;
+    }
+
     if (form.profileImages.length !== 4) {
       setMessage({ type: "error", text: "Upload exactly 4 profile photos before publishing." });
       return;
@@ -240,7 +272,7 @@ export default function ProviderCreate() {
 
   return (
     <AppShell type="provider">
-      <div className="min-h-screen bg-[#fff7ed] text-black">
+      <div className="min-h-0 bg-[#fff7ed] text-black">
         <section className="relative overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-7 text-black shadow-sm">
           <div className="relative z-10 max-w-3xl">
             <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
@@ -274,10 +306,9 @@ export default function ProviderCreate() {
               <Field label="Profile headline" name="headline" value={form.headline} onChange={updateField} placeholder="Friendly city companion for safe public plans" />
               <Field label="Profession" name="profession" value={form.profession} onChange={updateField} placeholder="Photographer, student, consultant..." />
               <Field label="Age" name="age" value={form.age} onChange={updateField} placeholder="24" />
-              <Field label="Hourly price" name="hourlyPrice" value={form.hourlyPrice} onChange={updateField} placeholder="700" />
-              <Field label="Available city" name="availableCity" value={form.availableCity} onChange={updateField} placeholder="Pune" />
-              <Field label="Languages" name="languages" value={form.languages} onChange={updateField} placeholder="Hindi, English, Marathi" />
-              <Field label="Education / experience" name="education" value={form.education} onChange={updateField} placeholder="Graduate, 2 years hosting" />
+              <Field label="Hourly price" name="hourlyPrice" value={form.hourlyPrice} onChange={updateField} placeholder="500" type="number" min="500" />
+              <DatalistField label="Available city" name="availableCity" value={form.availableCity} onChange={updateField} placeholder="Choose or type your city" options={cityOptions} />
+              <Field label="Education" name="education" value={form.education} onChange={updateField} placeholder="Graduate, diploma, college..." />
               <Field label="Height" name="height" value={form.height} onChange={updateField} placeholder="5'7&quot;" />
               <Field label="Hobbies" name="hobbies" value={form.hobbies} onChange={updateField} placeholder="Reading, fitness, food exploring" wide />
             </div>
@@ -288,29 +319,31 @@ export default function ProviderCreate() {
                   <IndianRupee size={18} />
                 </span>
                 <div>
-                  <h3 className="font-black">Services and activity prices</h3>
-                  <p className="mt-1 text-xs font-bold text-[#6b5d52]">Choose from 20 common activities. Selected services are saved to your public profile.</p>
+                  <h3 className="font-black">Activities and languages</h3>
+                  <p className="mt-1 text-xs font-bold text-[#6b5d52]">Select multiple activities and languages. Add your own if it is not listed.</p>
                 </div>
               </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {serviceOptions.map(([name, price]) => {
-                  const active = selectedActivities.includes(name);
-                  return (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => toggleService(name, price)}
-                      className={`rounded-xl border px-3 py-3 text-left text-xs font-black transition ${
-                        active
-                          ? "border-black bg-black text-[#fffaf3]"
-                          : "border-[#eddac7] bg-white text-black hover:bg-[#ffeedd]"
-                      }`}
-                    >
-                      <span className="block">{name}</span>
-                      <span className={`mt-1 block ${active ? "text-[#fffaf3]/70" : "text-[#8b7563]"}`}>Rs {price}/hr</span>
-                    </button>
-                  );
-                })}
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <MultiSelectPanel
+                  label="Activities"
+                  options={activityOptions}
+                  selected={selectedActivities}
+                  onToggle={toggleActivity}
+                  customValue={customActivity}
+                  onCustomChange={setCustomActivity}
+                  onCustomAdd={addCustomActivity}
+                  placeholder="Add custom activity"
+                />
+                <MultiSelectPanel
+                  label="Languages"
+                  options={languageOptions}
+                  selected={selectedLanguages}
+                  onToggle={toggleLanguage}
+                  customValue={customLanguage}
+                  onCustomChange={setCustomLanguage}
+                  onCustomAdd={addCustomLanguage}
+                  placeholder="Add custom language"
+                />
               </div>
             </div>
 
@@ -370,12 +403,12 @@ export default function ProviderCreate() {
               </label>
             </div>
 
-            <div className="mt-6 rounded-[1.5rem] border border-dashed border-[#d9bfaa] bg-[#fffaf3] p-4">
+            <div className="mt-6 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-4 shadow-[0_18px_55px_rgba(80,45,20,0.06)]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="font-black">Profile photos</h3>
                   <p className="mt-1 text-xs font-bold text-[#6b5d52]">
-                    Exactly 4 photos are required. The first photo is used in Explore.
+                    Exactly 4 photos are required. JPG, PNG or WebP, up to 3 MB each.
                   </p>
                 </div>
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-black px-4 py-3 text-sm font-black text-[#fffaf3] shadow-[0_16px_32px_rgba(0,0,0,0.16)]">
@@ -387,10 +420,10 @@ export default function ProviderCreate() {
 
               <div className="mt-4 grid gap-3 sm:grid-cols-4">
                 {[0, 1, 2, 3].map((index) => (
-                  <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#eddac7] bg-white">
+                  <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#eddac7] bg-white shadow-sm">
                     {form.profileImages[index] ? (
                       <>
-                        <img src={getImageSrc(form.profileImages[index])} alt={`Provider upload ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                        <img src={getImageSrc(form.profileImages[index])} alt={`Provider upload ${index + 1}`} className="h-full w-full object-cover object-center" loading="lazy" />
                         {form.profileImages[index]?.uploading ? (
                           <span className="absolute left-2 top-2 rounded-full bg-black px-3 py-1 text-[10px] font-black text-[#fffaf3]">
                             Uploading
@@ -491,11 +524,13 @@ export default function ProviderCreate() {
   );
 }
 
-function Field({ label, name, value, onChange, placeholder, wide = false }) {
+function Field({ label, name, value, onChange, placeholder, wide = false, type = "text", min }) {
   return (
     <label className={`grid gap-2 ${wide ? "md:col-span-2" : ""}`}>
       <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">{label}</span>
       <input
+        type={type}
+        min={min}
         name={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
@@ -503,6 +538,103 @@ function Field({ label, name, value, onChange, placeholder, wide = false }) {
         className="h-12 rounded-2xl border border-[#eddac7] bg-[#fffaf3] px-4 text-sm font-bold outline-none transition focus:border-black focus:bg-white"
       />
     </label>
+  );
+}
+
+function DatalistField({ label, name, value, onChange, placeholder, options }) {
+  const listId = `${name}-options`;
+  return (
+    <label className="grid gap-2">
+      <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">{label}</span>
+      <input
+        list={listId}
+        name={name}
+        value={value}
+        onChange={(event) => onChange(name, event.target.value)}
+        placeholder={placeholder}
+        className="h-12 rounded-2xl border border-[#eddac7] bg-[#fffaf3] px-4 text-sm font-bold outline-none transition focus:border-black focus:bg-white"
+      />
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+    </label>
+  );
+}
+
+function MultiSelectPanel({
+  label,
+  options,
+  selected,
+  onToggle,
+  customValue,
+  onCustomChange,
+  onCustomAdd,
+  placeholder,
+}) {
+  return (
+    <div className="rounded-2xl border border-[#eddac7] bg-white p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-black">{label}</p>
+        <span className="rounded-full bg-[#ffeedd] px-3 py-1 text-[10px] font-black text-black">
+          {selected.length} selected
+        </span>
+      </div>
+
+      <div className="mt-3 max-h-44 overflow-y-auto rounded-xl border border-[#f1dccb] bg-[#fffaf3] p-2">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {options.map((option) => {
+            const active = selected.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onToggle(option)}
+                className={`rounded-lg border px-3 py-2 text-left text-xs font-black transition ${
+                  active
+                    ? "border-black bg-black text-[#fffaf3]"
+                    : "border-[#eddac7] bg-white text-black hover:bg-[#ffeedd]"
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <input
+          value={customValue}
+          onChange={(event) => onCustomChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-11 min-w-0 flex-1 rounded-xl border border-[#eddac7] bg-[#fffaf3] px-3 text-xs font-bold outline-none focus:border-black"
+        />
+        <button
+          type="button"
+          onClick={onCustomAdd}
+          className="rounded-xl bg-black px-4 text-xs font-black text-[#fffaf3]"
+        >
+          Add
+        </button>
+      </div>
+
+      {selected.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selected.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onToggle(item)}
+              className="rounded-full bg-[#ffeedd] px-3 py-1 text-[10px] font-black text-black"
+            >
+              {item} x
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -515,6 +647,13 @@ function Checklist({ done, label }) {
       <p className="text-sm font-black">{label}</p>
     </div>
   );
+}
+
+function splitList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function providerToForm(provider) {

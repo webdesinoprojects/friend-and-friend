@@ -5,6 +5,7 @@ import {
   Check,
   CheckCircle2,
   Edit3,
+  Heart,
   MapPin,
   ShieldCheck,
   Star,
@@ -137,11 +138,17 @@ export default function UserDashboard() {
       searchValue={search}
       onSearchChange={setSearch}
     >
-      <section className="grid min-h-full gap-4 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <div className="grid min-h-0 gap-4 xl:grid-rows-[210px_390px_minmax(360px,1fr)]">
-          <WelcomeBanner user={user} />
+      <section className="grid min-h-full gap-6 xl:grid-cols-[minmax(0,1fr)_500px]">
+        <div className="grid min-h-0 gap-6">
+          <UserMetricStrip
+            totalSpent={totalSpent}
+            todayBookings={todayBookings}
+            dailyLimit={dailyLimit}
+            savedProviders={readStorage("buddybook_watchlist", []).length}
+            verified={verified}
+          />
 
-          <div className="rounded-lg border border-[#dce5f2] bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black">Providers to Explore</h2>
@@ -151,7 +158,7 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="grid h-[300px] grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {providersLoading ? (
                 [1, 2, 3, 4].map((item) => (
                   <div key={item} className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-white">
@@ -186,7 +193,7 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div className="min-h-0 overflow-hidden rounded-lg border border-[#dce5f2] bg-white p-5 shadow-sm">
+          <div className="min-h-0 overflow-hidden rounded-xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Recent Bookings</h2>
               <Link to="/app/user/bookings" className="text-xs font-black text-[#d67f3d]">
@@ -250,15 +257,10 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        <aside className="grid min-h-0 gap-4 xl:grid-rows-[230px_minmax(280px,1fr)_160px]">
-          <OverviewCard
-            totalSpent={totalSpent}
-            rating={rating}
-            dailyLimit={dailyLimit}
-            todayBookings={todayBookings}
-            verified={verified}
-          />
+        <aside className="grid min-h-0 gap-6">
           <WeeklyChart values={weeklyBookings} />
+          <SafetyChecklist />
+          <SuggestedProviders providers={providers.slice(0, 3)} />
           <Statistics total={total} completed={completed} pending={pending} />
         </aside>
       </section>
@@ -299,6 +301,34 @@ function WelcomeBanner({ user }) {
 }
 
 // ProviderCard is now shared in components/users/ProviderCard.jsx
+
+function UserMetricStrip({ totalSpent, todayBookings, dailyLimit, savedProviders, verified }) {
+  const cards = [
+    [Wallet, `Rs ${totalSpent.toLocaleString("en-IN")}`, "Total Spending", "View details", "bg-[#fff1e6] text-[#d67f3d]"],
+    [CalendarCheck, `${todayBookings} / ${dailyLimit}`, "Daily Booking Limit", "View details", "bg-[#fff1e6] text-black"],
+    [Heart, savedProviders, "Saved Providers", "View all", "bg-[#fff1e6] text-[#d84e58]"],
+    [ShieldCheck, verified ? "Verified" : "Pending", "Verification Status", "View details", "bg-[#e8f6ef] text-[#16815f]"],
+  ];
+
+  return (
+    <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
+      {cards.map(([Icon, value, label, action, tone]) => (
+        <article key={label} className="min-h-[150px] rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className={`grid h-14 w-14 place-items-center rounded-xl ${tone}`}>
+              <Icon size={24} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-black">{value}</p>
+              <p className="mt-1 text-sm font-semibold leading-5 text-[#667085]">{label}</p>
+            </div>
+          </div>
+          <button className="mt-5 block text-sm font-black text-[#e08c4c]">{action}</button>
+        </article>
+      ))}
+    </div>
+  );
+}
 
 function OverviewCard({ totalSpent, rating, dailyLimit, todayBookings, verified }) {
   const limitOver = todayBookings >= dailyLimit;
@@ -409,6 +439,49 @@ function readStorage(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function SafetyChecklist() {
+  const items = ["Profile is verified", "Use public meeting places", "Share plans with a friend", "Respect boundaries"];
+  return (
+    <section className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-black">Safety Checklist</h2>
+        <span className="text-sm font-black text-[#16815f]">All good!</span>
+      </div>
+      <p className="mt-1 text-sm font-semibold text-[#667085]">You are following best practices for safe meetups.</p>
+      <div className="mt-5 grid gap-3">
+        {items.map((item) => (
+          <p key={item} className="flex items-center gap-2 text-sm font-semibold">
+            <CheckCircle2 size={16} className="text-[#16815f]" /> {item}
+          </p>
+        ))}
+      </div>
+      <Link to="/safety" className="mt-5 inline-flex text-sm font-black text-[#e08c4c]">View safety tips</Link>
+    </section>
+  );
+}
+
+function SuggestedProviders({ providers }) {
+  return (
+    <section className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-black">Suggested Providers</h2>
+        <Link to="/#community" className="text-sm font-black text-[#e08c4c]">View all</Link>
+      </div>
+      <div className="mt-5 flex gap-6 overflow-x-auto">
+        {providers.length ? providers.map((provider) => (
+          <Link key={provider.id} to={`/app/user/provider/${provider.id}`} className="min-w-20 text-center">
+            <img src={provider.image} alt={provider.name} className="mx-auto h-14 w-14 rounded-full object-cover" />
+            <p className="mt-2 max-w-20 truncate text-sm font-black">{provider.name}</p>
+            <p className="text-xs font-black text-[#e08c4c]">★ {provider.rating || "4.8"}</p>
+          </Link>
+        )) : (
+          <p className="text-sm font-semibold text-[#667085]">Providers will appear here after profiles are published.</p>
+        )}
+      </div>
+    </section>
+  );
 }
 
 async function loadDashboardProviders() {

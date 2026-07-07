@@ -88,10 +88,10 @@ export default function UserProviderDetails() {
                 </div>
 
                 <Link
-                  to={`/app/user/booking/${profile.id}`}
+                  to={`/app/user/provider/${profile.id}/book`}
                   className="rounded-2xl bg-[#3f37ff] px-8 py-4 text-sm font-black text-white shadow-lg shadow-[#3f37ff]/20"
                 >
-                  Book Now
+                  Schedule a meeting
                 </Link>
               </div>
             </div>

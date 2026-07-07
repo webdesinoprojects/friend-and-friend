@@ -151,9 +151,16 @@ function buildProfileData(body, { requireImages = false } = {}) {
   }
 
   const profileImages = normalizeProfileImages(body.profileImages);
+  const hourlyPrice = normalizeText(body.hourlyPrice);
 
   if (requireImages && profileImages.length !== 4) {
     const error = new Error('Exactly 4 provider images are required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (hourlyPrice && Number(hourlyPrice) < 500) {
+    const error = new Error('Hourly price must be Rs 500 or more.');
     error.statusCode = 400;
     throw error;
   }
@@ -164,7 +171,7 @@ function buildProfileData(body, { requireImages = false } = {}) {
     education: normalizeText(body.education) || null,
     height: normalizeText(body.height) || null,
     hobbies: normalizeText(body.hobbies) || null,
-    hourlyPrice: normalizeText(body.hourlyPrice) || null,
+    hourlyPrice: hourlyPrice || null,
     availableCity: normalizeText(body.availableCity) || null,
     languages: normalizeText(body.languages) || null,
     availabilityDays: normalizeText(body.availabilityDays) || null,

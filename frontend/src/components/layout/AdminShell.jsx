@@ -12,7 +12,8 @@ import {
   Users,
   UserCheck,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "../../api/api";
 
 const navItems = [
   { label: "Overview", to: "/admin/dashboard", icon: Home },
@@ -21,7 +22,6 @@ const navItems = [
   { label: "Bookings", to: "/admin/bookings", icon: CalendarCheck },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
   { label: "Website Content", to: "/admin/content", icon: FileText },
-  { label: "Trust & Safety", to: "/admin/kyc", icon: ShieldCheck },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];
 
@@ -32,6 +32,14 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
     } catch {
       return null;
     }
+  }, []);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    api.get("/admin/notifications", getAdminHeaders())
+      .then(({ data }) => setNotifications(data?.data || []))
+      .catch(() => setNotifications([]));
   }, []);
 
   return (
@@ -78,7 +86,7 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
           </div>
           <p className="mt-4 text-sm font-black">Safe Platform.</p>
           <p className="mt-1 text-sm font-semibold text-[#667085]">Trusted Community.</p>
-          <Link to="/admin/kyc" className="mt-4 inline-flex text-sm font-black text-[#0b4aa2]">
+          <Link to="/admin/settings" className="mt-4 inline-flex text-sm font-black text-[#0b4aa2]">
             Learn more &rarr;
           </Link>
         </div>
@@ -103,12 +111,36 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
                   ⌘ K
                 </span>
               </label>
-              <Link to="/admin/reports" className="relative grid h-12 w-12 place-items-center rounded-full bg-white text-black shadow-sm">
-                <Bell size={24} />
-                <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-[#f6c400] text-xs font-black">
-                  3
-                </span>
-              </Link>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotificationsOpen((value) => !value)}
+                  className="relative grid h-12 w-12 place-items-center rounded-full bg-white text-black shadow-sm"
+                >
+                  <Bell size={24} />
+                  {notifications.length ? (
+                    <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-[#f6c400] text-xs font-black">
+                      {Math.min(notifications.length, 9)}
+                    </span>
+                  ) : null}
+                </button>
+                {notificationsOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-96 rounded-2xl border border-black/10 bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.16)]">
+                    <p className="text-sm font-black uppercase tracking-[0.12em] text-black/45">Notifications</p>
+                    <div className="mt-3 grid max-h-96 gap-3 overflow-y-auto">
+                      {notifications.length ? notifications.map((item) => (
+                        <article key={item.id} className="rounded-xl bg-[#fff7ed] p-3">
+                          <p className="text-sm font-black">{item.title}</p>
+                          <p className="mt-1 text-xs font-semibold text-black/55">{item.detail}</p>
+                          <p className="mt-2 text-[10px] font-black text-[#e08c4c]">{formatDateTime(item.createdAt)}</p>
+                        </article>
+                      )) : (
+                        <p className="rounded-xl bg-[#fff7ed] p-4 text-sm font-semibold text-black/55">No booking or login notifications yet.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex min-w-fit items-center gap-3">
                 <img
                   src="/admin-logo.svg"
@@ -127,4 +159,16 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
       </main>
     </div>
   );
+}
+
+function getAdminHeaders() {
+  const token = localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token");
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+}
+
+function formatDateTime(value) {
+  if (!value) return "Just now";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Just now";
+  return date.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }

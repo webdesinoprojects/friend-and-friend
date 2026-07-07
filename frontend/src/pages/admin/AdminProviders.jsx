@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Eye, X } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
 
@@ -6,6 +7,7 @@ export default function AdminProviders() {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -29,6 +31,8 @@ export default function AdminProviders() {
 
   const toggleBlock = async (provider) => {
     const action = provider.isBlocked ? "unblock" : "block";
+    const ok = window.confirm(`Are you sure you want to ${action} ${provider.fullName}?`);
+    if (!ok) return;
     try {
       await api.post(`/admin/providers/${provider.id}/${action}`, {}, getAdminHeaders());
       setProviders((current) =>
@@ -67,9 +71,13 @@ export default function AdminProviders() {
               <thead className="bg-[#f7f7f5] text-xs font-black uppercase tracking-[0.16em] text-black/45">
                 <tr>
                   <th className="px-5 py-4">Name</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
                   <th>Headline</th>
                   <th>Price</th>
                   <th>Location</th>
+                  <th>Aadhaar</th>
+                  <th>Selfie</th>
                   <th>Approved</th>
                   <th>KYC</th>
                   <th>Action</th>
@@ -80,9 +88,19 @@ export default function AdminProviders() {
                   filtered.map((provider) => (
                     <tr key={provider.id} className="transition hover:bg-black/5">
                       <td className="px-5 py-4 font-black text-black">{provider.fullName}</td>
+                      <td className="font-semibold text-black/65">{provider.email || "Not added"}</td>
+                      <td className="font-semibold text-black/65">{provider.phone || "Not added"}</td>
                       <td className="font-semibold text-black/65">{provider.headline || "Not set"}</td>
                       <td className="font-semibold text-black/65">₹{provider.price || "Not set"}/hr</td>
                       <td className="font-semibold text-black/65">{provider.city || "Not set"}</td>
+                      <td className="font-black text-black">{provider.aadhaarLast4 ? `**** ${provider.aadhaarLast4}` : "-"}</td>
+                      <td>
+                        {provider.referenceSelfie ? (
+                          <button type="button" onClick={() => setPreviewImage(provider.referenceSelfie)} className="grid h-9 w-9 place-items-center rounded-full bg-black text-white">
+                            <Eye size={16} />
+                          </button>
+                        ) : "-"}
+                      </td>
                       <td>
                         <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black ${
                           provider.approved ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/65"
@@ -120,7 +138,19 @@ export default function AdminProviders() {
           </div>
         )}
       </div>
+      {previewImage ? <ImagePreview src={previewImage} onClose={() => setPreviewImage(null)} /> : null}
     </AdminShell>
+  );
+}
+
+function ImagePreview({ src, onClose }) {
+  return (
+    <div className="fixed inset-0 z-[9999] grid place-items-center bg-black/55 p-4" onClick={onClose}>
+      <div className="relative max-w-sm rounded-3xl bg-white p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black text-white"><X size={16} /></button>
+        <img src={src} alt="Live selfie" className="max-h-[70vh] w-full rounded-2xl object-contain" />
+      </div>
+    </div>
   );
 }
 

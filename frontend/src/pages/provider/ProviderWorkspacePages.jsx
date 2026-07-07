@@ -327,7 +327,7 @@ export function ProviderEarnings() {
 function ProviderPageShell({ title, subtitle, action, children }) {
   return (
     <AppShell type="provider">
-      <div className="min-h-screen bg-[#fff7ed] text-black">
+      <div className="min-h-0 bg-[#fff7ed] text-black">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-6 text-black shadow-sm">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e08c4c]">Provider workspace</p>

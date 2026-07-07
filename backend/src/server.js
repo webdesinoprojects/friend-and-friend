@@ -7,6 +7,7 @@ const authRoutes = require("./routes/auth.routes");
 const providerRoutes = require("./routes/provider.routes");
 const adminRoutes = require("./routes/admin.routes");
 const contactRoutes = require("./routes/contact.routes");
+const bookingRoutes = require("./routes/booking.routes");
 
 const app = express();
 const allowedOrigins = [
@@ -45,6 +46,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/providers", providerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 const PORT = process.env.PORT || 5000;
 

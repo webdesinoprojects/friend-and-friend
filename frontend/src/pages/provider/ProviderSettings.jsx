@@ -56,7 +56,7 @@ export default function ProviderSettings() {
 
   return (
     <AppShell type="provider">
-      <section className="min-h-screen bg-[#fff7ed] text-black">
+      <section className="min-h-0 bg-[#fff7ed] text-black">
         <div className="mb-5 rounded-2xl border border-[#eddac7] bg-[#fffaf3] p-5">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e08c4c]">Provider settings</p>
           <h1 className="mt-1 text-3xl font-black">Control your panel</h1>

@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   CalendarCheck,
   Heart,
   LayoutDashboard,
   Menu,
+  Search,
   Settings,
+  ShieldCheck,
   Star,
   User,
   Wallet,
@@ -13,14 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { ComingSoonMessageButton, NotificationBell } from "../common/HeaderActions";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
+import Logo from "../common/Logo";
 
 const userLinks = [
   { label: "Dashboard", to: "/app/user/dashboard", icon: LayoutDashboard },
@@ -45,54 +39,124 @@ export default function UserAppLayout({
   const activeUser = user || storedUser;
   const pageName = getPageName(location.pathname, title);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [navSearch, setNavSearch] = useState("");
+  const searchResults = userLinks.filter((item) =>
+    item.label.toLowerCase().includes(navSearch.trim().toLowerCase())
+  );
+  const searchValueForInput = navSearch || searchValue;
+
+  const handleSearchChange = (value) => {
+    setNavSearch(value);
+    onSearchChange?.(value);
+  };
+
+  const goToFirstSearchResult = () => {
+    const first = searchResults[0];
+    if (first && navSearch.trim()) {
+      navigate(first.to);
+      setNavSearch("");
+    }
+  };
 
   return (
-    <div className="h-dvh overflow-hidden bg-[#fff7ed] p-2 text-[#14231f] sm:p-3">
-      <div className="mx-auto h-full max-w-[1900px]">
-        <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
-          <header className="flex h-16 shrink-0 items-center justify-between rounded-[1.5rem] border border-[#eddac7] bg-white px-4 shadow-sm sm:px-6">
+    <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
+      <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 border-r border-black/10 bg-white p-6 lg:flex lg:flex-col">
+          <Logo />
+          <nav className="mt-10 grid gap-2">
+            {userLinks.map(({ label, to, icon: Icon }) => {
+              const active = location.pathname === to || (to.includes("dashboard") && location.pathname.endsWith("dashboard"));
+              return (
+                <Link
+                  key={label}
+                  to={to}
+                  className={`flex items-center gap-4 rounded-2xl px-5 py-4 text-sm font-black transition ${
+                    active ? "bg-[#fff0d2] text-[#08204a]" : "text-[#111827] hover:bg-[#fff7ed]"
+                  }`}
+                >
+                  <Icon size={22} />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="mt-auto rounded-2xl bg-[#fff7ed] p-5">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#e08c4c] shadow-sm">
+              <ShieldCheck size={22} />
+            </span>
+            <p className="mt-5 text-base font-black">Safe Platform.</p>
+            <p className="mt-1 text-sm font-semibold text-[#667085]">Trusted Community.</p>
+            <Link to="/safety" className="mt-5 inline-flex text-sm font-black text-[#0b4a9f]">Learn more &rarr;</Link>
+          </div>
+        </aside>
+
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#eddac7] bg-[#fffaf3] text-black transition hover:bg-[#ffeedd]"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:bg-[#fff7ed] lg:hidden"
                 aria-label="Open user workspace menu"
               >
                 <Menu size={18} />
               </button>
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3] transition hover:bg-[#d67f3d]"
-                aria-label="Go back"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <Breadcrumb className="min-w-0">
-                <BreadcrumbList className="gap-1.5">
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link
-                        to="/app/user/dashboard"
-                        className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b7563] transition hover:text-black"
-                      >
-                        User Workspace
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="text-[#8b7563]/45" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="truncate text-base font-black capitalize tracking-tight text-[#111827]">
-                      {pageName}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+                  {pageName === "dashboard" ? "User Overview" : pageName}
+                </h1>
+                <p className="mt-1 hidden text-sm font-semibold text-[#667085] sm:block">
+                  Your safe space for verified connections and meaningful meetups.
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative hidden h-14 w-[min(34vw,430px)] items-center gap-3 rounded-xl border border-black/10 bg-white px-4 shadow-sm xl:flex">
+              <Search size={20} className="text-[#667085]" />
+              <input
+                value={searchValueForInput}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") goToFirstSearchResult();
+                }}
+                placeholder="Search pages..."
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+              />
+              <kbd className="rounded-md bg-[#f2f4f7] px-2 py-1 text-xs font-black text-[#475467]">⌘ K</kbd>
+              {navSearch.trim() ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
+                  {searchResults.length ? searchResults.map(({ label, to, icon: Icon }) => (
+                    <button
+                      key={to}
+                      type="button"
+                      onClick={() => {
+                        navigate(to);
+                        setNavSearch("");
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-black hover:bg-[#fff7ed]"
+                    >
+                      <Icon size={17} />
+                      {label}
+                    </button>
+                  )) : (
+                    <p className="px-4 py-3 text-sm font-semibold text-[#667085]">No page found</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-3">
               <NotificationBell />
               <ComingSoonMessageButton />
+              <div className="hidden items-center gap-3 sm:flex">
+                <div className="grid h-14 w-14 place-items-center rounded-full bg-[#ffe8bd] text-lg font-black text-[#ad5a18]">
+                  {getInitials(activeUser?.fullName)}
+                </div>
+                <div className="hidden xl:block">
+                  <p className="text-sm font-black">{activeUser?.fullName || "BuddyBOOK User"}</p>
+                  <p className="text-xs font-black text-[#16815f]">Verified Member</p>
+                </div>
+              </div>
             </div>
           </header>
 
@@ -143,7 +207,7 @@ export default function UserAppLayout({
             </div>
           ) : null}
 
-          <main className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
+          <main className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-8">
             {children}
           </main>
         </div>
@@ -166,4 +230,9 @@ function readStoredUser() {
   } catch {
     return null;
   }
+}
+
+function getInitials(name = "") {
+  const parts = String(name || "CY").trim().split(/\s+/);
+  return `${parts[0]?.[0] || "C"}${parts[1]?.[0] || "Y"}`.toUpperCase();
 }

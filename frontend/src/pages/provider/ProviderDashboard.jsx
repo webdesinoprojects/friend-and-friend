@@ -26,7 +26,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
@@ -62,6 +61,7 @@ export default function ProviderDashboard() {
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState(() => getBookings());
   const [reviews, setReviews] = useState(() => getReceivedReviews("PROVIDER"));
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -96,13 +96,23 @@ export default function ProviderDashboard() {
   );
 
   const profile = providerToProfile(provider, user);
-  const providerBookings = useMemo(
-    () =>
-      bookings.filter((booking) =>
-        provider?.id ? !booking.providerId || booking.providerId === provider.id : true
-      ),
+  const providerBookings = useMemo(() =>
+    bookings.filter((booking) =>
+      provider?.id ? !booking.providerId || booking.providerId === provider.id : true
+    ),
     [bookings, provider?.id]
   );
+  const filteredBookings = useMemo(() => {
+    if (!search.trim()) return providerBookings;
+    const q = search.trim().toLowerCase();
+    return providerBookings.filter((booking) =>
+      [booking.service, booking.activity, booking.date, booking.time, booking.status, booking.userName, booking.customerName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [providerBookings, search]);
   const firstName = profile.name.split(" ")[0] || "Provider";
   const completion = useMemo(() => getCompletion(provider), [provider]);
   const photoCount = Array.isArray(provider?.profileImages) ? provider.profileImages.length : 0;
@@ -113,8 +123,8 @@ export default function ProviderDashboard() {
   const revenue = Number(liveStats.totalRevenue || 0);
 
   return (
-    <AppShell type="provider">
-      <div className="min-h-screen bg-[#fff7ed] text-[#14231f]">
+    <AppShell type="provider" searchValue={search} onSearchChange={setSearch}>
+      <div className="min-h-0 bg-[#fff7ed] text-[#14231f]">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="grid gap-5">
             <div className="relative overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-7 text-black shadow-sm">
@@ -215,16 +225,18 @@ export default function ProviderDashboard() {
               </ChartCard>
             </div>
 
+            <BookingRequestsTable bookings={filteredBookings} />
+
             <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-              <PipelinePanel bookings={providerBookings} />
-              <ActivityPanel profile={profile} bookings={providerBookings} reviews={reviews} />
+              <PipelinePanel bookings={filteredBookings} />
+              <ActivityPanel profile={profile} bookings={filteredBookings} reviews={reviews} />
             </div>
           </div>
 
           <aside className="grid h-max gap-5">
             <ProfileHealthCard profile={profile} completion={completion} photoCount={photoCount} provider={provider} />
             <NextStepsCard provider={provider} completion={completion} />
-            <MiniScheduleCard provider={provider} bookings={providerBookings} />
+            <MiniScheduleCard provider={provider} bookings={filteredBookings} />
           </aside>
         </section>
       </div>
@@ -273,6 +285,70 @@ function ChartCard({ title, subtitle, children }) {
       <div className="h-[245px]">{children}</div>
     </div>
   );
+}
+
+function BookingRequestsTable({ bookings = [] }) {
+  const rows = bookings.length
+    ? bookings.slice(0, 5)
+    : [
+        { id: "BR-1024", providerName: "Amit Sharma", service: "City tour", date: "23 Jun, 11:30 AM", status: "PENDING", amount: 500 },
+        { id: "BR-1023", providerName: "Neha Patel", service: "Cafe meet", date: "24 Jun, 06:00 PM", status: "PENDING", amount: 800 },
+        { id: "BR-1022", providerName: "Rohan Kumar", service: "Study partner", date: "25 Jun, 04:00 PM", status: "CONFIRMED", amount: 600 },
+        { id: "BR-1021", providerName: "Priya Singh", service: "Photography walk", date: "22 Jun, 09:00 AM", status: "COMPLETED", amount: 700 },
+      ];
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-black">Booking Requests</h2>
+        <Link to="/app/provider/bookings" className="rounded-lg border border-black/10 px-3 py-2 text-xs font-black hover:bg-[#fff7ed]">
+          View all
+        </Link>
+      </div>
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left">
+          <thead>
+            <tr className="border-b border-[#eddac7] text-[10px] font-black uppercase tracking-[0.12em] text-[#667085]">
+              <th className="px-3 py-3">Request ID</th>
+              <th className="px-3 py-3">Customer</th>
+              <th className="px-3 py-3">Service</th>
+              <th className="px-3 py-3">Date & Time</th>
+              <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3 text-right">Amount</th>
+              <th className="px-3 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f2e2d4]">
+            {rows.map((booking, index) => (
+              <tr key={booking.id || index} className="text-sm font-semibold">
+                <td className="px-3 py-4 font-black">{booking.id || `BR-${1020 + index}`}</td>
+                <td className="px-3 py-4">{booking.userName || booking.customerName || booking.providerName || "Buddy user"}</td>
+                <td className="px-3 py-4">{booking.service || booking.activity || "Public meetup"}</td>
+                <td className="px-3 py-4">{formatProviderDate(booking.date || booking.createdAt)}</td>
+                <td className="px-3 py-4"><ProviderStatus status={booking.status} /></td>
+                <td className="px-3 py-4 text-right font-black">Rs {Number(booking.amount || 0).toLocaleString("en-IN")}</td>
+                <td className="px-3 py-4 text-right">
+                  <Link to="/app/provider/bookings" className="rounded-lg bg-black px-4 py-2 text-xs font-black text-white">
+                    View
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function ProviderStatus({ status = "PENDING" }) {
+  const normalized = String(status).toUpperCase();
+  const tone = normalized === "COMPLETED"
+    ? "bg-[#e8f6ef] text-[#16815f]"
+    : normalized === "CONFIRMED"
+      ? "bg-[#e8f6ef] text-[#16815f]"
+      : "bg-[#fff4e6] text-[#c76d11]";
+  return <span className={`rounded-lg px-3 py-1 text-xs font-black ${tone}`}>{normalized}</span>;
 }
 
 function PipelinePanel({ bookings = [] }) {
@@ -515,6 +591,18 @@ function formatRelativeTime(value) {
   const date = value ? new Date(value) : new Date();
   if (Number.isNaN(date.getTime())) return "Now";
   return date.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatProviderDate(value) {
+  if (!value) return "Flexible";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function isTodayBooking(booking) {

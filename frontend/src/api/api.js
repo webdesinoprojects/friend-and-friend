@@ -18,4 +18,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401 || status === 403) {
+      const isAdmin = String(error?.config?.url || "").startsWith("/admin");
+      if (isAdmin) {
+        localStorage.removeItem("buddybook_admin_token");
+        localStorage.removeItem("buddybook_admin_user");
+      } else {
+        localStorage.removeItem("buddybook_token");
+        localStorage.removeItem("buddybook_auth_user");
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

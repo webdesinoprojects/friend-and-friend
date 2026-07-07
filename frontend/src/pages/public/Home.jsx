@@ -272,8 +272,16 @@ heroStage.style.filter = "none";
     () => user?.fullName?.trim().split(/\s+/)[0] || "",
     [user]
   );
+  const isProviderAccount = user?.role === "PROVIDER";
 
-  const discoverRoute = "#community";
+  const scrollToCommunity = (event) => {
+    event.preventDefault();
+    document.getElementById("community")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    window.history.replaceState(null, "", "#community");
+  };
   const publicCities = useMemo(
     () => ["All", ...uniqueValues(publicProviders.map((item) => item.city))],
     [publicProviders]
@@ -374,13 +382,14 @@ heroStage.style.filter = "none";
               </h1>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  to={discoverRoute}
+                <a
+                  href="#community"
+                  onClick={scrollToCommunity}
                   className="group inline-flex items-center justify-center gap-2 rounded-md bg-[#171b30] px-7 py-4 text-sm font-black text-white shadow-[0_16px_35px_rgba(23,27,48,0.2)] transition hover:-translate-y-1 hover:bg-[#d77f40]"
                 >
                   {siteContent.heroHighlight || "Browse Indian providers"}
                   <ArrowRight size={17} className="transition group-hover:translate-x-1" />
-                </Link>
+                </a>
                                
 
               </div>
@@ -458,24 +467,26 @@ heroStage.style.filter = "none";
           </div>
         </section>
 
-        <PublicServiceExploreSection
-          providers={paginatedPublicProviders}
-          totalProviders={filteredPublicProviders.length}
-          loading={providerLoading}
-          filters={publicFilters}
-          cities={publicCities}
-          states={publicStates}
-          activities={publicActivities}
-          page={providerPage}
-          pageCount={providerPageCount}
-          title={siteContent.communityTitle || "Explore more Meet - India"}
-          content={siteContent}
-          onPage={setProviderPage}
-          onFilter={(key, value) =>
-            setPublicFilters((current) => ({ ...current, [key]: value }))
-          }
-          onReset={() => setPublicFilters(publicSearchDefaults)}
-        />
+        {!isProviderAccount ? (
+          <PublicServiceExploreSection
+            providers={paginatedPublicProviders}
+            totalProviders={filteredPublicProviders.length}
+            loading={providerLoading}
+            filters={publicFilters}
+            cities={publicCities}
+            states={publicStates}
+            activities={publicActivities}
+            page={providerPage}
+            pageCount={providerPageCount}
+            title={siteContent.communityTitle || "Explore more Meet - India"}
+            content={siteContent}
+            onPage={setProviderPage}
+            onFilter={(key, value) =>
+              setPublicFilters((current) => ({ ...current, [key]: value }))
+            }
+            onReset={() => setPublicFilters(publicSearchDefaults)}
+          />
+        ) : null}
 
         <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
           <SectionSparkles tone="green" />
@@ -1501,7 +1512,7 @@ function DrawerFilter({ label, value, options, onChange }) {
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option === "All" ? "........." : option}
+            {option === "All" ? `Any ${label.toLowerCase()}` : option}
           </option>
         ))}
       </select>

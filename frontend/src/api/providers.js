@@ -41,11 +41,18 @@ export async function createProvider(payload) {
 }
 
 export async function getMyProviderProfile() {
-  const res = await api.get('/providers/me/profile');
-  return {
-    provider: res.data?.data || null,
-    stats: res.data?.stats || null,
-  };
+  try {
+    const res = await api.get('/providers/me/profile');
+    return {
+      provider: res.data?.data || null,
+      stats: res.data?.stats || null,
+    };
+  } catch (error) {
+    if (error?.response?.status === 401 || error?.response?.status === 403) {
+      return { provider: null, stats: null };
+    }
+    throw error;
+  }
 }
 
 export async function saveMyProviderProfile(payload) {

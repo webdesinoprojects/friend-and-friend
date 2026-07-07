@@ -1,74 +1,139 @@
 import {
-  ArrowLeft,
+  CalendarCheck,
+  LayoutDashboard,
+  Search,
+  Settings,
+  ShieldCheck,
+  Star,
+  User,
+  Wallet,
 } from "lucide-react";
 
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import { ComingSoonMessageButton, NotificationBell } from "../common/HeaderActions";
-import WorkspaceAccountMenu from "./WorkspaceAccountMenu";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
+import { useLocation, Link } from "react-router-dom";
+import Logo from "../common/Logo";
+import { NotificationBell } from "../common/HeaderActions";
 
-export default function AppShell({ type, children }) {
-  const navigate = useNavigate();
+const providerLinks = [
+  { label: "Overview", to: "/app/provider/dashboard", icon: LayoutDashboard },
+  { label: "Provider Profile", to: "/app/provider/profile", icon: User },
+  { label: "Bookings", to: "/app/provider/bookings", icon: CalendarCheck },
+  { label: "Earnings", to: "/app/provider/earnings", icon: Wallet },
+  { label: "Reviews", to: "/app/provider/reviews", icon: Star },
+  { label: "Settings", to: "/app/provider/settings", icon: Settings },
+];
+
+const userLinks = [
+  { label: "Overview", to: "/app/user/dashboard", icon: LayoutDashboard },
+  { label: "Watch List", to: "/app/user/watchlist", icon: Star },
+  { label: "Bookings", to: "/app/user/bookings", icon: CalendarCheck },
+  { label: "Payments", to: "/app/user/wallet", icon: Wallet },
+  { label: "Profile", to: "/app/user/profile", icon: User },
+  { label: "Settings", to: "/app/user/settings", icon: Settings },
+];
+
+export default function AppShell({ type, children, searchValue = "", onSearchChange }) {
   const location = useLocation();
   const pathParts = location.pathname.split("/").filter(Boolean);
   const pageName = pathParts[pathParts.length - 1] || "dashboard";
+  const links = type === "provider" ? providerLinks : userLinks;
+  const storedUser = readStoredUser();
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-[#fff7ed] text-[#14231f]">
-      <main className="flex min-h-0 flex-1 flex-col">
-        <div className="z-[9999] shrink-0 border-b border-[#ecd9c8] bg-white/88 px-5 py-4 backdrop-blur-xl relative">
-          <div className="flex items-center justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3] transition hover:bg-[#d67f3d]"
-                aria-label="Go back"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <Breadcrumb className="ml-2 flex min-w-0 items-center">
-                <BreadcrumbList className="gap-1.5">
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link
-                        to={`/app/${type}/dashboard`}
-                        className="text-xs font-black uppercase tracking-[0.14em] text-[#8b7563] transition hover:text-black"
-                      >
-                        {type} Workspace
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="text-[#8b7563]/45" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="truncate text-lg font-black capitalize text-black">
-                      {pageName.replace(/-/g, " ")}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <NotificationBell />
-              <ComingSoonMessageButton />
-              <span className="hidden h-8 w-px bg-[#e2e8f0] sm:block" />
-              <WorkspaceAccountMenu />
-            </div>
+    <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
+      <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 border-r border-black/10 bg-white p-6 lg:flex lg:flex-col">
+          <Logo />
+          <nav className="mt-10 grid gap-2">
+            {links.map(({ label, to, icon: Icon }) => {
+              const active = location.pathname === to || (to.includes(pageName) && location.pathname.includes(to));
+              return (
+                <Link
+                  key={label}
+                  to={to}
+                  className={`flex items-center gap-4 rounded-2xl px-5 py-4 text-sm font-black transition ${
+                    active ? "bg-[#fff0d2] text-[#08204a]" : "text-[#111827] hover:bg-[#fff7ed]"
+                  }`}
+                >
+                  <Icon size={22} />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="mt-auto rounded-2xl bg-[#fff7ed] p-5">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#e08c4c] shadow-sm">
+              <ShieldCheck size={22} />
+            </span>
+            <p className="mt-5 text-base font-black">Safe Platform.</p>
+            <p className="mt-1 text-sm font-semibold text-[#667085]">Trusted Community.</p>
+            <Link to="/safety" className="mt-5 inline-flex text-sm font-black text-[#0b4a9f]">Learn more &rarr;</Link>
           </div>
-        </div>
+        </aside>
 
-        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-3 md:p-5">
-          {children}
-        </div>
-      </main>
+        <main className="flex min-h-0 min-w-0 flex-col">
+          <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+                {type === "provider" && pageName === "dashboard"
+                  ? "Provider Overview"
+                  : `${pageName.replace(/-/g, " ")}`}
+              </h1>
+              <p className="mt-1 hidden text-sm font-semibold text-[#667085] sm:block">
+                {type === "provider"
+                  ? "Track your profile, bookings, earnings and next actions."
+                  : "Manage your safe workspace and bookings."}
+              </p>
+            </div>
+
+            <div className="hidden h-14 min-w-[300px] max-w-[520px] flex-1 items-center gap-3 rounded-xl border border-black/10 bg-white px-4 shadow-sm xl:flex">
+              <Search size={20} className="text-[#667085]" />
+              <input
+                value={searchValue}
+                onChange={(event) => onSearchChange?.(event.target.value)}
+                placeholder={type === "provider" ? "Search bookings, services, earnings..." : "Search anything..."}
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+              />
+              <kbd className="rounded-md bg-[#f2f4f7] px-2 py-1 text-xs font-black text-[#475467]">⌘ K</kbd>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <NotificationBell />
+              <div className="hidden items-center gap-3 sm:flex">
+                <img
+                  src={getAvatar(storedUser)}
+                  alt={storedUser?.fullName || "Account"}
+                  className="h-14 w-14 rounded-full object-cover"
+                />
+                <div className="hidden xl:block">
+                  <p className="text-sm font-black">{storedUser?.fullName || "Provider"}</p>
+                  <p className="text-xs font-semibold text-[#667085]">{storedUser?.city || "New Delhi"}, {storedUser?.state || "Delhi"}</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
+  );
+}
+
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function getAvatar(user) {
+  return (
+    user?.profileImage ||
+    user?.avatar ||
+    user?.referenceSelfie ||
+    "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=160&auto=format&fit=crop&q=80"
   );
 }

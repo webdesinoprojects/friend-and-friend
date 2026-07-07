@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays,
   Check,
@@ -25,22 +25,27 @@ const paymentMethods = [
 export default function UserBookingPayment() {
   const { providerId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const bookingParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
   const cachedProvider = useMemo(() => getCachedProvider(providerId), [providerId]);
   const [user, setUser] = useState(() => readUser());
   const [provider, setProvider] = useState(cachedProvider);
   const [loading, setLoading] = useState(!cachedProvider);
   const [processing, setProcessing] = useState(false);
-  const [service, setService] = useState("");
-  const [date, setDate] = useState(dateValue(1));
-  const [time, setTime] = useState("17:30");
-  const [duration, setDuration] = useState("1");
+  const [service, setService] = useState(() => bookingParams.get("service") || "");
+  const [date, setDate] = useState(() => bookingParams.get("date") || dateValue(1));
+  const [time, setTime] = useState(() => bookingParams.get("time") || "17:30");
+  const [duration, setDuration] = useState(() => bookingParams.get("duration") || "1");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
 
   useEffect(() => {
     let mounted = true;
     if (cachedProvider) {
       setProvider(cachedProvider);
-      setService(cachedProvider.activities?.[0] || "Coffee & Conversation");
+      setService((current) => current || getProviderActivities(cachedProvider)[0]);
       setLoading(false);
     }
 
@@ -53,7 +58,7 @@ export default function UserBookingPayment() {
       .then((nextProvider) => {
         if (!mounted || !nextProvider) return;
         setProvider(nextProvider);
-        setService((current) => current || nextProvider.activities?.[0] || "Coffee & Conversation");
+        setService((current) => current || getProviderActivities(nextProvider)[0]);
       })
       .catch(() => {})
       .finally(() => mounted && setLoading(false));
@@ -74,7 +79,7 @@ export default function UserBookingPayment() {
 
     // Replace this short delay with Razorpay verification when live payments are enabled.
     await new Promise((resolve) => setTimeout(resolve, 650));
-    createPaidBooking({
+    const { booking } = createPaidBooking({
       provider,
       service,
       date,
@@ -82,6 +87,12 @@ export default function UserBookingPayment() {
       duration,
       paymentMethod,
     });
+
+    api.post("/bookings", {
+      ...booking,
+      userId: user?.id,
+      userName: user?.fullName || "User",
+    }).catch(() => {});
 
     navigate("/app/user/dashboard", {
       replace: true,
@@ -124,12 +135,12 @@ export default function UserBookingPayment() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Field label="Activity">
               <select value={service} onChange={(event) => setService(event.target.value)} className="field-control">
-                {provider.activities.map((activity) => <option key={activity}>{activity}</option>)}
+                {[...new Set([service, ...getProviderActivities(provider)].filter(Boolean))].map((activity) => <option key={activity}>{activity}</option>)}
               </select>
             </Field>
             <Field label="Duration">
               <select value={duration} onChange={(event) => setDuration(event.target.value)} className="field-control">
-                {[1, 2, 3, 4].map((hours) => <option key={hours} value={hours}>{hours} Hour{hours > 1 ? "s" : ""}</option>)}
+                {[1, 2, 3, 4, 5, 6].map((hours) => <option key={hours} value={hours}>{hours} Hour{hours > 1 ? "s" : ""}</option>)}
               </select>
             </Field>
             <Field label="Meetup date" icon={CalendarDays}>
@@ -206,6 +217,17 @@ function dateValue(addDays) {
   const date = new Date();
   date.setDate(date.getDate() + addDays);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getProviderActivities(provider) {
+  const activities = Array.isArray(provider?.activities)
+    ? provider.activities
+    : String(provider?.activities || "")
+        .split(",")
+        .map((item) => item.trim());
+
+  const cleaned = activities.filter(Boolean);
+  return cleaned.length ? cleaned : ["Coffee & Conversation"];
 }
 
 function readUser() {

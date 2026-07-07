@@ -244,7 +244,7 @@ export default function UserProviderProfile() {
                 onClick={() => rememberProvider(provider)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-4 text-sm font-black text-[#fffaf3] shadow-[0_16px_34px_rgba(0,0,0,0.18)]"
               >
-                {user ? `Meet ${firstName}` : "Login to connect"}
+                {user ? "Schedule a meeting" : "Login to schedule"}
               </Link>
               <button className="inline-flex items-center justify-center gap-2 rounded-full border border-black/15 bg-[#ffeedd] px-6 py-4 text-sm font-black text-black">
                 <MessageCircle size={17} /> Send Message

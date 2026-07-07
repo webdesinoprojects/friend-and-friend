@@ -30,7 +30,6 @@ import UserSettings from "../pages/user/UserSettings";
 /* PROVIDER */
 import ProviderDashboard from "../pages/provider/ProviderDashboard";
 import ProviderCreate from "../pages/provider/ProviderCreate";
-import ProviderProfile from "../pages/provider/ProviderProfile";
 import ProviderReviews from "../pages/provider/ProviderReviews";
 import ProviderSettings from "../pages/provider/ProviderSettings";
 import {
@@ -107,7 +106,7 @@ export default function AppRoutes() {
       <Route path="/app/provider/create" element={<ProviderCreate />} />
       <Route
         path="/app/provider/services"
-        element={<ProviderCreate />}
+        element={<Navigate to="/app/provider/profile" replace />}
       />
       <Route
         path="/app/provider/availability"
@@ -122,7 +121,7 @@ export default function AppRoutes() {
         element={<ProviderEarnings />}
       />
       <Route path="/app/provider/reviews" element={<ProviderReviews />} />
-      <Route path="/app/provider/profile" element={<ProviderProfile />} />
+      <Route path="/app/provider/profile" element={<ProviderCreate />} />
       <Route path="/app/provider/settings" element={<ProviderSettings />} />
 
       {/* ADMIN ROUTES */}

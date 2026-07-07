@@ -36,7 +36,7 @@ export default function ProviderProfile() {
 
   return (
     <AppShell type="provider">
-      <section className="min-h-screen bg-[#fff7ed] text-black">
+      <section className="min-h-0 bg-[#fff7ed] text-black">
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="h-max rounded-2xl border border-[#eddac7] bg-white p-5">
             {avatar ? (
