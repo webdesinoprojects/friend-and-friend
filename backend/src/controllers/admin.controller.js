@@ -263,6 +263,96 @@ const getAdminUsers = async (req, res) => {
   }
 };
 
+const getAdminUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        dob: true,
+        gender: true,
+        role: true,
+        city: true,
+        state: true,
+        profileImage: true,
+        kycStatus: true,
+        faceStatus: true,
+        referenceSelfie: true,
+        aadhaarLast4: true,
+        mobileVerified: true,
+        emailVerified: true,
+        isBlocked: true,
+        blockReason: true,
+        createdAt: true,
+        updatedAt: true,
+        providerProfile: {
+          select: {
+            id: true,
+            headline: true,
+            profession: true,
+            bio: true,
+            hourlyPrice: true,
+            activities: true,
+            languages: true,
+            education: true,
+            location: true,
+            approved: true,
+            profileImages: true,
+          },
+        },
+        userProfile: {
+          select: {
+            interests: true,
+            preferredActivities: true,
+            activityPreferences: true,
+            preferredLanguage: true,
+            bio: true,
+            emergencyContact: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    const bookings = readBookings().filter(
+      (booking) => booking.userId === user.id || booking.providerId === user.id
+    );
+    const sortedBookings = bookings.sort(
+      (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+    );
+    const userSpending = bookings
+      .filter((booking) => booking.userId === user.id)
+      .reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+    const providerEarning = bookings
+      .filter((booking) => booking.providerId === user.id)
+      .reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+
+    return res.json({
+      success: true,
+      data: {
+        ...user,
+        bookings,
+        bookingSummary: {
+          firstBooking: sortedBookings[0]?.createdAt || null,
+          lastBooking: sortedBookings[sortedBookings.length - 1]?.createdAt || null,
+          totalBookings: bookings.length,
+          totalEarning: providerEarning,
+          totalSpending: userSpending,
+        },
+      },
+    });
+  } catch {
+    return res.status(500).json({ success: false, message: "Failed to fetch user profile." });
+  }
+};
+
 const getAdminProviders = async (req, res) => {
   try {
     const providers = await prisma.user.findMany({
@@ -441,6 +531,7 @@ module.exports = {
   updateAdminContent,
   getAdminSummary,
   getAdminUsers,
+  getAdminUserById,
   getAdminProviders,
   getAdminBookings,
   getAdminLogins,

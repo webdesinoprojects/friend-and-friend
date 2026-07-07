@@ -30,6 +30,7 @@ router.get("/content", adminController.getAdminContent);
 router.put("/content", adminOnly, adminController.updateAdminContent);
 router.post("/upload", adminOnly, handleUpload, adminController.uploadAdminImage);
 router.get("/users", adminOnly, adminController.getAdminUsers);
+router.get("/users/:id", adminOnly, adminController.getAdminUserById);
 router.get("/providers", adminOnly, adminController.getAdminProviders);
 router.post("/users/:id/block", adminOnly, adminController.blockUser);
 router.post("/users/:id/unblock", adminOnly, adminController.unblockUser);

@@ -46,6 +46,7 @@ import AdminReturns from "../pages/admin/AdminReturns";
 import AdminCustomers from "../pages/admin/AdminCustomers";
 import AdminContent from "../pages/admin/AdminContent";
 import AdminUsers from "../pages/admin/AdminUsers";
+import AdminUserProfile from "../pages/admin/AdminUserProfile";
 import AdminProviders from "../pages/admin/AdminProviders";
 import AdminBookings from "../pages/admin/AdminBookings";
 import AdminPayments from "../pages/admin/AdminPayments";
@@ -142,6 +143,12 @@ export default function AppRoutes() {
         path="/admin/users"
         element={
           <ProtectedAdminRoute><AdminUsers /></ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/admin/users/:userId"
+        element={
+          <ProtectedAdminRoute><AdminUserProfile /></ProtectedAdminRoute>
         }
       />
       <Route

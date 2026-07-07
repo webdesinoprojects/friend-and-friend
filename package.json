@@ -1,0 +1,11 @@
+{
+  "name": "buddybook-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm --workspace frontend run build",
+    "start": "npm --prefix backend start"
+  }
+}
