@@ -142,11 +142,9 @@ export default function UserDashboard() {
         <div className="grid min-h-0 gap-6">
           <UserMetricStrip
             totalSpent={totalSpent}
-            todayBookings={todayBookings}
-            dailyLimit={dailyLimit}
             savedProviders={readStorage("buddybook_watchlist", []).length}
-            verified={verified}
           />
+          <Statistics total={total} completed={completed} pending={pending} />
 
           <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
@@ -193,7 +191,9 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div className="min-h-0 overflow-hidden rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <SafetyChecklist />
+
+          <div className="hidden min-h-0 overflow-hidden rounded-xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Recent Bookings</h2>
               <Link to="/app/user/bookings" className="text-xs font-black text-[#d67f3d]">
@@ -259,9 +259,7 @@ export default function UserDashboard() {
 
         <aside className="grid min-h-0 gap-6">
           <WeeklyChart values={weeklyBookings} />
-          <SafetyChecklist />
           <SuggestedProviders providers={providers.slice(0, 3)} />
-          <Statistics total={total} completed={completed} pending={pending} />
         </aside>
       </section>
     </UserAppLayout>
@@ -302,16 +300,14 @@ function WelcomeBanner({ user }) {
 
 // ProviderCard is now shared in components/users/ProviderCard.jsx
 
-function UserMetricStrip({ totalSpent, todayBookings, dailyLimit, savedProviders, verified }) {
+function UserMetricStrip({ totalSpent, savedProviders }) {
   const cards = [
     [Wallet, `Rs ${totalSpent.toLocaleString("en-IN")}`, "Total Spending", "View details", "bg-[#fff1e6] text-[#d67f3d]"],
-    [CalendarCheck, `${todayBookings} / ${dailyLimit}`, "Daily Booking Limit", "View details", "bg-[#fff1e6] text-black"],
     [Heart, savedProviders, "Saved Providers", "View all", "bg-[#fff1e6] text-[#d84e58]"],
-    [ShieldCheck, verified ? "Verified" : "Pending", "Verification Status", "View details", "bg-[#e8f6ef] text-[#16815f]"],
   ];
 
   return (
-    <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
+    <div className="grid gap-5 md:grid-cols-2">
       {cards.map(([Icon, value, label, action, tone]) => (
         <article key={label} className="min-h-[150px] rounded-xl border border-black/10 bg-white p-6 shadow-sm">
           <div className="flex min-w-0 items-center gap-4">

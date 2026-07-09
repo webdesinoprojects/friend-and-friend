@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
-import { demoProviders } from "../../data/demoProviders";
 import friendsHero from "../../assets/buddybook-friends-hero.webp";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
@@ -129,7 +128,7 @@ export default function Home() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
   const [publicProviders, setPublicProviders] = useState(() =>
-    mergePublicProviders(demoProviders, getCachedProviders())
+    onlyRealProviders(getCachedProviders())
   );
   const [publicFilters, setPublicFilters] = useState(publicSearchDefaults);
   const [providerPage, setProviderPage] = useState(1);
@@ -184,10 +183,10 @@ export default function Home() {
     listProviders({ verified: true, _t: Date.now() })
       .then((rows) => {
         if (!mounted) return;
-        setPublicProviders(mergePublicProviders(demoProviders, rows));
+        setPublicProviders(onlyRealProviders(rows));
       })
       .catch(() => {
-        if (mounted) setPublicProviders(demoProviders);
+        if (mounted) setPublicProviders(onlyRealProviders(getCachedProviders()));
       })
       .finally(() => {
         if (mounted) setProviderLoading(false);
@@ -202,10 +201,10 @@ export default function Home() {
     let mounted = true;
     listProviders({ verified: true, _t: Date.now() })
       .then((rows) => {
-        if (mounted) setPublicProviders(mergePublicProviders(demoProviders, rows));
+        if (mounted) setPublicProviders(onlyRealProviders(rows));
       })
       .catch(() => {
-        if (mounted) setPublicProviders(mergePublicProviders(demoProviders, getCachedProviders()));
+        if (mounted) setPublicProviders(onlyRealProviders(getCachedProviders()));
       });
     return () => {
       mounted = false;
@@ -1138,21 +1137,17 @@ function PublicServiceExploreSection({
                   className="mt-3 h-14 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
                 />
               </label>
-              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} options={cities} onChange={(value) => onFilter("city", value)} />
-              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} options={states} onChange={(value) => onFilter("state", value)} />
-              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} options={activities} onChange={(value) => onFilter("activity", value)} />
+              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} placeholder="eg. Gurgaon" options={cities} onChange={(value) => onFilter("city", value)} />
+              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} placeholder="eg. Haryana" options={states} onChange={(value) => onFilter("state", value)} />
+              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} placeholder="eg. Cafe meet" options={activities} onChange={(value) => onFilter("activity", value)} />
               <FilterRadioGroup
                 title={content.filterSortLabel || "Sort By"}
                 value={filters.rating === "4" ? "Highest Ratings" : "Recently Active"}
                 options={["Recently Active", "Highest Ratings"]}
                 onChange={(value) => onFilter("rating", value === "Highest Ratings" ? "4" : "All")}
               />
-              <FilterRadioGroup title={content.filterPrivacyLabel || "Privacy"} value="Public" options={["Public", "Private"]} onChange={() => {}} />
-              <p className="-mt-4 text-xs font-semibold italic leading-5 text-black/50">
-                Unlock private profiles: 500+ loyalty points.
-              </p>
-              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} options={["All", "Male", "Female", "Non-binary", "Not specified"]} onChange={(value) => onFilter("gender", value)} />
-              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
+              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} placeholder="Any gender" options={["All", "Male", "Female", "Others"]} onChange={(value) => onFilter("gender", value)} />
+              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} placeholder="eg. Rs 1000" options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
               <div className="grid max-w-[230px] grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -1428,12 +1423,12 @@ function PublicProviderDrawer({
               />
             </label>
 
-            <DrawerFilter label="City" value={filters.city} options={cities} onChange={(value) => onFilter("city", value)} />
-            <DrawerFilter label="State" value={filters.state} options={states} onChange={(value) => onFilter("state", value)} />
-            <DrawerFilter label="Gender" value={filters.gender} options={["All", "Male", "Female", "Non-binary", "Not specified"]} onChange={(value) => onFilter("gender", value)} />
-            <DrawerFilter label="Activity" value={filters.activity} options={activities} onChange={(value) => onFilter("activity", value)} />
-            <DrawerFilter label="Max price" value={filters.maxPrice} options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
-            <DrawerFilter label="Rating" value={filters.rating} options={["All", "1", "2", "3", "4", "5"]} onChange={(value) => onFilter("rating", value)} />
+            <DrawerFilter label="City" value={filters.city} placeholder="eg. Gurgaon" options={cities} onChange={(value) => onFilter("city", value)} />
+            <DrawerFilter label="State" value={filters.state} placeholder="eg. Haryana" options={states} onChange={(value) => onFilter("state", value)} />
+            <DrawerFilter label="Gender" value={filters.gender} placeholder="Any gender" options={["All", "Male", "Female", "Others"]} onChange={(value) => onFilter("gender", value)} />
+            <DrawerFilter label="Activity" value={filters.activity} placeholder="eg. Cafe meet" options={activities} onChange={(value) => onFilter("activity", value)} />
+            <DrawerFilter label="Max price" value={filters.maxPrice} placeholder="eg. Rs 1000" options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
+            <DrawerFilter label="Rating" value={filters.rating} placeholder="Any rating" options={["All", "1", "2", "3", "4", "5"]} onChange={(value) => onFilter("rating", value)} />
 
             <button
               type="button"
@@ -1499,7 +1494,7 @@ function PublicProviderDrawer({
   );
 }
 
-function DrawerFilter({ label, value, options, onChange }) {
+function DrawerFilter({ label, value, options, onChange, placeholder }) {
   return (
     <label className="relative">
       <span className="absolute left-3 top-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-black/35">
@@ -1511,8 +1506,8 @@ function DrawerFilter({ label, value, options, onChange }) {
         className="h-[54px] w-full appearance-none rounded-md border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d]"
       >
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option === "All" ? `Any ${label.toLowerCase()}` : option}
+          <option key={option} value={option} className={option === "All" ? "text-black/40" : ""}>
+            {option === "All" ? placeholder || `eg. ${label}` : option}
           </option>
         ))}
       </select>

@@ -13,13 +13,12 @@ import {
 import UserAppLayout from "../../components/users/UserAppLayout";
 import {
   addReview,
+  cancelBooking,
   getBookings,
   getReviewForBooking,
   subscribeToUserData,
   updateBooking,
 } from "../../utils/userFlowStorage";
-
-const tabs = ["ALL", "UPCOMING", "PENDING", "COMPLETED", "CANCELLED"];
 
 const statusStyles = {
   CONFIRMED: "bg-[#ffeedd] text-black",
@@ -42,7 +41,7 @@ function getBookingGroup(booking) {
 
 export default function UserBookings() {
   const [bookings, setBookings] = useState(() => getBookings());
-  const [activeTab, setActiveTab] = useState("ALL");
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   useEffect(() => subscribeToUserData(() => setBookings(getBookings())), []);
 
@@ -57,13 +56,7 @@ export default function UserBookings() {
     [bookings]
   );
 
-  const visibleBookings = useMemo(
-    () =>
-      activeTab === "ALL"
-        ? bookings
-        : bookings.filter((item) => getBookingGroup(item) === activeTab),
-    [activeTab, bookings]
-  );
+  const visibleBookings = bookings;
 
   return (
     <UserAppLayout title="Bookings">
@@ -98,22 +91,6 @@ export default function UserBookings() {
             <Stat icon={XCircle} label="Pending" value={counts.PENDING} tone="amber" />
           </div>
 
-          <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-black transition ${
-                  activeTab === tab
-                    ? "bg-black text-[#fffaf3]"
-                    : "bg-[#ffeedd] text-black hover:bg-[#fff4e6]"
-                }`}
-              >
-                {tab.charAt(0) + tab.slice(1).toLowerCase()} ({counts[tab]})
-              </button>
-            ))}
-          </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">
@@ -122,7 +99,7 @@ export default function UserBookings() {
               <div>
                 <CalendarCheck className="mx-auto text-[#e08c4c]" size={42} />
                 <p className="mt-4 text-xl font-black text-black">
-                  No {activeTab === "ALL" ? "" : activeTab.toLowerCase()} bookings
+                  No bookings
                 </p>
                 <p className="mt-2 text-sm font-semibold text-slate-500">
                   Book a verified provider and it will appear here automatically.
@@ -198,6 +175,13 @@ export default function UserBookings() {
                             <CheckCircle2 size={15} />
                             Mark completed
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setCancelTarget(booking)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"
+                          >
+                            Cancel booking
+                          </button>
                         </div>
                       )}
                     </div>
@@ -219,7 +203,55 @@ export default function UserBookings() {
           )}
         </div>
       </section>
+      {cancelTarget ? (
+        <CancelBookingDialog
+          booking={cancelTarget}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={(reason) => {
+            cancelBooking(cancelTarget.id, reason);
+            setBookings(getBookings());
+            setCancelTarget(null);
+          }}
+        />
+      ) : null}
     </UserAppLayout>
+  );
+}
+
+function CancelBookingDialog({ booking, onClose, onConfirm }) {
+  const [reason, setReason] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/45 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <h2 className="text-2xl font-black text-black">Cancel booking</h2>
+        <p className="mt-3 rounded-2xl bg-[#fffaf3] p-4 text-sm font-bold leading-6 text-[#6b5d52]">
+          If you cancel within 6 hours of the meeting time, 10% cancellation charges may be deducted. Your chat with the provider will be closed after cancellation.
+        </p>
+        <label className="mt-4 block">
+          <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">Reason</span>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Tell the provider why you are cancelling..."
+            className="mt-2 min-h-[120px] w-full rounded-2xl border border-[#eddac7] bg-[#fffaf3] p-4 text-sm font-bold outline-none focus:border-black"
+          />
+        </label>
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="rounded-2xl border border-black/10 px-5 py-3 text-sm font-black">
+            Keep booking
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(reason)}
+            disabled={!reason.trim()}
+            className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+          >
+            Confirm cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

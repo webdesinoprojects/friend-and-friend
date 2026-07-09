@@ -48,7 +48,6 @@ const statusClass = {
 
 export default function UserPayments() {
   const [transactions, setTransactions] = useState(() => readTransactions());
-  const [filter, setFilter] = useState("ALL");
 
   useEffect(
     () => subscribeToUserData(() => setTransactions(readTransactions())),
@@ -69,15 +68,7 @@ export default function UserPayments() {
     };
   }, [transactions]);
 
-  const visible = useMemo(
-    () =>
-      filter === "ALL"
-        ? transactions
-        : transactions.filter(
-            (item) => String(item.status || "PENDING").toUpperCase() === filter
-          ),
-    [filter, transactions]
-  );
+  const visible = transactions;
 
   return (
     <UserAppLayout title="Payments">
@@ -110,22 +101,6 @@ export default function UserPayments() {
             <MoneyStat icon={ReceiptText} label="Transactions" value={summary.count} count tone="green" />
           </div>
 
-          <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-            {["ALL", "PAID", "PENDING", "REFUNDED", "FAILED"].map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setFilter(status)}
-                className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-black ${
-                  filter === status
-                    ? "bg-black text-[#fffaf3]"
-                    : "bg-[#ffeedd] text-black"
-                }`}
-              >
-                {status.charAt(0) + status.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">

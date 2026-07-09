@@ -18,7 +18,6 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock,
-  Edit3,
   IndianRupee,
   MapPin,
   MessageCircle,
@@ -136,9 +135,6 @@ export default function ProviderDashboard() {
                   <h1 className="text-3xl font-black tracking-tight md:text-5xl">
                     Welcome back, {firstName}
                   </h1>
-                  <Link to="/app/provider/create" className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-2 text-[10px] font-black text-[#fffaf3]">
-                    <Edit3 size={12} /> Edit
-                  </Link>
                 </div>
                 <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#6b5d52]">
                   Track profile reach, booking momentum, earnings and next actions from one clean workspace.
@@ -288,14 +284,7 @@ function ChartCard({ title, subtitle, children }) {
 }
 
 function BookingRequestsTable({ bookings = [] }) {
-  const rows = bookings.length
-    ? bookings.slice(0, 5)
-    : [
-        { id: "BR-1024", providerName: "Amit Sharma", service: "City tour", date: "23 Jun, 11:30 AM", status: "PENDING", amount: 500 },
-        { id: "BR-1023", providerName: "Neha Patel", service: "Cafe meet", date: "24 Jun, 06:00 PM", status: "PENDING", amount: 800 },
-        { id: "BR-1022", providerName: "Rohan Kumar", service: "Study partner", date: "25 Jun, 04:00 PM", status: "CONFIRMED", amount: 600 },
-        { id: "BR-1021", providerName: "Priya Singh", service: "Photography walk", date: "22 Jun, 09:00 AM", status: "COMPLETED", amount: 700 },
-      ];
+  const rows = bookings.slice(0, 5);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
@@ -319,7 +308,7 @@ function BookingRequestsTable({ bookings = [] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f2e2d4]">
-            {rows.map((booking, index) => (
+            {rows.length ? rows.map((booking, index) => (
               <tr key={booking.id || index} className="text-sm font-semibold">
                 <td className="px-3 py-4 font-black">{booking.id || `BR-${1020 + index}`}</td>
                 <td className="px-3 py-4">{booking.userName || booking.customerName || booking.providerName || "Buddy user"}</td>
@@ -333,7 +322,13 @@ function BookingRequestsTable({ bookings = [] }) {
                   </Link>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan={7} className="px-3 py-10 text-center text-sm font-black text-[#8b7563]">
+                  No real booking requests yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -48,6 +49,9 @@ model User {
   userProfile     UserProfile?
   providerProfile ProviderProfile?
   loginAttempts   LoginAttempt[]
+  bookings         Booking[]      @relation("BookingUser")
+  providerBookings Booking[]      @relation("BookingProviderUser")
+  sentMessages     ChatMessage[]  @relation("MessageSender")
 }
 
 model OtpToken {
@@ -124,6 +128,7 @@ model ProviderProfile {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
 }
 
 model LoginAttempt {
@@ -137,4 +142,69 @@ model LoginAttempt {
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Booking {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  userId         String
+  providerId     String
+  providerUserId String
+  service        String
+  date           String
+  time           String
+  durationHours  Int      @default(1)
+  amount         Int      @default(0)
+  paymentMethod  String?
+  paymentStatus  String   @default("PAID")
+  status         String   @default("CONFIRMED")
+  cancelReason   String?
+  cancelledAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User            @relation("BookingUser", fields: [userId], references: [id], onDelete: Cascade)
+  provider     ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerUser User            @relation("BookingProviderUser", fields: [providerUserId], references: [id], onDelete: Cascade)
+  chatThread   ChatThread?
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  userId    String
+  providerId String
+  providerUserId String
+  closed    Boolean  @default(false)
+  closedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking  Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@index([providerUserId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String?
+  senderRole String
+  type      String   @default("TEXT")
+  text      String?
+  mediaUrl  String?
+  durationSeconds Int?
+  system    Boolean  @default(false)
+  readAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User?      @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
 }

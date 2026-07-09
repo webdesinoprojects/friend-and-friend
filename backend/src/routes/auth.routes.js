@@ -14,6 +14,7 @@ const {
   googleRegisterProfile,
   uploadProfileImage,
   me,
+  updateMe,
   logout,
 } = require("../controllers/auth.controller");
 
@@ -61,6 +62,7 @@ router.post("/send-login-mobile-otp", sendLoginMobileOtp);
 router.post("/login-mobile-otp", loginWithMobileOtp);
 
 router.get("/me", protect, me);
+router.patch("/me", protect, updateMe);
 router.post("/logout", protect, logout);
 
 module.exports = router;

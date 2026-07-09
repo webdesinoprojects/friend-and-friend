@@ -1,7 +1,7 @@
 {
   "heroTitle": "Safe Meetups. Real Connections.",
   "heroHighlight": "Find trusted people. Book with confidence.",
-  "heroImage": "",
+  "heroImage": "https://ik.imagekit.io/p8bs4gg07/buddybook/providers/provider-1783580590734-0_OOjUFqy6x.jpg?tr=f-webp,q-85",
   "communityTitle": "Built for a Better Community",
   "trustTitle": "Safety and trust come first on BuddyBOOK.",
   "statVerifiedMembers": "300+",
@@ -41,5 +41,17 @@
   "aboutUsText": "",
   "termsText": "",
   "privacyText": "",
-  "updatedAt": "2026-07-07T05:11:54.596Z"
+  "settings": {
+    "siteName": "BuddyBOOK",
+    "supportEmail": "support@buddybook.com",
+    "contactPhone": "+91 0000000000",
+    "enableNewRegistrations": true,
+    "maintenanceMode": false,
+    "emailNotifications": true,
+    "smsNotifications": false,
+    "showRatings": true,
+    "defaultLanguage": "English",
+    "currency": "INR"
+  },
+  "updatedAt": "2026-07-09T07:03:15.861Z"
 }

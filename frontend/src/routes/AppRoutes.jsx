@@ -26,12 +26,14 @@ import UserActiveMeet from "../pages/user/UserActiveMeet";
 import UserProfile from "../pages/user/UserProfile";
 import UserReviews from "../pages/user/UserReviews";
 import UserSettings from "../pages/user/UserSettings";
+import UserChats from "../pages/user/UserChats";
 
 /* PROVIDER */
 import ProviderDashboard from "../pages/provider/ProviderDashboard";
 import ProviderCreate from "../pages/provider/ProviderCreate";
 import ProviderReviews from "../pages/provider/ProviderReviews";
 import ProviderSettings from "../pages/provider/ProviderSettings";
+import ProviderChats from "../pages/provider/ProviderChats";
 import {
   ProviderBookings,
   ProviderEarnings,
@@ -52,8 +54,12 @@ import AdminBookings from "../pages/admin/AdminBookings";
 import AdminPayments from "../pages/admin/AdminPayments";
 import AdminSettings from "../pages/admin/AdminSettings";
 import ProtectedAdminRoute from "../components/layout/ProtectedAdminRoute";
+import ProtectedRoleRoute from "../components/layout/ProtectedRoleRoute";
 
 export default function AppRoutes() {
+  const userOnly = (element) => <ProtectedRoleRoute role="USER">{element}</ProtectedRoleRoute>;
+  const providerOnly = (element) => <ProtectedRoleRoute role="PROVIDER">{element}</ProtectedRoleRoute>;
+
   return (
     <Routes>
       {/* PUBLIC ROUTES */}
@@ -72,58 +78,60 @@ export default function AppRoutes() {
       <Route path="/choose-role" element={<ChooseRole />} />
 
       {/* USER ROUTES */}
-      <Route path="/app/user/dashboard" element={<UserDashboard />} />
-      <Route path="/app/user/search" element={<Navigate to="/app/user/dashboard" replace />} />
-      <Route path="/app/user/watchlist" element={<UserWatchlist />} />
+      <Route path="/app/user/dashboard" element={userOnly(<UserDashboard />)} />
+      <Route path="/app/user/search" element={userOnly(<Navigate to="/app/user/dashboard" replace />)} />
+      <Route path="/app/user/watchlist" element={userOnly(<UserWatchlist />)} />
 
       <Route
         path="/app/user/provider/:providerId"
-        element={<UserProviderProfile />}
+        element={userOnly(<UserProviderProfile />)}
       />
 
       <Route
         path="/app/user/provider/:providerId/book"
-        element={<UserBookingPayment />}
+        element={userOnly(<UserBookingPayment />)}
       />
 
-      <Route path="/app/user/bookings" element={<UserBookings />} />
-      <Route path="/app/user/payments" element={<UserPayments />} />
-      <Route path="/app/user/wallet" element={<UserPayments />} />
+      <Route path="/app/user/bookings" element={userOnly(<UserBookings />)} />
+      <Route path="/app/user/chat" element={userOnly(<UserChats />)} />
+      <Route path="/app/user/payments" element={userOnly(<UserPayments />)} />
+      <Route path="/app/user/wallet" element={userOnly(<UserPayments />)} />
 
       <Route
         path="/app/user/active-meet/:bookingId"
-        element={<UserActiveMeet />}
+        element={userOnly(<UserActiveMeet />)}
       />
 
-      <Route path="/app/user/reviews" element={<UserReviews />} />
-      <Route path="/app/user/profile" element={<UserProfile />} />
-      <Route path="/app/user/settings" element={<UserSettings />} />
+      <Route path="/app/user/reviews" element={userOnly(<UserReviews />)} />
+      <Route path="/app/user/profile" element={userOnly(<UserProfile />)} />
+      <Route path="/app/user/settings" element={userOnly(<UserSettings />)} />
 
       {/* PROVIDER ROUTES */}
       <Route
         path="/app/provider/dashboard"
-        element={<ProviderDashboard />}
+        element={providerOnly(<ProviderDashboard />)}
       />
-      <Route path="/app/provider/create" element={<ProviderCreate />} />
+      <Route path="/app/provider/create" element={providerOnly(<ProviderCreate />)} />
       <Route
         path="/app/provider/services"
-        element={<Navigate to="/app/provider/profile" replace />}
+        element={providerOnly(<Navigate to="/app/provider/profile" replace />)}
       />
       <Route
         path="/app/provider/availability"
-        element={<ProviderCreate />}
+        element={providerOnly(<ProviderCreate />)}
       />
       <Route
         path="/app/provider/bookings"
-        element={<ProviderBookings />}
+        element={providerOnly(<ProviderBookings />)}
       />
+      <Route path="/app/provider/chat" element={providerOnly(<ProviderChats />)} />
       <Route
         path="/app/provider/earnings"
-        element={<ProviderEarnings />}
+        element={providerOnly(<ProviderEarnings />)}
       />
-      <Route path="/app/provider/reviews" element={<ProviderReviews />} />
-      <Route path="/app/provider/profile" element={<ProviderCreate />} />
-      <Route path="/app/provider/settings" element={<ProviderSettings />} />
+      <Route path="/app/provider/reviews" element={providerOnly(<ProviderReviews />)} />
+      <Route path="/app/provider/profile" element={providerOnly(<ProviderCreate />)} />
+      <Route path="/app/provider/settings" element={providerOnly(<ProviderSettings />)} />
 
       {/* ADMIN ROUTES */}
       <Route path="/admin/login" element={<AdminLogin />} />

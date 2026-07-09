@@ -1,6 +1,7 @@
 import {
   CalendarCheck,
   LayoutDashboard,
+  MessageCircle,
   Search,
   Settings,
   ShieldCheck,
@@ -9,7 +10,8 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { useLocation, Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import Logo from "../common/Logo";
 import { NotificationBell } from "../common/HeaderActions";
 
@@ -17,6 +19,7 @@ const providerLinks = [
   { label: "Overview", to: "/app/provider/dashboard", icon: LayoutDashboard },
   { label: "Provider Profile", to: "/app/provider/profile", icon: User },
   { label: "Bookings", to: "/app/provider/bookings", icon: CalendarCheck },
+  { label: "Chat", to: "/app/provider/chat", icon: MessageCircle },
   { label: "Earnings", to: "/app/provider/earnings", icon: Wallet },
   { label: "Reviews", to: "/app/provider/reviews", icon: Star },
   { label: "Settings", to: "/app/provider/settings", icon: Settings },
@@ -33,10 +36,28 @@ const userLinks = [
 
 export default function AppShell({ type, children, searchValue = "", onSearchChange }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathParts = location.pathname.split("/").filter(Boolean);
   const pageName = pathParts[pathParts.length - 1] || "dashboard";
   const links = type === "provider" ? providerLinks : userLinks;
   const storedUser = readStoredUser();
+  const [localSearch, setLocalSearch] = useState("");
+  const inputValue = searchValue || localSearch;
+  const searchMatches = useMemo(() => {
+    const query = inputValue.trim().toLowerCase();
+    if (!query) return [];
+    return links.filter((item) => item.label.toLowerCase().includes(query)).slice(0, 6);
+  }, [inputValue, links]);
+
+  const updateSearch = (value) => {
+    setLocalSearch(value);
+    onSearchChange?.(value);
+  };
+
+  const goToMatch = (to) => {
+    updateSearch("");
+    navigate(to);
+  };
 
   return (
     <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
@@ -85,15 +106,34 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
               </p>
             </div>
 
-            <div className="hidden h-14 min-w-[300px] max-w-[520px] flex-1 items-center gap-3 rounded-xl border border-black/10 bg-white px-4 shadow-sm xl:flex">
+            <div className="relative hidden h-14 min-w-[260px] max-w-[440px] flex-1 items-center gap-3 rounded-xl border border-black/10 bg-white px-4 shadow-sm xl:flex">
               <Search size={20} className="text-[#667085]" />
               <input
-                value={searchValue}
-                onChange={(event) => onSearchChange?.(event.target.value)}
+                value={inputValue}
+                onChange={(event) => updateSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && searchMatches[0]) goToMatch(searchMatches[0].to);
+                }}
                 placeholder={type === "provider" ? "Search bookings, services, earnings..." : "Search anything..."}
                 className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
               />
               <kbd className="rounded-md bg-[#f2f4f7] px-2 py-1 text-xs font-black text-[#475467]">⌘ K</kbd>
+              {searchMatches.length > 0 && (
+                <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-2xl border border-black/10 bg-white p-2 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+                  {searchMatches.map(({ label, to, icon: Icon }) => (
+                    <button
+                      key={to}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => goToMatch(to)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-black text-[#111827] hover:bg-[#fff7ed]"
+                    >
+                      <Icon size={18} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-4">

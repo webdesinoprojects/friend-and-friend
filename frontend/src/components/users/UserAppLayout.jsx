@@ -4,6 +4,7 @@ import {
   Heart,
   LayoutDashboard,
   Menu,
+  MessageCircle,
   Search,
   Settings,
   ShieldCheck,
@@ -13,13 +14,14 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { ComingSoonMessageButton, NotificationBell } from "../common/HeaderActions";
+import { NotificationBell } from "../common/HeaderActions";
 import Logo from "../common/Logo";
 
 const userLinks = [
   { label: "Dashboard", to: "/app/user/dashboard", icon: LayoutDashboard },
   { label: "Watch List", to: "/app/user/watchlist", icon: Heart },
   { label: "Bookings", to: "/app/user/bookings", icon: CalendarCheck },
+  { label: "Chat", to: "/app/user/chat", icon: MessageCircle },
   { label: "Payments", to: "/app/user/wallet", icon: Wallet },
   { label: "Reviews", to: "/app/user/reviews", icon: Star },
   { label: "Profile", to: "/app/user/profile", icon: User },
@@ -147,7 +149,6 @@ export default function UserAppLayout({
 
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <ComingSoonMessageButton />
               <div className="hidden items-center gap-3 sm:flex">
                 <div className="grid h-14 w-14 place-items-center rounded-full bg-[#ffe8bd] text-lg font-black text-[#ad5a18]">
                   {getInitials(activeUser?.fullName)}

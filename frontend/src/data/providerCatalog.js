@@ -83,6 +83,8 @@ export function normalizeProvider(raw, index = 0) {
 
   return {
     id: raw?.id || raw?._id || user.id || user._id || `provider-${index}`,
+    userId: profile.userId || raw?.userId || user.id || user._id || "",
+    providerUserId: profile.userId || raw?.providerUserId || raw?.userId || user.id || user._id || "",
     name:
       user.fullName ||
       raw?.fullName ||

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
+import { createBooking as createBackendBooking } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
 import { createPaidBooking } from "../../utils/userFlowStorage";
 
@@ -79,20 +80,43 @@ export default function UserBookingPayment() {
 
     // Replace this short delay with Razorpay verification when live payments are enabled.
     await new Promise((resolve) => setTimeout(resolve, 650));
-    const { booking } = createPaidBooking({
-      provider,
-      service,
-      date,
-      time,
-      duration,
-      paymentMethod,
-    });
+    try {
+      const booking = await createBackendBooking({
+        providerId: provider.id,
+        service,
+        date,
+        time,
+        durationHours: Number(duration || 1),
+        amount,
+        paymentMethod,
+      });
 
-    api.post("/bookings", {
-      ...booking,
-      userId: user?.id,
-      userName: user?.fullName || "User",
-    }).catch(() => {});
+      createPaidBooking({
+        provider: {
+          ...provider,
+          id: booking.providerId || provider.id,
+          name: booking.providerName || provider.name,
+          image: booking.providerImage || provider.image,
+        },
+        service,
+        date,
+        time,
+        duration,
+        paymentMethod,
+        user,
+        bookingOverride: booking,
+      });
+    } catch {
+      createPaidBooking({
+        provider,
+        service,
+        date,
+        time,
+        duration,
+        paymentMethod,
+        user,
+      });
+    }
 
     navigate("/app/user/dashboard", {
       replace: true,
@@ -144,7 +168,7 @@ export default function UserBookingPayment() {
               </select>
             </Field>
             <Field label="Meetup date" icon={CalendarDays}>
-              <input type="date" min={dateValue(0)} max={dateValue(30)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control" />
+              <input type="date" min={dateValue(0)} max={dateValue(10)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control" />
             </Field>
             <Field label="Start time" icon={Clock3}>
               <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="field-control" />

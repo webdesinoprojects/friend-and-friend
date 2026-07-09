@@ -3,6 +3,7 @@ const KEYS = {
   payments: "buddybook_payments",
   reviews: "buddybook_reviews",
   watchlist: "buddybook_watchlist",
+  chats: "buddybook_chats",
   selectedProvider: "buddybook_selected_provider",
 };
 
@@ -24,6 +25,7 @@ export const getBookings = () => readList(KEYS.bookings);
 export const getPayments = () => readList(KEYS.payments);
 export const getReviews = () => readList(KEYS.reviews);
 export const getWatchlist = () => readList(KEYS.watchlist);
+export const getChats = () => readList(KEYS.chats);
 
 export function addBooking(booking) {
   writeList(KEYS.bookings, [booking, ...getBookings()]);
@@ -35,6 +37,23 @@ export function updateBooking(bookingId, updates) {
     booking.id === bookingId ? { ...booking, ...updates } : booking
   );
   writeList(KEYS.bookings, next);
+}
+
+export function cancelBooking(bookingId, reason) {
+  const cancelledAt = new Date().toISOString();
+  updateBooking(bookingId, {
+    status: "CANCELLED",
+    cancellationReason: String(reason || "").trim(),
+    cancelledAt,
+    chatClosed: true,
+  });
+  addChatMessage({
+    bookingId,
+    senderRole: "SYSTEM",
+    text: `Booking cancelled${reason ? `: ${reason}` : "."}`,
+    system: true,
+    createdAt: cancelledAt,
+  });
 }
 
 export function addReview(review) {
@@ -72,6 +91,74 @@ export function getReceivedReviews(role) {
 export function addPayment(payment) {
   writeList(KEYS.payments, [payment, ...getPayments()]);
   return payment;
+}
+
+export function addChatThread(booking) {
+  const current = getChats();
+  const exists = current.some((chat) => chat.bookingId === booking.id);
+  if (exists) return current.find((chat) => chat.bookingId === booking.id);
+  const thread = {
+    id: `CHAT-${booking.id || Date.now()}`,
+    bookingId: booking.id,
+    providerId: booking.providerId,
+    providerName: booking.providerName,
+    providerImage: booking.providerImage,
+    userId: booking.userId,
+    userName: booking.userName || "BuddyBOOK user",
+    service: booking.service || booking.activity,
+    status: booking.status || "CONFIRMED",
+    closed: false,
+    messages: [
+      {
+        id: `MSG-${Date.now()}`,
+        senderRole: "SYSTEM",
+        text: "Booking confirmed. You can now chat about meetup details.",
+        system: true,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    createdAt: new Date().toISOString(),
+  };
+  writeList(KEYS.chats, [thread, ...current]);
+  return thread;
+}
+
+export function deleteLocalChat(bookingId) {
+  writeList(KEYS.chats, getChats().filter((chat) => chat.bookingId !== bookingId && chat.id !== bookingId));
+}
+
+export function deleteLocalChatMessage(bookingId, messageId) {
+  const next = getChats().map((chat) =>
+    chat.bookingId === bookingId || chat.id === bookingId
+      ? { ...chat, messages: (chat.messages || []).filter((message) => message.id !== messageId) }
+      : chat
+  );
+  writeList(KEYS.chats, next);
+}
+
+export function addChatMessage({ bookingId, senderRole, text, system = false, createdAt, type = "TEXT", mediaUrl, durationSeconds }) {
+  const message = {
+    id: `MSG-${Date.now()}`,
+    senderRole,
+    type,
+    text: String(text || "").trim(),
+    mediaUrl: mediaUrl || null,
+    durationSeconds: durationSeconds ? Number(durationSeconds) : null,
+    system,
+    createdAt: createdAt || new Date().toISOString(),
+  };
+  if (!message.text && !message.mediaUrl) return null;
+  const next = getChats().map((chat) =>
+    chat.bookingId === bookingId
+      ? {
+          ...chat,
+          closed: chat.closed || message.text.toLowerCase().includes("booking cancelled"),
+          messages: [...(chat.messages || []), message],
+        }
+      : chat
+  );
+  writeList(KEYS.chats, next);
+  return message;
 }
 
 export function toggleWatchlist(provider) {
@@ -120,24 +207,29 @@ export function createPaidBooking({
   time,
   duration,
   paymentMethod,
+  user,
+  bookingOverride,
 }) {
   const amount = Number(provider.price || 0) * Number(duration || 1);
   const createdAt = new Date().toISOString();
-  const bookingId = `BBK-${Date.now()}`;
+  const bookingId = bookingOverride?.id || `BBK-${Date.now()}`;
   const paymentId = `PAY-${Date.now()}`;
 
   const booking = {
     id: bookingId,
+    code: bookingOverride?.code,
     providerId: provider.id,
     providerName: provider.name,
     providerImage: provider.image,
+    userId: user?.id || user?._id || null,
+    userName: user?.fullName || "BuddyBOOK user",
     service,
     activity: service,
     date,
     time,
     duration: `${duration} Hour${Number(duration) > 1 ? "s" : ""}`,
     durationHours: Number(duration),
-    amount,
+    amount: Number(bookingOverride?.amount || amount),
     status: "CONFIRMED",
     paymentStatus: "PAID",
     paymentMethod,
@@ -163,6 +255,7 @@ export function createPaidBooking({
 
   addBooking(booking);
   addPayment(payment);
+  addChatThread(booking);
   return { booking, payment };
 }
 

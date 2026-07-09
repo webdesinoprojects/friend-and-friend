@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import api from "../../api/api";
 import Logo from "../../components/common/Logo";
@@ -93,7 +92,6 @@ const emptyQuestions = [
 
 export default function Register() {
   const navigate = useNavigate();
-  const location = useLocation();
   const webcamRef = useRef(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -101,10 +99,12 @@ export default function Register() {
   const [mobileVerified, setMobileVerified] = useState(false);
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
+  const [aadhaarVerified, setAadhaarVerified] = useState(false);
   const [selfie, setSelfie] = useState(null);
-  const [googleCredential, setGoogleCredential] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [userQuestionAnswers, setUserQuestionAnswers] = useState(emptyQuestions);
@@ -139,30 +139,15 @@ export default function Register() {
     education: "",
     height: "",
     hobbies: "",
-    hourlyPrice: "",
-    availableCity: "",
-    providerLanguages: "",
-    availabilityDays: "",
     providerSafetyAgreement: false,
+    aadhaarOtp: "",
   });
 
-  useEffect(() => {
-    const storedProfile = sessionStorage.getItem("buddybook_google_profile");
-    const googleProfile = location.state?.googleProfile;
-
-    if (!storedProfile && !googleProfile) return;
-
-    const parsedProfile = storedProfile ? JSON.parse(storedProfile) : {};
-    const nextProfile = { ...parsedProfile, ...googleProfile };
-
-    setGoogleCredential(nextProfile.credential || "");
-    setEmailVerified(Boolean(nextProfile.email));
-    setForm((prev) => ({
-      ...prev,
-      fullName: prev.fullName || nextProfile.fullName || "",
-      email: prev.email || nextProfile.email || "",
-    }));
-  }, [location.state]);
+  const notify = (message, type = "info") => {
+    setNotice({ message, type });
+    window.clearTimeout(notify.timer);
+    notify.timer = window.setTimeout(() => setNotice(null), 3200);
+  };
 
   const progress = useMemo(
     () => Math.round((currentStep / steps.length) * 100),
@@ -211,7 +196,7 @@ export default function Register() {
   const sendMobileOtp = async () => {
     try {
       if (!form.phone) {
-        alert("Enter mobile number first");
+        notify("Enter mobile number first");
         return;
       }
 
@@ -221,21 +206,21 @@ export default function Register() {
 
       setMobileOtpSent(true);
 
-      alert(
+      notify(
         res.data.demoOtp
           ? `Mobile OTP sent. Use ${res.data.demoOtp}`
           : res.data.message || "Mobile OTP sent"
       );
     } catch (error) {
       console.error("SEND_MOBILE_OTP_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Failed to send mobile OTP");
+      notify(error.response?.data?.message || "Failed to send mobile OTP");
     }
   };
 
   const verifyMobileOtp = async () => {
     try {
       if (!form.phone || !form.mobileOtp) {
-        alert("Enter phone and OTP first");
+        notify("Enter phone and OTP first");
         return;
       }
 
@@ -245,17 +230,17 @@ export default function Register() {
       });
 
       setMobileVerified(true);
-      alert(res.data.message || "Mobile verified successfully");
+      notify(res.data.message || "Mobile verified successfully");
     } catch (error) {
       console.error("VERIFY_MOBILE_OTP_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Mobile OTP verification failed");
+      notify(error.response?.data?.message || "Mobile OTP verification failed");
     }
   };
 
   const sendEmailOtp = async () => {
     try {
       if (!form.email) {
-        alert("Email is optional. Enter email first if you want to verify it.");
+        notify("Email is optional. Enter email first if you want to verify it.");
         return;
       }
 
@@ -265,21 +250,21 @@ export default function Register() {
 
       setEmailOtpSent(true);
 
-      alert(
+      notify(
         res.data.demoOtp
           ? `Email OTP sent. Use ${res.data.demoOtp}`
           : res.data.message || "Email OTP sent"
       );
     } catch (error) {
       console.error("SEND_EMAIL_OTP_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Failed to send email OTP");
+      notify(error.response?.data?.message || "Failed to send email OTP");
     }
   };
 
   const verifyEmailOtp = async () => {
     try {
       if (!form.email || !form.emailOtp) {
-        alert("Enter email and OTP first");
+        notify("Enter email and OTP first");
         return;
       }
 
@@ -289,43 +274,33 @@ export default function Register() {
       });
 
       setEmailVerified(true);
-      alert(res.data.message || "Email verified successfully");
+      notify(res.data.message || "Email verified successfully");
     } catch (error) {
       console.error("VERIFY_EMAIL_OTP_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Email OTP verification failed");
+      notify(error.response?.data?.message || "Email OTP verification failed");
     }
   };
 
-  const handleGoogleRegister = async (credentialResponse) => {
-    try {
-      setStepLoading(true);
-      const res = await api.post("/auth/google/register-profile", {
-        credential: credentialResponse.credential,
-      });
-
-      const profile = res.data.profile;
-      setGoogleCredential(credentialResponse.credential);
-      setEmailVerified(true);
-      setEmailOtpSent(false);
-      setForm((prev) => ({
-        ...prev,
-        fullName: prev.fullName || profile.fullName || "",
-        email: profile.email || prev.email,
-        emailOtp: "",
-      }));
-      sessionStorage.setItem(
-        "buddybook_google_profile",
-        JSON.stringify({
-          credential: credentialResponse.credential,
-          ...profile,
-        })
-      );
-    } catch (error) {
-      console.error("GOOGLE_REGISTER_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Google verification failed");
-    } finally {
-      setStepLoading(false);
+  const sendAadhaarOtp = () => {
+    if (form.documentType !== "AADHAAR" || !form.documentNumber) {
+      notify("Enter Aadhaar details first.");
+      return;
     }
+    setAadhaarOtpSent(true);
+    notify("Aadhaar OTP sent. Use 1234 for verification.");
+  };
+
+  const verifyAadhaarOtp = () => {
+    if (!form.documentNumber || !form.aadhaarOtp) {
+      notify("Enter Aadhaar and OTP first.");
+      return;
+    }
+    if (form.aadhaarOtp !== "1234") {
+      notify("Aadhaar OTP verification failed.", "error");
+      return;
+    }
+    setAadhaarVerified(true);
+    notify("Aadhaar verified successfully.", "success");
   };
 
   const handleProfilePhoto = async (event) => {
@@ -333,13 +308,13 @@ export default function Register() {
     if (!file) return;
 
     if (file.size > 3 * 1024 * 1024) {
-      alert("Profile photo must be 3 MB or smaller.");
+      notify("Profile photo must be 3 MB or smaller.");
       event.target.value = "";
       return;
     }
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      alert("Only JPG, PNG and WebP images are allowed.");
+      notify("Only JPG, PNG and WebP images are allowed.");
       event.target.value = "";
       return;
     }
@@ -357,7 +332,7 @@ export default function Register() {
     } catch (error) {
       updateField("profileImage", null);
       updateField("profileImagePreview", "");
-      alert(error.response?.data?.message || "Profile photo upload failed.");
+      notify(error.response?.data?.message || "Profile photo upload failed.");
     } finally {
       event.target.value = "";
     }
@@ -365,14 +340,14 @@ export default function Register() {
 
   const captureSelfie = () => {
     if (!webcamRef.current) {
-      alert("Camera is not ready yet");
+      notify("Camera is not ready yet");
       return;
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
 
     if (!imageSrc) {
-      alert("Selfie capture failed. Please allow camera permission.");
+      notify("Selfie capture failed. Please allow camera permission.");
       return;
     }
 
@@ -385,14 +360,14 @@ export default function Register() {
     );
 
     if (completed.length < 3) {
-      alert("Please answer all 3 profile questions.");
+      notify("Please answer all 3 profile questions.");
       return false;
     }
 
     const uniqueQuestions = new Set(completed.map((item) => item.question));
 
     if (uniqueQuestions.size !== completed.length) {
-      alert("Please choose different questions.");
+      notify("Please choose different questions.");
       return false;
     }
 
@@ -402,46 +377,51 @@ export default function Register() {
   const validateCurrentStep = () => {
     if (currentStep === 1) {
       if (!form.fullName || !form.phone || !form.city || !form.state || !form.gender) {
-        alert("Please complete name, phone, city, state and gender.");
+        notify("Please complete name, phone, city, state and gender.");
         return false;
       }
 
       if (!form.password || form.password.length < 6) {
-        alert("Please create a password with at least 6 characters.");
+        notify("Please create a password with at least 6 characters.");
         return false;
       }
 
       if (form.password !== form.confirmPassword) {
-        alert("Passwords do not match.");
+        notify("Passwords do not match.");
         return false;
       }
 
       if (!mobileVerified) {
-        alert("Mobile verification is compulsory.");
+        notify("Mobile verification is compulsory.");
         return false;
       }
 
       if (form.email && emailOtpSent && !emailVerified) {
-        alert("Please verify email OTP or remove email.");
+        notify("Please verify email OTP or remove email.");
         return false;
       }
     }
 
     if (currentStep === 2) {
       if (!form.documentType || !form.documentNumber || !form.kycConsent) {
-        alert("Please complete KYC details and accept consent.");
+        notify("Please complete KYC details and accept consent.");
+        return false;
+      }
+
+      if (form.documentType === "AADHAAR" && !aadhaarVerified) {
+        notify("Please verify Aadhaar OTP.");
         return false;
       }
 
       if (!selfie) {
-        alert("Please capture live selfie.");
+        notify("Please capture live selfie.");
         return false;
       }
     }
 
     if (currentStep === 3) {
       if (!form.role) {
-        alert("Please choose User or Provider.");
+        notify("Please choose User or Provider.");
         return false;
       }
 
@@ -449,7 +429,7 @@ export default function Register() {
 
       if (form.role === "USER") {
         if (selectedActivities.length === 0 || !form.emergencyContact) {
-          alert("Please choose activities and add emergency contact.");
+          notify("Please choose activities and add emergency contact.");
           return false;
         }
       }
@@ -460,11 +440,9 @@ export default function Register() {
           !form.education ||
           !form.height ||
           !form.hobbies ||
-          !form.hourlyPrice ||
-          !form.availableCity ||
           !form.providerSafetyAgreement
         ) {
-          alert("Please complete provider details and safety agreement.");
+          notify("Please complete provider details and safety agreement.");
           return false;
         }
       }
@@ -512,7 +490,6 @@ export default function Register() {
         city: form.city,
         state: form.state,
         role: form.role,
-        googleCredential: googleCredential || undefined,
         profileImage: form.profileImage,
 
         aadhaarLast4: documentLast4,
@@ -537,10 +514,6 @@ export default function Register() {
           education: form.education,
           height: form.height,
           hobbies: form.hobbies,
-          hourlyPrice: form.hourlyPrice,
-          availableCity: form.availableCity,
-          languages: form.providerLanguages,
-          availabilityDays: form.availabilityDays,
           bio: profileAnswersText,
           profileQuestions: activeAnswers,
           providerSafetyAgreement: form.providerSafetyAgreement,
@@ -549,9 +522,7 @@ export default function Register() {
 
       const res = await api.post("/auth/register", payload);
 
-      alert(res.data.message || "Registration successful");
-      sessionStorage.removeItem("buddybook_google_profile");
-
+      notify(res.data.message || "Registration successful");
       if (res.data.token) {
         localStorage.setItem("buddybook_token", res.data.token);
       }
@@ -574,10 +545,6 @@ export default function Register() {
           education: form.education,
           height: form.height,
           hobbies: form.hobbies,
-          hourlyPrice: form.hourlyPrice,
-          availableCity: form.availableCity,
-          languages: form.providerLanguages,
-          availabilityDays: form.availabilityDays,
           bio: profileAnswersText,
           profileQuestions: activeAnswers,
         },
@@ -588,7 +555,7 @@ export default function Register() {
       navigate("/");
     } catch (error) {
       console.error("REGISTER_FRONTEND_ERROR:", error);
-      alert(error.response?.data?.message || "Registration failed");
+      notify(error.response?.data?.message || "Registration failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -596,6 +563,13 @@ export default function Register() {
 
   return (
     <div className="relative h-screen overflow-hidden bg-[#f5f3ee] text-black">
+      {notice ? (
+        <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
+          <p className={`text-sm font-black ${notice.type === "error" ? "text-rose-600" : notice.type === "success" ? "text-emerald-700" : "text-black"}`}>
+            {notice.message}
+          </p>
+        </div>
+      ) : null}
       {stepLoading ? (
         <div className="absolute inset-0 z-50 grid place-items-center bg-white/70 backdrop-blur-sm">
           <div className="w-[220px] rounded-[1.5rem] border border-black/10 bg-white p-5 text-center shadow-[0_25px_80px_rgba(0,0,0,0.12)]">
@@ -747,7 +721,7 @@ export default function Register() {
                       label="Gender"
                       value={form.gender}
                       onChange={(v) => updateField("gender", v)}
-                      options={["Male", "Female", "Other"]}
+                      options={["Male", "Female", "Others"]}
                     />
 
                     <Input
@@ -812,26 +786,6 @@ export default function Register() {
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-xl border border-black/10 bg-[#fbfaf7] p-4">
-                    <p className="mb-3 text-sm font-black text-black">
-                      Verify email with Google
-                    </p>
-                    <GoogleLogin
-                      onSuccess={handleGoogleRegister}
-                      onError={() =>
-                        alert("Google verification was cancelled or failed.")
-                      }
-                      text="signup_with"
-                      shape="rectangular"
-                      width="400"
-                    />
-                    {emailVerified && form.email ? (
-                      <p className="mt-3 text-sm font-bold text-emerald-700">
-                        {form.email} is verified.
-                      </p>
-                    ) : null}
-                  </div>
-
                   <div className="mt-5 grid gap-4">
                     <VerifyBox
                       title="Mobile number"
@@ -840,10 +794,10 @@ export default function Register() {
                       icon={Phone}
                     >
                       <Input
-                        label="Phone"
+                        label="Mobile number"
                         value={form.phone}
                         onChange={(v) => updateField("phone", v)}
-                        placeholder="+91 98765 43210"
+                        placeholder="Enter your number"
                       />
 
                       <div className="mt-4 flex flex-wrap gap-3">
@@ -892,7 +846,7 @@ export default function Register() {
                         placeholder="you@example.com"
                       />
 
-                      {!googleCredential && !emailVerified ? (
+                      {!emailVerified ? (
                         <div className="mt-4 flex flex-wrap gap-3">
                           <button
                             type="button"
@@ -914,7 +868,7 @@ export default function Register() {
                         </div>
                       ) : null}
 
-                      {emailOtpSent && !googleCredential && !emailVerified && (
+                      {emailOtpSent && !emailVerified && (
                         <div className="mt-4">
                           <Input
                             label="Email OTP"
@@ -967,6 +921,28 @@ export default function Register() {
                           maxLength={selectedKyc.maxLength}
                         />
                       </div>
+
+                      {form.documentType === "AADHAAR" && (
+                        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+                          <Input
+                            label="Aadhaar OTP"
+                            value={form.aadhaarOtp}
+                            onChange={(v) => updateField("aadhaarOtp", v)}
+                            placeholder="Enter Aadhaar OTP"
+                          />
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <button type="button" onClick={sendAadhaarOtp} className="rounded-full bg-black px-5 py-3 text-sm font-black text-white">
+                              Send Aadhaar OTP
+                            </button>
+                            {aadhaarOtpSent && (
+                              <button type="button" onClick={verifyAadhaarOtp} className="rounded-full bg-[#b5e48c] px-5 py-3 text-sm font-black text-black">
+                                Verify Aadhaar
+                              </button>
+                            )}
+                          </div>
+                          {aadhaarVerified ? <p className="mt-3 text-sm font-black text-emerald-700">Aadhaar OTP verified.</p> : null}
+                        </div>
+                      )}
 
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -1143,10 +1119,6 @@ export default function Register() {
                           <Input label="Education" value={form.education} onChange={(v) => updateField("education", v)} placeholder="Graduate" />
                           <Input label="Height" value={form.height} onChange={(v) => updateField("height", v)} placeholder="5'8" />
                           <Input label="Hobbies" value={form.hobbies} onChange={(v) => updateField("hobbies", v)} placeholder="Movies, cafes" />
-                          <Input label="Hourly price" value={form.hourlyPrice} onChange={(v) => updateField("hourlyPrice", v)} placeholder="₹600/hr" />
-                          <Input label="Available city" value={form.availableCity} onChange={(v) => updateField("availableCity", v)} placeholder="Bengaluru" />
-                          <Input label="Languages" value={form.providerLanguages} onChange={(v) => updateField("providerLanguages", v)} placeholder="English, Hindi" />
-                          <Input label="Availability days" value={form.availabilityDays} onChange={(v) => updateField("availabilityDays", v)} placeholder="Mon, Wed, Sat" />
                         </div>
 
                         <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[1.5rem] border border-black/10 bg-white p-5">
@@ -1225,7 +1197,6 @@ export default function Register() {
     </div>
   );
 }
-
 function SectionHeading({ title, text }) {
   return (
     <div className="mb-6">

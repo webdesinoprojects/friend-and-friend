@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart, MapPin, Star } from "lucide-react";
-import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
+import { Heart } from "lucide-react";
+import ProviderCard from "../../components/users/ProviderCard";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import {
   getWatchlist,
-  rememberProvider,
   subscribeToUserData,
   toggleWatchlist,
 } from "../../utils/userFlowStorage";
@@ -27,11 +26,11 @@ export default function UserWatchlist() {
         <div className="custom-scrollbar mt-5 h-[calc(100%-72px)] overflow-y-auto">
           {items.length ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((provider) => (
-                <article key={provider.id} className="overflow-hidden rounded-lg border border-[#dce5f2] bg-[#f8faff]">
-                  <div className="relative h-56"><ProviderImageCarousel images={provider.images?.length ? provider.images : [provider.image].filter(Boolean)} alt={provider.name} /><button onClick={() => { const result = toggleWatchlist(provider); setItems(result.items); }} className="absolute right-3 top-3 grid h-11 w-11 place-items-center rounded-full bg-black text-[#fffaf3] shadow-lg"><Heart size={19} fill="currentColor" /></button></div>
-                  <div className="p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-black">{provider.name}</h2><p className="text-sm font-bold text-slate-500">{provider.profession}</p></div><span className="flex items-center gap-1 text-sm font-black"><Star size={14} className="fill-[#f59e0b] text-[#f59e0b]" />{provider.rating}</span></div><p className="mt-3 flex items-center gap-1 text-sm font-bold text-slate-500"><MapPin size={14} />{provider.city}, {provider.state}</p><Link to={`/app/user/provider/${provider.id}`} onClick={() => rememberProvider(provider)} className="mt-4 inline-flex w-full justify-center rounded-md bg-black px-4 py-3 text-sm font-black text-[#fffaf3] shadow-[0_14px_40px_rgba(0,0,0,0.16)] transition hover:bg-[#fffaf3] hover:text-black">View Profile</Link></div>
-                </article>
+              {items.map((provider, index) => (
+                <div key={provider.id} className="relative">
+                  <button onClick={() => { const result = toggleWatchlist(provider); setItems(result.items); }} className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-black text-[#fffaf3] shadow-lg"><Heart size={19} fill="currentColor" /></button>
+                  <ProviderCard provider={provider} index={index} link={`/app/user/provider/${provider.id}`} />
+                </div>
               ))}
             </div>
           ) : (

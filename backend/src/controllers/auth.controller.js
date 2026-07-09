@@ -781,6 +781,47 @@ exports.me = async (req, res) => {
   });
 };
 
+exports.updateMe = async (req, res) => {
+  try {
+    const clean = (value) => (value === undefined || value === null ? undefined : String(value).trim());
+    const userData = {};
+    ["fullName", "email", "city", "state", "gender", "profileImage"].forEach((field) => {
+      const value = clean(req.body?.[field]);
+      if (value !== undefined) userData[field] = value || null;
+    });
+
+    const profileData = {};
+    ["bio", "interests", "preferredActivities", "activityPreferences", "preferredLanguage", "emergencyContact"].forEach((field) => {
+      const value = clean(req.body?.userProfile?.[field] ?? req.body?.[field]);
+      if (value !== undefined) profileData[field] = value || null;
+    });
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        ...userData,
+        userProfile: Object.keys(profileData).length
+          ? {
+              upsert: {
+                create: profileData,
+                update: profileData,
+              },
+            }
+          : undefined,
+      },
+      include: { userProfile: true, providerProfile: true },
+    });
+
+    return res.json({ success: true, user: getPublicUser(updated) });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Profile update failed.",
+      error: error.message,
+    });
+  }
+};
+
 exports.logout = async (req, res) => {
   return res.json({
     success: true,
@@ -957,6 +998,7 @@ module.exports = {
   googleRegisterProfile: exports.googleRegisterProfile,
   uploadProfileImage: exports.uploadProfileImage,
   me: exports.me,
+  updateMe: exports.updateMe,
   logout: exports.logout,
 
   sendLoginMobileOtp,
