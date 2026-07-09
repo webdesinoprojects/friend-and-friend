@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "migrate:provider-images": "node scripts/migrateProviderImagesToImageKit.js",
+    "postinstall": "prisma generate",
     "start": "node src/server.js"
   },
   "license": "ISC",
