@@ -21,6 +21,7 @@ function serializeThread(thread, viewerId) {
     bookingCode: booking.code,
     userId: thread.userId,
     userName: user.fullName || "BuddyBOOK user",
+    userImage: user.profileImage || "",
     providerId: thread.providerId,
     providerUserId: thread.providerUserId,
     providerName: provider.user?.fullName || "BuddyBOOK provider",
@@ -177,8 +178,11 @@ exports.deleteMessage = async (req, res) => {
       return res.status(404).json({ success: false, message: "Message not found." });
     }
 
-    if (!message.system && message.senderId !== req.user.id) {
-      return res.status(403).json({ success: false, message: "You can delete only your own messages." });
+    // Allow deletion if the user is the sender OR if they have access to the thread
+    // (both users and providers can delete any message in the chat)
+    // Note: System messages cannot be deleted
+    if (message.system) {
+      return res.status(403).json({ success: false, message: "System messages cannot be deleted." });
     }
 
     await prisma.chatMessage.delete({ where: { id: message.id } });
