@@ -390,7 +390,7 @@ heroStage.style.filter = "none";
                   onClick={scrollToCommunity}
                   className="group inline-flex items-center justify-center gap-2 rounded-md bg-[#171b30] px-7 py-4 text-sm font-black text-white shadow-[0_16px_35px_rgba(23,27,48,0.2)] transition hover:-translate-y-1 hover:bg-[#d77f40]"
                 >
-                  {siteContent.heroHighlight || "Browse Indian providers"}
+                  Find trusted people
                   <ArrowRight size={17} className="transition group-hover:translate-x-1" />
                 </a>
                                
@@ -928,9 +928,6 @@ function HeroVisual({ user }) {
               <h3 className="text-base font-black">{profiles[0].name}</h3>
               <BadgeCheck size={15} className="shrink-0 text-[#e08c4c]" />
             </div>
-            <p className="mt-1 text-xs font-bold text-black/45">
-              {profiles[0].city} · {profiles[0].rating} ★
-            </p>
           </div>
         </div>
         <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Upcoming plan</p>

@@ -32,6 +32,8 @@ const options = [
 export default function ProviderSettings() {
   const navigate = useNavigate();
   const [deleteText, setDeleteText] = useState("");
+  const [disabledUntil, setDisabledUntil] = useState(() => localStorage.getItem("buddybook_offline_24h") || "");
+  const accountPaused = Boolean(disabledUntil);
 
   const logout = () => {
     localStorage.removeItem("buddybook_auth_user");
@@ -52,6 +54,12 @@ export default function ProviderSettings() {
       "buddybook_explore_providers_cache",
     ].forEach((key) => localStorage.removeItem(key));
     navigate("/");
+  };
+
+  const toggleDisabled = () => {
+    const next = accountPaused ? "" : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    localStorage.setItem("buddybook_offline_24h", next);
+    setDisabledUntil(next);
   };
 
   return (
@@ -87,22 +95,26 @@ export default function ProviderSettings() {
             <h2 className="text-lg font-black">Delete account permanently</h2>
             <p className="mt-1 text-sm font-semibold text-[#6b5d52]">Choose a temporary offline mode or permanently remove local provider data.</p>
             <div className="mt-4 grid gap-3 rounded-2xl bg-[#fffaf3] p-4">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 accent-black"
-                  onChange={(event) =>
-                    localStorage.setItem(
-                      "buddybook_offline_24h",
-                      event.target.checked ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : ""
-                    )
-                  }
-                />
+              <div className="flex items-start justify-between gap-3">
                 <span>
                   <span className="block text-sm font-black text-black">Disable account for 24 hours</span>
                   <span className="mt-1 block text-xs font-semibold text-[#6b5d52]">You will appear offline and can return after the 24-hour pause.</span>
                 </span>
-              </label>
+                <button
+                  type="button"
+                  onClick={toggleDisabled}
+                  className={`relative h-8 w-14 rounded-full transition ${accountPaused ? "bg-[#d84e58]" : "bg-[#d9bfaa]"}`}
+                  aria-pressed={accountPaused}
+                >
+                  <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${accountPaused ? "left-7" : "left-1"}`} />
+                </button>
+              </div>
+              {accountPaused ? (
+                <div className="rounded-2xl border border-[#d84e58]/30 bg-[#d84e58] p-4 text-white shadow-sm">
+                  <p className="text-sm font-black">Your account has been deactivated for 24 hrs.</p>
+                  <p className="mt-1 text-xs font-bold text-white/85">Come back later.</p>
+                </div>
+              ) : null}
               <p className="text-xs font-bold leading-5 text-rose-700">
                 Permanent deletion means you must register again from the beginning.
               </p>

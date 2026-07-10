@@ -514,7 +514,6 @@ export default function ChatWorkspace({ role }) {
           messages: (chat.messages || []).map((item) => (item.id === message.id ? saved : item)),
         }))
       );
-      window.setTimeout(load, 150);
     } catch {
       await load();
     }
@@ -942,6 +941,8 @@ function MessageBubble({
   onSubmitEdit,
   onDelete,
 }) {
+  const [actionsOpen, setActionsOpen] = useState(false);
+
   if (message.system) {
     return (
       <div className="mx-auto max-w-[86%] rounded-2xl bg-[#ffeedd] px-4 py-3 text-center text-sm font-bold text-black/65">
@@ -956,17 +957,24 @@ function MessageBubble({
   return (
     <div className={`group relative max-w-[86%] rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm sm:max-w-[72%] ${mine ? "ml-auto rounded-br-md bg-black text-[#fffaf3]" : "mr-auto rounded-bl-md bg-white text-black"}`}>
       {(canEdit || canDelete) ? (
-        <div className={`absolute top-2 z-20 flex gap-1 opacity-0 transition group-hover:opacity-100 hover:opacity-100 ${mine ? "left-2" : "right-2"}`}>
-          {canEdit ? (
-            <button type="button" onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-white text-black shadow" aria-label="Edit message">
-              <Pencil size={13} />
-            </button>
+        <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition group-hover:opacity-100 hover:opacity-100">
+          {actionsOpen ? (
+            <div className="flex gap-1 rounded-full bg-white p-1 shadow">
+              {canEdit ? (
+                <button type="button" onClick={() => { setActionsOpen(false); onEdit(); }} className="grid h-7 w-7 place-items-center rounded-full text-black hover:bg-[#fffaf3]" aria-label="Edit message">
+                  <Pencil size={13} />
+                </button>
+              ) : null}
+              {canDelete ? (
+                <button type="button" onClick={() => { setActionsOpen(false); onDelete(); }} className="grid h-7 w-7 place-items-center rounded-full text-rose-600 hover:bg-rose-50" aria-label="Delete message">
+                  <Trash2 size={13} />
+                </button>
+              ) : null}
+            </div>
           ) : null}
-          {canDelete ? (
-            <button type="button" onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-white text-rose-600 shadow" aria-label="Delete message">
-              <Trash2 size={13} />
-            </button>
-          ) : null}
+          <button type="button" onClick={() => setActionsOpen((value) => !value)} className="grid h-7 w-7 place-items-center rounded-full bg-white text-black shadow" aria-label="Message options">
+            <MoreVertical size={14} />
+          </button>
         </div>
       ) : null}
       {editing ? (

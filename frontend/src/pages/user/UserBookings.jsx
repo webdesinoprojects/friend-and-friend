@@ -207,14 +207,26 @@ export default function UserBookings() {
                             <MapPin size={15} />
                             Meetup location
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() => markCompleted(booking)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
-                          >
-                            <CheckCircle2 size={15} />
-                            Mark completed
-                          </button>
+                          {status === "COMPLETED" && !userReview && (
+                            <button
+                              type="button"
+                              onClick={() => setShowReviewForm(true)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
+                            >
+                              <Star size={15} />
+                              Add review
+                            </button>
+                          )}
+                          {status !== "COMPLETED" && (
+                            <button
+                              type="button"
+                              onClick={() => markCompleted(booking)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
+                            >
+                              <CheckCircle2 size={15} />
+                              Mark completed
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setCancelTarget(booking)}
@@ -297,12 +309,16 @@ function ReviewForm({ booking, onSubmitted }) {
 
   const submit = () => {
     if (!description.trim()) return;
+    const user = getStoredUser();
     addReview({
       bookingId: booking.id,
       reviewerRole: "USER",
       targetRole: "PROVIDER",
       targetId: booking.providerId,
       providerId: booking.providerId,
+      reviewerId: user?.id || user?._id,
+      reviewerName: user?.fullName || "BuddyBOOK user",
+      reviewerImage: user?.profileImage || "",
       targetName: booking.providerName || "BuddyBOOK provider",
       targetImage: booking.providerImage,
       rating,
@@ -340,6 +356,14 @@ function ReviewForm({ booking, onSubmitted }) {
   );
 }
 
+function getStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
 function Stat({ icon: Icon, label, value, tone }) {
   const tones = {
     indigo: "bg-[#ffeedd] text-black",
@@ -369,5 +393,4 @@ function Detail({ label, value }) {
     </div>
   );
 }
-
 

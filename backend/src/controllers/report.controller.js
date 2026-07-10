@@ -92,3 +92,13 @@ exports.updateReportAction = async (req, res) => {
     return res.status(500).json({ success: false, message: "Could not update report." });
   }
 };
+
+exports.deleteReport = async (req, res) => {
+  try {
+    await prisma.reviewReport.delete({ where: { id: req.params.id } });
+    return res.json({ success: true, data: { id: req.params.id } });
+  } catch (error) {
+    console.error("DELETE_REPORT_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not delete report." });
+  }
+};

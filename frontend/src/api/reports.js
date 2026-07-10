@@ -14,3 +14,8 @@ export async function updateAdminReport(reportId, payload) {
   const { data } = await api.patch(`/admin/reports/${reportId}`, payload);
   return data?.data || data;
 }
+
+export async function deleteAdminReport(reportId) {
+  const { data } = await api.delete(`/admin/reports/${reportId}`);
+  return data?.data || data;
+}

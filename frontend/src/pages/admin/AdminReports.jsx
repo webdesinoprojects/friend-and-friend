@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Flag, ShieldAlert, Star } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
-import { listAdminReports, updateAdminReport } from "../../api/reports";
+import { deleteAdminReport, listAdminReports, updateAdminReport } from "../../api/reports";
 
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
@@ -20,6 +20,11 @@ export default function AdminReports() {
   const act = async (report, adminAction, status = "RESOLVED") => {
     const updated = await updateAdminReport(report.id, { adminAction, status });
     setReports((rows) => rows.map((item) => item.id === report.id ? updated : item));
+  };
+
+  const deleteReport = async (report) => {
+    await deleteAdminReport(report.id);
+    setReports((rows) => rows.filter((item) => item.id !== report.id));
   };
 
   return (
@@ -75,6 +80,9 @@ export default function AdminReports() {
                 </button>
                 <button type="button" onClick={() => act(report, "NO_ACTION", "CLOSED")} className="rounded-xl border border-black/10 bg-white px-4 py-2.5 text-xs font-black text-black">
                   Close
+                </button>
+                <button type="button" onClick={() => deleteReport(report)} className="rounded-xl bg-[#d84e58] px-4 py-2.5 text-xs font-black text-white">
+                  Delete report permanently
                 </button>
               </div>
 

@@ -84,6 +84,48 @@ export default function ProviderProfile() {
             <Panel title="Bio" icon={Languages}>
               <p className="text-sm font-bold leading-7 text-[#5d4a3c]">{provider?.bio || "Write a warm bio from the provider profile builder."}</p>
             </Panel>
+
+            {reviews.length > 0 && (
+              <Panel title="Reviews" icon={Star}>
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                      <div className="flex items-start gap-3">
+                        {review.reviewerImage ? (
+                          <img
+                            src={review.reviewerImage}
+                            alt={review.reviewerName || "Reviewer"}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-[#ffeedd] flex items-center justify-center">
+                            {(review.reviewerName || "R").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-baseline justify-between mb-1">
+                            <h3 className="text-sm font-black">{review.reviewerName || "BuddyBOOK user"}</h3>
+                            <div className="flex items-baseline gap-1 text-[#e08c4c]">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star key={star} size={12} fill={star <= Number(review.rating || 0) ? "currentColor" : "none"} />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold text-[#5d4a3c]">{review.description}</p>
+                          <p className="text-xs font-bold text-[#6b5d52]">
+                            {new Date(review.createdAt || "").toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
           </div>
         </div>
       </section>

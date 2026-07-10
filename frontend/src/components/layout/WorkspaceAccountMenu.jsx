@@ -292,6 +292,9 @@ function getAvatar(user) {
 }
 
 function getAccountRating(user) {
+  const localAverage = getLocalAccountRating(user);
+  if (localAverage) return localAverage;
+
   const providerRating = Number(
     user?.providerProfile?.rating || user?.providerProfile?.averageRating
   );
@@ -300,4 +303,22 @@ function getAccountRating(user) {
   }
 
   return user?.role === "PROVIDER" ? "4.80" : "4.43";
+}
+
+function getLocalAccountRating(user) {
+  try {
+    const reviews = JSON.parse(localStorage.getItem("buddybook_reviews") || "[]");
+    const role = user?.role || "USER";
+    const userIds = [user?.id, user?._id].filter(Boolean).map(String);
+    const received = Array.isArray(reviews)
+      ? reviews.filter((review) =>
+          review.targetRole === role &&
+          (!review.targetId || userIds.includes(String(review.targetId)) || review.targetName === user?.fullName)
+        )
+      : [];
+    if (!received.length) return "";
+    return (received.reduce((sum, item) => sum + Number(item.rating || 0), 0) / received.length).toFixed(2);
+  } catch {
+    return "";
+  }
 }

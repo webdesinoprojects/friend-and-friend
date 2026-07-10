@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays,
   Check,
@@ -73,6 +73,10 @@ export default function UserBookingPayment() {
     () => Number(provider?.price || 0) * Number(duration || 1),
     [duration, provider]
   );
+  const invalidUrl = useMemo(
+    () => provider ? hasInvalidBookingParams(bookingParams, provider) : false,
+    [bookingParams, provider]
+  );
 
   const handlePayment = async () => {
     if (!provider || !service || !date || !time) return;
@@ -130,6 +134,10 @@ export default function UserBookingPayment() {
         <div className="h-full animate-pulse rounded-[2rem] bg-[#ffeedd]" />
       </UserAppLayout>
     );
+  }
+
+  if (invalidUrl) {
+    return <Navigate to="/404" replace />;
   }
 
   if (!provider) {
@@ -252,6 +260,25 @@ function getProviderActivities(provider) {
 
   const cleaned = activities.filter(Boolean);
   return cleaned.length ? cleaned : ["Coffee & Conversation"];
+}
+
+function hasInvalidBookingParams(params, provider) {
+  const duration = params.get("duration");
+  const date = params.get("date");
+  const time = params.get("time");
+  const service = params.get("service");
+  const allowedActivities = getProviderActivities(provider);
+
+  if (duration && !["1", "2", "3", "4", "5", "6"].includes(duration)) return true;
+  if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return true;
+  if (service && !allowedActivities.includes(service)) return true;
+  if (date) {
+    const selected = new Date(`${date}T00:00:00`);
+    const min = new Date(`${dateValue(0)}T00:00:00`);
+    const max = new Date(`${dateValue(10)}T00:00:00`);
+    if (Number.isNaN(selected.getTime()) || selected < min || selected > max) return true;
+  }
+  return false;
 }
 
 function readUser() {

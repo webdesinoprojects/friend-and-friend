@@ -9,6 +9,7 @@ import Contact from "../pages/public/Contact";
 import EarnWithBuddyBook from "../pages/public/EarnWithBuddyBook";
 import TrustAndSafety from "../pages/public/TrustAndSafety";
 import PublicProviderProfile from "../pages/public/PublicProviderProfile";
+import NotFound from "../pages/public/NotFound";
 
 /* AUTH */
 import Login from "../pages/auth/Login";
@@ -72,6 +73,7 @@ export default function AppRoutes() {
       <Route path="/earn-with-buddybook" element={<EarnWithBuddyBook />} />
       <Route path="/trust-safety" element={<TrustAndSafety />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfile />} />
+      <Route path="/404" element={<NotFound />} />
 
       {/* AUTH ROUTES */}
       <Route path="/login" element={<Login />} />
@@ -199,7 +201,7 @@ export default function AppRoutes() {
       />
 
       {/* FALLBACK */}
-      <Route path="*" element={<Home />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

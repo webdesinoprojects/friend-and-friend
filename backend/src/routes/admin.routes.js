@@ -43,5 +43,6 @@ router.get("/notifications", adminOnly, adminController.getAdminNotifications);
 router.get("/payments", adminOnly, adminController.getAdminPayments);
 router.get("/reports", adminOnly, reportController.listReports);
 router.patch("/reports/:id", adminOnly, reportController.updateReportAction);
+router.delete("/reports/:id", adminOnly, reportController.deleteReport);
 
 module.exports = router;

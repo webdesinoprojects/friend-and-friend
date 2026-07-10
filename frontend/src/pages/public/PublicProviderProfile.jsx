@@ -4,10 +4,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Heart,
-  MoreVertical,
   Sparkles,
   Star,
-  X,
 } from "lucide-react";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
@@ -59,7 +57,7 @@ export default function PublicProviderProfile() {
       <main className="px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
         <section className="mx-auto max-w-7xl">
           <Link
-            to="/#providers"
+            to={getExplorePath()}
             className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-black shadow-sm"
           >
             <ArrowLeft size={16} /> Back to explore
@@ -190,10 +188,6 @@ function PublicProviderDetail({ provider, saved, onSave }) {
             <h2 className="text-2xl font-black text-black">Services</h2>
             <div className="mt-2 h-1 w-24 bg-black" />
           </div>
-          <div className="flex gap-2 text-black/45">
-            <MoreVertical size={18} />
-            <Link to="/" aria-label="Close profile"><X size={18} /></Link>
-          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -233,10 +227,14 @@ function PublicProviderDetail({ provider, saved, onSave }) {
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {reviews.map((review, index) => (
               <article key={review.id || index} className="rounded-xl border border-black/10 bg-white p-3">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-[#ff5353] text-lg font-medium text-white">
-                    {(review.reviewerName || "U")[0].toUpperCase()}
-                  </span>
+                <div className="flex items-start gap-2">
+                  {review.reviewerImage ? (
+                    <img src={review.reviewerImage} alt={review.reviewerName || "Reviewer"} className="h-10 w-10 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-[#ff5353] text-lg font-medium text-white">
+                      {(review.reviewerName || "U")[0].toUpperCase()}
+                    </span>
+                  )}
                   <div>
                     <p className="text-base font-black">{review.reviewerName || "BuddyBOOK user"}</p>
                     <p className="text-sm text-black/45">{formatReviewDate(review.createdAt)} - #{toSlug(review.service || activity)}</p>
@@ -245,6 +243,7 @@ function PublicProviderDetail({ provider, saved, onSave }) {
                     <Star size={14} fill="#ffcf33" className="text-[#ffcf33]" /> {review.rating || 5}
                   </p>
                 </div>
+                <p className="mt-3 text-sm font-bold leading-6 text-black/70">{review.description || review.text || "No written review added."}</p>
               </article>
             ))}
             {!reviews.length ? (
@@ -336,4 +335,10 @@ function isProviderAccount() {
   } catch {
     return false;
   }
+}
+
+function getExplorePath() {
+  if (!isLoggedIn()) return "/#providers";
+  if (isProviderAccount()) return "/app/provider/dashboard";
+  return "/app/user/dashboard";
 }
