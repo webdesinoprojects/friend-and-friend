@@ -3,7 +3,6 @@ const path = require("path");
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const { uploadProviderImage } = require("../utils/imagekit");
-const { readBookings } = require("../utils/bookingStore");
 
 const contentPath = path.join(__dirname, "../../data/adminContent.json");
 const defaultContent = {
@@ -133,7 +132,7 @@ const updateAdminContent = (req, res) => {
 
 const getAdminSummary = async (req, res) => {
   try {
-    const [totalUsers, verifiedProviders, pendingKyc] = await Promise.all([
+    const [totalUsers, verifiedProviders, pendingKyc, activeBookings, revenueAgg] = await Promise.all([
       prisma.user.count(),
       prisma.providerProfile.count({ where: { approved: true } }),
       prisma.user.count({
@@ -141,6 +140,8 @@ const getAdminSummary = async (req, res) => {
           OR: [{ kycStatus: { not: "VERIFIED" } }, { faceStatus: { not: "VERIFIED" } }],
         },
       }),
+      prisma.booking.count({ where: { status: { in: ["CONFIRMED", "PAID", "ACCEPTED"] } } }),
+      prisma.booking.aggregate({ _sum: { amount: true }, where: { paymentStatus: "PAID" } }),
     ]);
 
     const latestProviders = await prisma.providerProfile.findMany({
@@ -159,11 +160,11 @@ const getAdminSummary = async (req, res) => {
       success: true,
       data: {
         metrics: {
-          totalUsers: Math.max(totalUsers, 12458),
-          verifiedProviders: Math.max(verifiedProviders, 1245),
-          activeBookings: 382,
-          revenueToday: 8742,
-          pendingKyc: Math.max(pendingKyc, 37),
+          totalUsers,
+          verifiedProviders,
+          activeBookings,
+          revenueToday: revenueAgg._sum.amount || 0,
+          pendingKyc,
           liveTotalUsers: totalUsers,
           liveVerifiedProviders: verifiedProviders,
           livePendingKyc: pendingKyc,
@@ -171,9 +172,9 @@ const getAdminSummary = async (req, res) => {
         latestProviders,
         pendingApprovals: [
           { label: "KYC Verifications", count: pendingKyc },
-          { label: "Provider Applications", count: 12 },
-          { label: "Content Reports", count: 5 },
-          { label: "Payout Requests", count: 8 },
+          { label: "Provider Applications", count: await prisma.providerProfile.count({ where: { approved: false } }) },
+          { label: "Content Reports", count: 0 },
+          { label: "Payout Requests", count: 0 },
         ],
       },
     });
@@ -299,7 +300,6 @@ const getAdminUserById = async (req, res) => {
             activities: true,
             languages: true,
             education: true,
-            location: true,
             approved: true,
             profileImages: true,
           },
@@ -321,9 +321,17 @@ const getAdminUserById = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found." });
     }
 
-    const bookings = readBookings().filter(
-      (booking) => booking.userId === user.id || booking.providerId === user.id
-    );
+    const bookings = await prisma.booking.findMany({
+      where: {
+        OR: [
+          { userId: user.id },
+          { providerUserId: user.id },
+          { provider: { userId: user.id } },
+        ],
+      },
+      include: { user: true, provider: { include: { user: true } } },
+      orderBy: { createdAt: "desc" },
+    });
     const sortedBookings = bookings.sort(
       (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
     );
@@ -338,7 +346,7 @@ const getAdminUserById = async (req, res) => {
       success: true,
       data: {
         ...user,
-        bookings,
+        bookings: bookings.map(formatAdminBooking),
         bookingSummary: {
           firstBooking: sortedBookings[0]?.createdAt || null,
           lastBooking: sortedBookings[sortedBookings.length - 1]?.createdAt || null,
@@ -395,7 +403,11 @@ const getAdminProviders = async (req, res) => {
 
 const getAdminBookings = async (req, res) => {
   try {
-    return res.json({ success: true, data: readBookings() });
+    const bookings = await prisma.booking.findMany({
+      include: { user: true, provider: { include: { user: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.json({ success: true, data: bookings.map(formatAdminBooking) });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch bookings." });
   }
@@ -425,11 +437,16 @@ const getAdminLogins = async (req, res) => {
 
 const getAdminNotifications = async (req, res) => {
   try {
-    const bookings = readBookings().slice(0, 20).map((booking) => ({
+    const bookings = await prisma.booking.findMany({
+      include: { user: true, provider: { include: { user: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    const bookingRows = bookings.map((booking) => ({
       id: `booking-${booking.id}`,
       type: "booking",
-      title: `New booking: ${booking.userName} with ${booking.providerName}`,
-      detail: `${booking.activity} - Rs ${Number(booking.amount || 0).toLocaleString("en-IN")}`,
+      title: `Booking: ${booking.user?.fullName || "User"} with ${booking.provider?.user?.fullName || "Provider"}`,
+      detail: `${booking.service} - Rs ${Number(booking.amount || 0).toLocaleString("en-IN")}`,
       createdAt: booking.createdAt,
     }));
     const logins = await prisma.loginAttempt.findMany({
@@ -444,12 +461,35 @@ const getAdminNotifications = async (req, res) => {
       detail: login.message || "Login activity",
       createdAt: login.createdAt,
     }));
-    const rows = [...bookings, ...loginRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const rows = [...bookingRows, ...loginRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     return res.json({ success: true, data: rows });
   } catch {
     return res.json({ success: true, data: [] });
   }
 };
+
+function formatAdminBooking(booking) {
+  return {
+    id: booking.id,
+    code: booking.code,
+    userId: booking.userId,
+    userName: booking.user?.fullName || "BuddyBOOK user",
+    providerId: booking.providerId,
+    providerUserId: booking.providerUserId,
+    providerName: booking.provider?.user?.fullName || "BuddyBOOK provider",
+    activity: booking.service,
+    service: booking.service,
+    date: booking.date,
+    time: booking.time,
+    durationHours: booking.durationHours,
+    amount: booking.amount,
+    paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
+    status: booking.status,
+    createdAt: booking.createdAt,
+    updatedAt: booking.updatedAt,
+  };
+}
 
 const getAdminPayments = async (req, res) => {
   return res.json({ success: true, data: [] });

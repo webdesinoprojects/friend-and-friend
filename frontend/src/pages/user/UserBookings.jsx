@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { cancelBookingApi, completeBookingApi, listBookings } from "../../api/bookings";
 import {
   addReview,
   cancelBooking,
@@ -43,7 +44,46 @@ export default function UserBookings() {
   const [bookings, setBookings] = useState(() => getBookings());
   const [cancelTarget, setCancelTarget] = useState(null);
 
-  useEffect(() => subscribeToUserData(() => setBookings(getBookings())), []);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = () => {
+      listBookings()
+        .then((rows) => mounted && setBookings(rows))
+        .catch(() => mounted && setBookings(getBookings()));
+    };
+    refresh();
+    const unsubscribe = subscribeToUserData(refresh);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const markCompleted = async (booking) => {
+    const completedAt = new Date().toISOString();
+    setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, status: "COMPLETED", completedAt } : item));
+    updateBooking(booking.id, { status: "COMPLETED", completedAt });
+    try {
+      const saved = await completeBookingApi(booking.id);
+      setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, ...saved, status: "COMPLETED", completedAt } : item));
+    } catch {
+      setBookings(getBookings());
+    }
+  };
+
+  const cancelSelectedBooking = async (reason) => {
+    const target = cancelTarget;
+    if (!target) return;
+    cancelBooking(target.id, reason);
+    setBookings((rows) => rows.map((item) => item.id === target.id ? { ...item, status: "CANCELLED", cancelReason: reason, cancelledAt: new Date().toISOString() } : item));
+    setCancelTarget(null);
+    try {
+      const saved = await cancelBookingApi(target.id, reason);
+      setBookings((rows) => rows.map((item) => item.id === target.id ? { ...item, ...saved } : item));
+    } catch {
+      setBookings(getBookings());
+    }
+  };
 
   const counts = useMemo(
     () => ({
@@ -169,7 +209,7 @@ export default function UserBookings() {
                           </Link>
                           <button
                             type="button"
-                            onClick={() => updateBooking(booking.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
+                            onClick={() => markCompleted(booking)}
                             className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
                           >
                             <CheckCircle2 size={15} />
@@ -207,11 +247,7 @@ export default function UserBookings() {
         <CancelBookingDialog
           booking={cancelTarget}
           onClose={() => setCancelTarget(null)}
-          onConfirm={(reason) => {
-            cancelBooking(cancelTarget.id, reason);
-            setBookings(getBookings());
-            setCancelTarget(null);
-          }}
+          onConfirm={cancelSelectedBooking}
         />
       ) : null}
     </UserAppLayout>

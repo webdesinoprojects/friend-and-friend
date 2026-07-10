@@ -136,6 +136,20 @@ export function deleteLocalChatMessage(bookingId, messageId) {
   writeList(KEYS.chats, next);
 }
 
+export function editLocalChatMessage(bookingId, messageId, text) {
+  const next = getChats().map((chat) =>
+    chat.bookingId === bookingId || chat.id === bookingId
+      ? {
+          ...chat,
+          messages: (chat.messages || []).map((message) =>
+            message.id === messageId ? { ...message, text: String(text || "").trim() } : message
+          ),
+        }
+      : chat
+  );
+  writeList(KEYS.chats, next);
+}
+
 export function addChatMessage({ bookingId, senderRole, text, system = false, createdAt, type = "TEXT", mediaUrl, durationSeconds }) {
   const message = {
     id: `MSG-${Date.now()}`,

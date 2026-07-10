@@ -22,6 +22,7 @@ import {
   addChatMessage,
   deleteLocalChat,
   deleteLocalChatMessage,
+  editLocalChatMessage,
   getChats,
   subscribeToUserData,
 } from "../../utils/userFlowStorage";
@@ -75,6 +76,9 @@ export default function ChatWorkspace({ role }) {
       const rows = await listChats();
       const merged = mergePendingMessages(mergeChatsForRole(rows, role), pendingMessagesRef.current);
       setChats(merged);
+      try {
+        sessionStorage.setItem(`buddybook_chat_cache_${role}`, JSON.stringify(merged));
+      } catch {}
       setOfflineMode(false);
       setActiveId((current) => current || merged[0]?.id || merged[0]?.bookingId || "");
     } catch {
@@ -88,15 +92,23 @@ export default function ChatWorkspace({ role }) {
   };
 
   useEffect(() => {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(`buddybook_chat_cache_${role}`) || "[]");
+      if (Array.isArray(cached) && cached.length) {
+        setChats(cached);
+        setActiveId((current) => current || cached[0]?.id || cached[0]?.bookingId || "");
+        setLoading(false);
+      }
+    } catch {}
     load();
-    const timer = window.setInterval(load, 2200);
+    const timer = window.setInterval(load, 10000); // Increased interval to 10 seconds to reduce frequent reloads
     const unsubscribe = subscribeToUserData(() => setChats((rows) => mergeChatsForRole(rows, role)));
     return () => {
       window.clearInterval(timer);
       unsubscribe();
       stopRecorderTracks();
     };
-  }, [offlineMode]);
+  }, [role, offlineMode]);
 
   useEffect(() => {
     if (!recordingStartedAt) return undefined;
@@ -478,6 +490,7 @@ export default function ChatWorkspace({ role }) {
     cancelEditMessage();
 
     if (active.localOnly || !active.id || String(message.id).startsWith("MSG-")) {
+      editLocalChatMessage(active.bookingId || active.id, message.id, value);
       setChats((rows) =>
         patchChat(rows, active.id || active.bookingId, (chat) => ({
           ...chat,
@@ -516,7 +529,11 @@ export default function ChatWorkspace({ role }) {
 
   const isCurrentUserMessage = (message) => {
     const user = getStoredUser();
-    return Boolean(user?.id && message?.senderId === user.id);
+    const userIds = [user?.id, user?._id].filter(Boolean).map(String);
+    return Boolean(
+      (message?.senderId && userIds.includes(String(message.senderId))) ||
+      (!message?.senderId && message?.senderRole === role)
+    );
   };
 
   const deleteActiveChat = async () => {

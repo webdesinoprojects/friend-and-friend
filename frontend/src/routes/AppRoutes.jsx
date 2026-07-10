@@ -17,7 +17,6 @@ import ChooseRole from "../pages/auth/ChooseRole";
 
 /* USER */
 import UserDashboard from "../pages/user/UserDashboard";
-import UserProviderProfile from "../pages/user/UserProviderProfile";
 import UserBookingPayment from "../pages/user/UserBookingPayment";
 import UserBookings from "../pages/user/UserBookings";
 import UserPayments from "../pages/user/UserPayments";
@@ -85,7 +84,7 @@ export default function AppRoutes() {
 
       <Route
         path="/app/user/provider/:providerId"
-        element={userOnly(<UserProviderProfile />)}
+        element={userOnly(<PublicProviderProfile />)}
       />
 
       <Route
