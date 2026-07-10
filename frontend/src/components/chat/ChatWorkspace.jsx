@@ -313,7 +313,7 @@ export default function ChatWorkspace({ role }) {
         durationSeconds: payload.durationSeconds,
         system: false,
       });
-      setChats(mergeChatsForRole([], role));
+      setChats(mergeChatsForRole(getChats(), role));
       return;
     }
 
