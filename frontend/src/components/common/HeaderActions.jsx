@@ -95,13 +95,16 @@ export function NotificationBell() {
   useEffect(() => {
     let mounted = true;
     const refresh = () => {
-      setNotifications(buildNotifications());
-      buildBackendNotifications().then((rows) => {
-        if (mounted) setNotifications(rows);
-      });
+      buildBackendNotifications()
+        .then((rows) => {
+          if (mounted) setNotifications(rows);
+        })
+        .catch(() => {
+          if (mounted) setNotifications(buildNotifications());
+        });
     };
     refresh();
-    const timer = window.setInterval(refresh, 5000);
+    const timer = window.setInterval(refresh, 15000);
     window.addEventListener("storage", refresh);
     window.addEventListener("buddybook:data-changed", refresh);
     return () => {

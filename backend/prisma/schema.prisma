@@ -52,6 +52,7 @@ model User {
   bookings         Booking[]      @relation("BookingUser")
   providerBookings Booking[]      @relation("BookingProviderUser")
   sentMessages     ChatMessage[]  @relation("MessageSender")
+  reviewReports    ReviewReport[]
 }
 
 model OtpToken {
@@ -207,4 +208,31 @@ model ChatMessage {
   sender User?      @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
+}
+
+model ReviewReport {
+  id             String   @id @default(cuid())
+  reviewId       String?
+  bookingId      String?
+  reporterId     String
+  reporterRole   String
+  reporterName   String?
+  reportedUserId String?
+  reportedName   String?
+  targetRole     String?
+  rating         Int?
+  reviewText     String?
+  reason         String
+  status         String   @default("OPEN")
+  adminAction    String?
+  adminNote      String?
+  reviewSnapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([reporterId])
 }

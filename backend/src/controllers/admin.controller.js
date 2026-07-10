@@ -461,7 +461,18 @@ const getAdminNotifications = async (req, res) => {
       detail: login.message || "Login activity",
       createdAt: login.createdAt,
     }));
-    const rows = [...bookingRows, ...loginRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const reports = await prisma.reviewReport.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    const reportRows = reports.map((report) => ({
+      id: `report-${report.id}`,
+      type: "report",
+      title: `Review report: ${report.reporterName || "Provider"}`,
+      detail: report.reason || "A review was reported",
+      createdAt: report.createdAt,
+    }));
+    const rows = [...bookingRows, ...loginRows, ...reportRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     return res.json({ success: true, data: rows });
   } catch {
     return res.json({ success: true, data: [] });

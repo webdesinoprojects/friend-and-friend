@@ -85,7 +85,28 @@ export default function ProviderSettings() {
 
           <section className="rounded-2xl border border-[#f0b8a8] bg-white p-5">
             <h2 className="text-lg font-black">Delete account permanently</h2>
-            <p className="mt-1 text-sm font-semibold text-[#6b5d52]">This clears local provider account, bookings, payments and reviews from this device.</p>
+            <p className="mt-1 text-sm font-semibold text-[#6b5d52]">Choose a temporary offline mode or permanently remove local provider data.</p>
+            <div className="mt-4 grid gap-3 rounded-2xl bg-[#fffaf3] p-4">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 accent-black"
+                  onChange={(event) =>
+                    localStorage.setItem(
+                      "buddybook_offline_24h",
+                      event.target.checked ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : ""
+                    )
+                  }
+                />
+                <span>
+                  <span className="block text-sm font-black text-black">Disable account for 24 hours</span>
+                  <span className="mt-1 block text-xs font-semibold text-[#6b5d52]">You will appear offline and can return after the 24-hour pause.</span>
+                </span>
+              </label>
+              <p className="text-xs font-bold leading-5 text-rose-700">
+                Permanent deletion means you must register again from the beginning.
+              </p>
+            </div>
             <input
               value={deleteText}
               onChange={(event) => setDeleteText(event.target.value)}

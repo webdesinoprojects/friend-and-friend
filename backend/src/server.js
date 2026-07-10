@@ -9,6 +9,7 @@ const adminRoutes = require("./routes/admin.routes");
 const contactRoutes = require("./routes/contact.routes");
 const bookingRoutes = require("./routes/booking.routes");
 const chatRoutes = require("./routes/chat.routes");
+const reportRoutes = require("./routes/report.routes");
 
 const app = express();
 const allowedOrigins = [
@@ -49,6 +50,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/reports", reportRoutes);
 
 const PORT = process.env.PORT || 5000;
 

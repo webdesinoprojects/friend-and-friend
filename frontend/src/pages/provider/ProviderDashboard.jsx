@@ -55,10 +55,11 @@ const emptyStats = {
 };
 
 export default function ProviderDashboard() {
+  const cachedProfile = readCachedProviderProfile();
   const [user, setUser] = useState(() => readUser());
-  const [provider, setProvider] = useState(null);
-  const [stats, setStats] = useState(emptyStats);
-  const [loading, setLoading] = useState(true);
+  const [provider, setProvider] = useState(cachedProfile?.provider || null);
+  const [stats, setStats] = useState(cachedProfile?.stats ? { ...emptyStats, ...cachedProfile.stats } : emptyStats);
+  const [loading, setLoading] = useState(!cachedProfile?.provider);
   const [bookings, setBookings] = useState(() => getBookings());
   const [reviews, setReviews] = useState(() => getReceivedReviews("PROVIDER"));
   const [search, setSearch] = useState("");
@@ -275,12 +276,12 @@ function ActionCard({ icon: Icon, title, text, to, tone }) {
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <div className="h-[320px] rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
+    <div className="h-[260px] rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
       <div className="mb-4">
         <h2 className="text-lg font-black">{title}</h2>
         <p className="text-xs font-bold text-[#8b7563]">{subtitle}</p>
       </div>
-      <div className="h-[245px]">{children}</div>
+      <div className="h-[185px]">{children}</div>
     </div>
   );
 }
@@ -628,6 +629,14 @@ function getCompletion(provider) {
 function readUser() {
   try {
     return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function readCachedProviderProfile() {
+  try {
+    return JSON.parse(sessionStorage.getItem("buddybook_my_provider_profile_cache") || "null");
   } catch {
     return null;
   }

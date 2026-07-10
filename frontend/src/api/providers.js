@@ -2,6 +2,7 @@ import api from './api';
 import { normalizeProvider } from '../data/providerCatalog';
 
 const PROVIDER_CACHE_KEY = 'buddybook_explore_providers_cache';
+const MY_PROVIDER_CACHE_KEY = 'buddybook_my_provider_profile_cache';
 let backgroundRefresh = null;
 const providerImageCache = new Map();
 
@@ -41,17 +42,23 @@ export async function createProvider(payload) {
 }
 
 export async function getMyProviderProfile() {
+  const cached = readMyProviderCache();
   try {
     const res = await api.get('/providers/me/profile');
-    return {
+    const payload = {
       provider: res.data?.data || null,
       stats: res.data?.stats || null,
     };
+    writeMyProviderCache(payload);
+    return payload;
   } catch (error) {
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
+    if ([401, 403].includes(error?.response?.status)) {
       return { provider: null, stats: null };
     }
-    throw error;
+    return {
+      provider: cached?.provider || null,
+      stats: cached?.stats || null,
+    };
   }
 }
 
@@ -122,6 +129,20 @@ function readProviderCache() {
   } catch {
     return [];
   }
+}
+
+function readMyProviderCache() {
+  try {
+    return JSON.parse(sessionStorage.getItem(MY_PROVIDER_CACHE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function writeMyProviderCache(value) {
+  try {
+    sessionStorage.setItem(MY_PROVIDER_CACHE_KEY, JSON.stringify(value || null));
+  } catch {}
 }
 
 function writeProviderCache(rows) {

@@ -259,7 +259,7 @@ export default function UserDashboard() {
 
         <aside className="grid min-h-0 gap-6">
           <WeeklyChart values={weeklyBookings} />
-          <SuggestedProviders providers={providers.slice(0, 3)} />
+          <SuggestedProviders providers={providers.filter((provider) => Number(provider.rating || 0) >= 4).slice(0, 3)} />
         </aside>
       </section>
     </UserAppLayout>
@@ -460,15 +460,15 @@ function SafetyChecklist() {
 
 function SuggestedProviders({ providers }) {
   return (
-    <section className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+    <section className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black">Suggested Providers</h2>
+        <h2 className="text-lg font-black">Suggested Providers</h2>
         <Link to="/#community" className="text-sm font-black text-[#e08c4c]">View all</Link>
       </div>
-      <div className="mt-5 flex gap-6 overflow-x-auto">
+      <div className="mt-4 flex gap-4 overflow-x-auto">
         {providers.length ? providers.map((provider) => (
           <Link key={provider.id} to={`/app/user/provider/${provider.id}`} className="min-w-20 text-center">
-            <img src={provider.image} alt={provider.name} className="mx-auto h-14 w-14 rounded-full object-cover" />
+            <img src={provider.image} alt={provider.name} className="mx-auto h-12 w-12 rounded-full object-cover" />
             <p className="mt-2 max-w-20 truncate text-sm font-black">{provider.name}</p>
             <p className="text-xs font-black text-[#e08c4c]">★ {provider.rating || "4.8"}</p>
           </Link>

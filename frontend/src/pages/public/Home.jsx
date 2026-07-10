@@ -374,11 +374,15 @@ heroStage.style.filter = "none";
               </p>
 
               <h1 className="mt-3 max-w-[650px] text-[2.8rem] font-black leading-[1.02] tracking-tight sm:text-6xl lg:text-[4.8rem]">
-                {getHeroTitleParts(siteContent.heroTitle).main}
+                {getHeroTitleParts("Safe Meetups. Real Connections.").main}
                 <span className="block text-[#e08c4c]">
-                  {getHeroTitleParts(siteContent.heroTitle).highlight}
+                  {getHeroTitleParts("Safe Meetups. Real Connections.").highlight}
                 </span>
               </h1>
+
+              <p className="mt-5 max-w-xl text-sm font-bold leading-6 text-black sm:text-base">
+                BuddyBOOK helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings.
+              </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -1540,7 +1544,7 @@ function normalizeSiteTestimonials(value) {
 }
 
 function getHeroTitleParts(value) {
-  const fallback = "Make the plan. We will help you find the company.";
+  const fallback = "Safe Meetups. Real Connections.";
   const text = String(value || fallback).trim();
   const pieces = text.split(". ");
 

@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const adminController = require("../controllers/admin.controller");
+const reportController = require("../controllers/report.controller");
 const adminOnly = require("../middlewares/admin.middleware");
 const { ALLOWED_MIME_TYPES, MAX_IMAGE_BYTES } = require("../utils/imagekit");
 
@@ -40,5 +41,7 @@ router.get("/bookings", adminOnly, adminController.getAdminBookings);
 router.get("/logins", adminOnly, adminController.getAdminLogins);
 router.get("/notifications", adminOnly, adminController.getAdminNotifications);
 router.get("/payments", adminOnly, adminController.getAdminPayments);
+router.get("/reports", adminOnly, reportController.listReports);
+router.patch("/reports/:id", adminOnly, reportController.updateReportAction);
 
 module.exports = router;

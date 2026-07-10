@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   ChevronDown,
   CreditCard,
+  Flag,
   FileText,
   Home,
   Search,
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Providers", to: "/admin/providers", icon: UserCheck },
   { label: "Bookings", to: "/admin/bookings", icon: CalendarCheck },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
+  { label: "Reports", to: "/admin/reports", icon: Flag },
   { label: "Website Content", to: "/admin/content", icon: FileText },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];

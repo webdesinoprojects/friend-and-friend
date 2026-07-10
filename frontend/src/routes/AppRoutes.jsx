@@ -53,6 +53,7 @@ import AdminProviders from "../pages/admin/AdminProviders";
 import AdminBookings from "../pages/admin/AdminBookings";
 import AdminPayments from "../pages/admin/AdminPayments";
 import AdminSettings from "../pages/admin/AdminSettings";
+import AdminReports from "../pages/admin/AdminReports";
 import ProtectedAdminRoute from "../components/layout/ProtectedAdminRoute";
 import ProtectedRoleRoute from "../components/layout/ProtectedRoleRoute";
 
@@ -193,7 +194,7 @@ export default function AppRoutes() {
       <Route
         path="/admin/reports"
         element={
-          <ProtectedAdminRoute><AdminComingSoon title="Reports & Disputes" /></ProtectedAdminRoute>
+          <ProtectedAdminRoute><AdminReports /></ProtectedAdminRoute>
         }
       />
 

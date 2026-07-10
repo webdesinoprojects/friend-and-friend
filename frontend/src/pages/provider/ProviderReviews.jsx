@@ -1,6 +1,7 @@
-import { CalendarCheck, MessageCircle, Star } from "lucide-react";
+import { CalendarCheck, Flag, MessageCircle, Star } from "lucide-react";
 import AppShell from "../../components/layout/AppShell";
 import { getReceivedReviews, getReviews } from "../../utils/userFlowStorage";
+import { reportReview } from "../../api/reports";
 
 export default function ProviderReviews() {
   const received = getReceivedReviews("PROVIDER");
@@ -47,6 +48,12 @@ function ReviewCard({ review }) {
     month: "short",
     year: "numeric",
   });
+  const submitReport = async () => {
+    const reason = window.prompt("Why are you reporting this review?");
+    if (!reason?.trim()) return;
+    await reportReview(review, reason.trim()).catch(() => {});
+  };
+
   return (
     <article className="rounded-2xl bg-[#fffaf3] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -59,6 +66,9 @@ function ReviewCard({ review }) {
         </span>
       </div>
       <p className="mt-3 text-sm font-bold leading-6 text-[#5d4a3c]">{review.description}</p>
+      <button type="button" onClick={submitReport} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-black text-[#d84e58]">
+        <Flag size={13} /> Report
+      </button>
     </article>
   );
 }

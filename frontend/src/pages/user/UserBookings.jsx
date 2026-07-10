@@ -301,6 +301,8 @@ function ReviewForm({ booking, onSubmitted }) {
       bookingId: booking.id,
       reviewerRole: "USER",
       targetRole: "PROVIDER",
+      targetId: booking.providerId,
+      providerId: booking.providerId,
       targetName: booking.providerName || "BuddyBOOK provider",
       targetImage: booking.providerImage,
       rating,

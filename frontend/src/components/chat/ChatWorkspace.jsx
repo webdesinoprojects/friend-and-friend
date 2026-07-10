@@ -449,8 +449,7 @@ export default function ChatWorkspace({ role }) {
 
   const deleteMessage = async (message) => {
     if (!active || message.system) return;
-    const user = getStoredUser();
-    if (!user || message.senderId !== user.id) {
+    if (!isCurrentUserMessage(message)) {
       // not authorized to delete this message
       return;
     }
@@ -957,7 +956,7 @@ function MessageBubble({
   return (
     <div className={`group relative max-w-[86%] rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm sm:max-w-[72%] ${mine ? "ml-auto rounded-br-md bg-black text-[#fffaf3]" : "mr-auto rounded-bl-md bg-white text-black"}`}>
       {(canEdit || canDelete) ? (
-        <div className={`absolute -top-2 ${mine ? "-left-16" : "-right-16"} flex gap-1 opacity-0 transition group-hover:opacity-100`}>
+        <div className={`absolute top-2 z-20 flex gap-1 opacity-0 transition group-hover:opacity-100 hover:opacity-100 ${mine ? "left-2" : "right-2"}`}>
           {canEdit ? (
             <button type="button" onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-white text-black shadow" aria-label="Edit message">
               <Pencil size={13} />

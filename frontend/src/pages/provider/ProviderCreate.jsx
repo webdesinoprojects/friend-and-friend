@@ -60,8 +60,9 @@ const activityOptions = [
 const dayOptions = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function ProviderCreate() {
+  const cachedProfile = readCachedProviderProfile();
   const [user, setUser] = useState(() => readUser());
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(cachedProfile?.provider ? providerToForm(cachedProfile.provider) : emptyForm);
   const [slot, setSlot] = useState({ day: "Sat", date: "", time: "17:00" });
   const [customActivity, setCustomActivity] = useState("");
   const [customLanguage, setCustomLanguage] = useState("");
@@ -733,6 +734,14 @@ function getImageSrc(image) {
 function readUser() {
   try {
     return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function readCachedProviderProfile() {
+  try {
+    return JSON.parse(sessionStorage.getItem("buddybook_my_provider_profile_cache") || "null");
   } catch {
     return null;
   }

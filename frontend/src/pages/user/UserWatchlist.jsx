@@ -28,7 +28,19 @@ export default function UserWatchlist() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((provider, index) => (
                 <div key={provider.id} className="relative">
-                  <button onClick={() => { const result = toggleWatchlist(provider); setItems(result.items); }} className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-black text-[#fffaf3] shadow-lg"><Heart size={19} fill="currentColor" /></button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      const result = toggleWatchlist(provider);
+                      setItems(result.items);
+                    }}
+                    className="absolute right-3 top-3 z-20 grid h-11 w-11 place-items-center rounded-full bg-black text-[#fffaf3] shadow-lg"
+                    aria-label="Remove from watchlist"
+                  >
+                    <Heart size={19} fill="currentColor" />
+                  </button>
                   <ProviderCard provider={provider} index={index} link={`/app/user/provider/${provider.id}`} />
                 </div>
               ))}
