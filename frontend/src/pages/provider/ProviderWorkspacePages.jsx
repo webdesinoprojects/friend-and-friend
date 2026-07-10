@@ -19,6 +19,8 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock,
+  Clock3,
+  CreditCard,
   IndianRupee,
   MapPin,
   Plus,
@@ -31,7 +33,7 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { getMyProviderProfile } from "../../api/providers";
-import { listBookings } from "../../api/bookings";
+import { completeBookingApi, listBookings } from "../../api/bookings";
 import {
   addReview,
   getBookings,
@@ -183,66 +185,108 @@ export function ProviderBookings() {
     };
   }, []);
 
+  const completeBooking = async (booking) => {
+    const completedAt = new Date().toISOString();
+    setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, status: "COMPLETED", completedAt } : item));
+    updateBooking(booking.id, { status: "COMPLETED", completedAt });
+    try {
+      const saved = await completeBookingApi(booking.id);
+      setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, ...saved, status: "COMPLETED", completedAt } : item));
+    } catch {
+      setBookings(getBookings());
+    }
+  };
+
   return (
-    <ProviderPageShell title="Bookings" subtitle="Review requests, accept safe plans, and monitor booking flow.">
+    <ProviderPageShell title="Bookings" subtitle="Complete meetings and review users after the plan is over." action={null}>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Panel title="Booking requests" subtitle="Complete meetings and review users after the plan is over.">
-          {bookings.length ? (
-            <div className="grid gap-3">
-              {bookings.map((booking) => {
-                const status = String(booking.status || "PENDING").toUpperCase();
-                const completed = status === "COMPLETED";
-                const providerReview = getReviewForBooking(booking.id, "PROVIDER");
+        <section className="flex min-h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] shadow-sm">
+          <header className="border-b border-[#eddac7] bg-white p-5">
+            <div>
+              <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#e08c4c]">Booking management</p>
+              <h2 className="mt-1 text-2xl font-black text-black">Provider bookings</h2>
+              <p className="mt-1 text-sm font-semibold text-slate-500">Mark meetings complete and review users from the same panel.</p>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <BookingStat icon={CalendarCheck} label="Total" value={bookings.length} />
+              <BookingStat icon={Clock3} label="Upcoming" value={bookings.filter((item) => ["CONFIRMED", "PAID", "ACCEPTED"].includes(String(item.status || "").toUpperCase())).length} />
+              <BookingStat icon={CheckCircle2} label="Completed" value={bookings.filter((item) => String(item.status || "").toUpperCase() === "COMPLETED").length} />
+              <BookingStat icon={Users} label="Users" value={new Set(bookings.map((item) => item.userId || item.userName).filter(Boolean)).size} />
+            </div>
+          </header>
 
-                return (
-                  <article key={booking.id} className="rounded-2xl border border-[#eddac7] bg-[#fffaf3] p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-black">{booking.service || booking.activity || "Buddy meetup"}</p>
-                        <p className="mt-1 text-sm font-bold text-[#6b5d52]">
-                          User booking for {booking.date || "date pending"} {booking.time ? `at ${booking.time}` : ""}
-                        </p>
-                      </div>
-                      <Status value={status} />
-                    </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            {bookings.length ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {bookings.map((booking) => {
+                  const status = String(booking.status || "PENDING").toUpperCase();
+                  const completed = status === "COMPLETED";
+                  const providerReview = getReviewForBooking(booking.id, "PROVIDER");
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {!completed ? (
-                        <button
-                          type="button"
-                          onClick={() => updateBooking(booking.id, { status: "COMPLETED", completedAt: new Date().toISOString() })}
-                          className="rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]"
-                        >
-                          Mark completed
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {completed ? (
-                      providerReview ? (
-                        <div className="mt-4 rounded-xl bg-white p-3">
-                          <p className="text-xs font-black text-[#e08c4c]">Review submitted</p>
-                          <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{providerReview.description}</p>
+                  return (
+                    <article key={booking.id} className="rounded-2xl border border-[#eddac7] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-xl font-black text-black">
+                            {(booking.userName || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate text-lg font-black text-black">{booking.service || booking.activity || "Buddy meetup"}</h3>
+                            <p className="truncate text-sm font-bold text-slate-500">with {booking.userName || booking.customerName || "BuddyBOOK user"}</p>
+                          </div>
                         </div>
-                      ) : (
-                        <ProviderReviewForm booking={booking} onSubmitted={() => setBookings(getBookings())} />
-                      )
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid min-h-[220px] place-items-center rounded-2xl border border-dashed border-[#d9bfaa] bg-[#fffaf3] text-center">
-              <div>
-                <p className="text-base font-black">No booking requests yet</p>
-                <p className="mt-2 text-sm font-bold text-[#756f95]">
-                  Publish your provider profile and accepted user requests will show here.
-                </p>
+                        <Status value={status} />
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf3] p-4 text-sm">
+                        <Detail label="Date" value={booking.date || "To be confirmed"} />
+                        <Detail label="Time" value={booking.time || "To be confirmed"} />
+                        <Detail label="Duration" value={booking.duration || `${booking.durationHours || 1} hour`} />
+                        <Detail label="Amount" value={`Rs ${Number(booking.amount || 0).toLocaleString("en-IN")}`} />
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <span className="inline-flex items-center gap-2 text-xs font-black text-slate-500">
+                          <CreditCard size={15} />
+                          Payment: {booking.paymentStatus || "PAID"}
+                        </span>
+                        {!completed ? (
+                          <button
+                            type="button"
+                            onClick={() => completeBooking(booking)}
+                            className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]"
+                          >
+                            <CheckCircle2 size={15} />
+                            Mark completed
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {completed ? (
+                        providerReview ? (
+                          <div className="mt-4 rounded-2xl bg-[#fffaf3] p-4">
+                            <p className="text-xs font-black text-[#e08c4c]">Review submitted</p>
+                            <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{providerReview.description}</p>
+                          </div>
+                        ) : (
+                          <ProviderReviewForm booking={booking} onSubmitted={() => setBookings((rows) => [...rows])} />
+                        )
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
-            </div>
-          )}
-        </Panel>
+            ) : (
+              <div className="grid min-h-[220px] place-items-center rounded-2xl border border-dashed border-[#d9bfaa] bg-white text-center">
+                <div>
+                  <CalendarCheck className="mx-auto text-[#e08c4c]" size={42} />
+                  <p className="mt-4 text-xl font-black text-black">No booking requests yet</p>
+                  <p className="mt-2 text-sm font-bold text-[#756f95]">Publish your provider profile and accepted user requests will show here.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         <Panel title="Weekly bookings" subtitle="Accepted and completed volume">
           <div className="h-[280px]">
@@ -281,8 +325,8 @@ function ProviderReviewForm({ booking, onSubmitted }) {
   };
 
   return (
-    <div className="mt-4 rounded-xl bg-white p-3">
-      <p className="text-sm font-black">Review the user</p>
+    <div className="mt-4 rounded-2xl bg-[#fffaf3] p-4">
+      <p className="text-sm font-black text-black">Review the user</p>
       <div className="mt-3 flex gap-1">
         {[1, 2, 3, 4, 5].map((value) => (
           <button key={value} type="button" onClick={() => setRating(value)} className="text-[#e08c4c]" aria-label={`${value} star rating`}>
@@ -294,7 +338,7 @@ function ProviderReviewForm({ booking, onSubmitted }) {
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         placeholder="Write a short, professional note about the user's conduct."
-        className="mt-3 min-h-[92px] w-full rounded-xl border border-[#eddac7] bg-[#fffaf3] p-3 text-sm font-bold outline-none focus:border-black"
+        className="mt-3 min-h-[92px] w-full rounded-xl border border-[#eddac7] bg-white p-3 text-sm font-bold outline-none focus:border-black"
       />
       <button type="button" onClick={submit} disabled={!description.trim()} className="mt-3 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-50">
         Submit review
@@ -341,6 +385,7 @@ export function ProviderEarnings() {
 }
 
 function ProviderPageShell({ title, subtitle, action, children }) {
+  const hasAction = action !== undefined;
   return (
     <AppShell type="provider">
       <div className="min-h-0 bg-[#fff7ed] text-black">
@@ -350,7 +395,7 @@ function ProviderPageShell({ title, subtitle, action, children }) {
             <h1 className="mt-2 text-3xl font-black">{title}</h1>
             <p className="mt-2 max-w-2xl text-sm font-semibold text-[#6b5d52]">{subtitle}</p>
           </div>
-          {action || <button className="inline-flex items-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-black text-[#fffaf3] shadow-lg shadow-black/10"><Save size={16} /> Save view</button>}
+          {hasAction ? action : null}
         </div>
         {children}
       </div>
@@ -383,14 +428,38 @@ function Kpi({ icon: Icon, label, value }) {
 }
 
 function Status({ value }) {
+  const normalized = String(value || "PENDING").toUpperCase();
   const tone =
-    value === "Completed"
+    normalized === "COMPLETED"
       ? "bg-[#e8f6ef] text-[#16815f]"
-      : value === "Accepted"
+      : normalized === "ACCEPTED" || normalized === "CONFIRMED" || normalized === "PAID"
         ? "bg-[#ffeedd] text-black"
         : "bg-[#fff4e6] text-[#b66b12]";
 
-  return <span className={`w-max rounded-full px-3 py-1 text-xs font-black ${tone}`}>{value}</span>;
+  return <span className={`w-max rounded-full px-3 py-1 text-xs font-black ${tone}`}>{normalized}</span>;
+}
+
+function BookingStat({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-[#eddac7] bg-[#fffaf3] p-4">
+      <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ffeedd] text-black">
+        <Icon size={19} />
+      </span>
+      <div>
+        <p className="text-xl font-black text-black">{value}</p>
+        <p className="text-xs font-bold text-slate-500">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-1 truncate font-extrabold text-black">{value}</p>
+    </div>
+  );
 }
 
 function updateRow(setter, index, key, value) {

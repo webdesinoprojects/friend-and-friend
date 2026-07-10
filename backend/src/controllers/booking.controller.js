@@ -325,6 +325,34 @@ exports.cancelBooking = async (req, res) => {
   }
 };
 
+exports.completeBooking = async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: req.params.id },
+      include: { user: true, provider: { include: { user: true } } },
+    });
+
+    if (!booking || (booking.userId !== req.user.id && booking.providerUserId !== req.user.id)) {
+      return res.status(404).json({ success: false, message: "Booking not found." });
+    }
+
+    if (booking.status === "CANCELLED") {
+      return res.status(400).json({ success: false, message: "Cancelled bookings cannot be completed." });
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: "COMPLETED" },
+      include: { user: true, provider: { include: { user: true } } },
+    });
+
+    return res.json({ success: true, booking: serializeBooking(updated) });
+  } catch (error) {
+    console.error("COMPLETE_BOOKING_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not complete booking." });
+  }
+};
+
 // Generate and send start OTP for a booking
 exports.generateStartOtp = async (req, res) => {
   try {

@@ -49,6 +49,7 @@ export default function ChatWorkspace({ role }) {
   const recorderStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const draftAudioRef = useRef(null);
+  const pendingMessagesRef = useRef(new Map());
   const shareStartTimeRef = useRef(null);
   const shareHasErrorRef = useRef(false);
 
@@ -72,7 +73,7 @@ export default function ChatWorkspace({ role }) {
   const load = async () => {
     try {
       const rows = await listChats();
-      const merged = mergeChatsForRole(rows, role);
+      const merged = mergePendingMessages(mergeChatsForRole(rows, role), pendingMessagesRef.current);
       setChats(merged);
       setOfflineMode(false);
       setActiveId((current) => current || merged[0]?.id || merged[0]?.bookingId || "");
@@ -88,7 +89,7 @@ export default function ChatWorkspace({ role }) {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, 1000);
+    const timer = window.setInterval(load, 2200);
     const unsubscribe = subscribeToUserData(() => setChats((rows) => mergeChatsForRole(rows, role)));
     return () => {
       window.clearInterval(timer);
@@ -312,6 +313,7 @@ export default function ChatWorkspace({ role }) {
       createdAt: new Date().toISOString(),
       ...payload,
     };
+    pendingMessagesRef.current.set(optimistic.id, { threadId: active.id, message: optimistic });
     setChats((rows) => patchChat(rows, active.id, (chat) => ({
       ...chat,
       messages: [...(chat.messages || []), optimistic],
@@ -319,6 +321,7 @@ export default function ChatWorkspace({ role }) {
 
     try {
       const saved = await sendChatMessage(active.id, payload);
+      pendingMessagesRef.current.delete(optimistic.id);
       setChats((rows) =>
         patchChat(rows, active.id, (chat) => ({
           ...chat,
@@ -327,6 +330,7 @@ export default function ChatWorkspace({ role }) {
       );
       window.setTimeout(load, 150);
     } catch {
+      pendingMessagesRef.current.delete(optimistic.id);
       await load();
     }
   };
@@ -827,7 +831,6 @@ export default function ChatWorkspace({ role }) {
                         previewConfig={{ showPreview: false }}
                         onEmojiClick={(emojiData) => {
                           setText((value) => `${value}${emojiData.emoji}`.trim());
-                          setEmojiOpen(false);
                         }}
                       />
                     </div>
@@ -972,7 +975,7 @@ function MessageBubble({
             <span className={`grid h-9 w-9 place-items-center rounded-full ${mine ? "bg-white/15" : "bg-[#fffaf3]"}`}><Mic size={17} /></span>
             <div><p className="font-black">Voice message</p><p className={`text-xs ${mine ? "text-white/55" : "text-black/45"}`}>{formatDuration(message.durationSeconds || 1)}</p></div>
           </div>
-          {message.mediaUrl ? <audio controls src={message.mediaUrl} className="mt-2 h-8 w-full max-w-[260px]" /> : null}
+          {message.mediaUrl ? <audio controls preload="metadata" src={message.mediaUrl} className="mt-3 h-10 w-full min-w-[220px] max-w-[320px]" /> : null}
         </div>
       ) : isLocation ? (
         <div className="min-w-0">
@@ -1005,6 +1008,17 @@ function Avatar({ name, image, large = false }) {
 
 function patchChat(rows, id, updater) {
   return rows.map((chat) => (chat.id === id ? updater(chat) : chat));
+}
+
+function mergePendingMessages(rows, pendingMap) {
+  if (!pendingMap.size) return rows;
+  return rows.map((chat) => {
+    const pending = Array.from(pendingMap.values())
+      .filter((item) => item.threadId === chat.id)
+      .map((item) => item.message)
+      .filter((message) => !(chat.messages || []).some((row) => row.id === message.id));
+    return pending.length ? { ...chat, messages: [...(chat.messages || []), ...pending] } : chat;
+  });
 }
 
 function mergeChatsForRole(serverRows = [], role) {

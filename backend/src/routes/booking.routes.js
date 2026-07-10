@@ -9,6 +9,7 @@ router.use(protect);
 router.get("/", bookingController.listMyBookings);
 router.post("/", bookingController.createBooking);
 router.post("/:id/cancel", bookingController.cancelBooking);
+router.post("/:id/complete", bookingController.completeBooking);
 
 // OTP routes for booking verification
 router.post("/:id/start-otp", bookingController.generateStartOtp);
