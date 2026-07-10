@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import api from "../../api/api";
 import Logo from "../common/Logo";
+import { hasAuthToken } from "../../utils/authSession";
 
 const navItems = [
   { label: "How it works", to: "/how-it-works" },
@@ -59,6 +60,12 @@ export default function PublicNavbar() {
 
   useEffect(() => {
     let mounted = true;
+    if (!hasAuthToken()) {
+      setUser(readStoredUser());
+      return () => {
+        mounted = false;
+      };
+    }
 
     api
       .get("/auth/me")

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
+import { hasAuthToken } from "../../utils/authSession";
 import { getReceivedReviews } from "../../utils/userFlowStorage";
 
 const fallbackAvatar =
@@ -29,6 +30,11 @@ export default function UserProfile() {
 
   useEffect(() => {
     let mounted = true;
+    if (!hasAuthToken()) {
+      return () => {
+        mounted = false;
+      };
+    }
     api
       .get("/auth/me")
       .then((response) => {

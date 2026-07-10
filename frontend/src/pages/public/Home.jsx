@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
+import { hasAuthToken } from "../../utils/authSession";
 import friendsHero from "../../assets/buddybook-friends-hero.webp";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
@@ -136,6 +137,11 @@ export default function Home() {
 
   useEffect(() => {
     let mounted = true;
+    if (!hasAuthToken()) {
+      return () => {
+        mounted = false;
+      };
+    }
 
     api
       .get("/auth/me")

@@ -9,6 +9,7 @@ import {
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
+import { hasAuthToken } from "../../utils/authSession";
 import ProviderCard from "../../components/users/ProviderCard";
 import {
   getWatchlist,
@@ -62,9 +63,9 @@ export default function UserSearch() {
 
     const refreshUser = async () => {
       try {
-        const userResp = await api.get("/auth/me");
+        const userResp = hasAuthToken() ? await api.get("/auth/me") : null;
         const nextUser =
-          userResp.data?.user || userResp.data?.data?.user || userResp.data?.data;
+          userResp?.data?.user || userResp?.data?.data?.user || userResp?.data?.data;
 
         if (mounted && (nextUser?.id || nextUser?._id)) {
           setUser(nextUser);

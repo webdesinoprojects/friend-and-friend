@@ -16,6 +16,7 @@ import api from "../../api/api";
 import { createBooking as createBackendBooking } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
 import { createPaidBooking } from "../../utils/userFlowStorage";
+import { hasAuthToken } from "../../utils/authSession";
 
 const paymentMethods = [
   ["UPI", Smartphone, "Google Pay, PhonePe or any UPI app"],
@@ -50,10 +51,12 @@ export default function UserBookingPayment() {
       setLoading(false);
     }
 
-    api.get("/auth/me", { timeout: 2500 }).then(({ data }) => {
-      const nextUser = data?.user || data?.data?.user || data?.data;
-      if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
-    }).catch(() => {});
+    if (hasAuthToken()) {
+      api.get("/auth/me", { timeout: 2500 }).then(({ data }) => {
+        const nextUser = data?.user || data?.data?.user || data?.data;
+        if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
+      }).catch(() => {});
+    }
 
     getProvider(providerId)
       .then((nextProvider) => {

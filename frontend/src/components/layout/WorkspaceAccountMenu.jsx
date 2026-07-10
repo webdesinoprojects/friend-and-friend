@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../../api/api";
+import { hasAuthToken } from "../../utils/authSession";
 
 const userWorkspace = [
   { label: "Dashboard", to: "/app/user/dashboard", icon: LayoutDashboard },
@@ -51,6 +52,12 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
 
   useEffect(() => {
     let mounted = true;
+    if (!hasAuthToken()) {
+      setUser(readStoredUser());
+      return () => {
+        mounted = false;
+      };
+    }
 
     api
       .get("/auth/me")

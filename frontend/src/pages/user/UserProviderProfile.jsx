@@ -22,6 +22,7 @@ import {
   getProvider,
   getProviderImages,
 } from "../../api/providers";
+import { hasAuthToken } from "../../utils/authSession";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
 import {
   getWatchlist,
@@ -45,13 +46,15 @@ export default function UserProviderProfile() {
   useEffect(() => {
     let mounted = true;
 
-    api
-      .get("/auth/me", { timeout: 2500 })
-      .then(({ data }) => {
-        const nextUser = data?.user || data?.data?.user || data?.data;
-        if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
-      })
-      .catch(() => {});
+    if (hasAuthToken()) {
+      api
+        .get("/auth/me", { timeout: 2500 })
+        .then(({ data }) => {
+          const nextUser = data?.user || data?.data?.user || data?.data;
+          if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
+        })
+        .catch(() => {});
+    }
 
     if (cachedProvider) {
       setProvider(cachedProvider);

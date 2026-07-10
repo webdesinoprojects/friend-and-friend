@@ -16,6 +16,7 @@ import ProviderCard from "../../components/users/ProviderCard";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
+import { hasAuthToken } from "../../utils/authSession";
 
 export default function UserDashboard() {
   const [search, setSearch] = useState("");
@@ -31,9 +32,9 @@ export default function UserDashboard() {
 
     const loadDashboard = async () => {
       try {
-        const response = await api.get("/auth/me");
+        const response = hasAuthToken() ? await api.get("/auth/me") : null;
         const nextUser =
-          response.data?.user || response.data?.data?.user || response.data?.data;
+          response?.data?.user || response?.data?.data?.user || response?.data?.data;
 
         if (mounted && (nextUser?.id || nextUser?._id)) {
           setUser(nextUser);
