@@ -31,6 +31,7 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { getMyProviderProfile } from "../../api/providers";
+import { listBookings } from "../../api/bookings";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
 import { getBookings, getReceivedReviews, subscribeToUserData } from "../../utils/userFlowStorage";
 
@@ -66,10 +67,14 @@ export default function ProviderDashboard() {
     let mounted = true;
 
     const loadProvider = () =>
-      getMyProviderProfile()
-        .then(({ provider: nextProvider, stats: nextStats }) => {
+      Promise.all([
+        getMyProviderProfile(),
+        listBookings().catch(() => getBookings()),
+      ])
+        .then(([{ provider: nextProvider, stats: nextStats }, nextBookings]) => {
         if (!mounted) return;
         setProvider(nextProvider);
+        setBookings(Array.isArray(nextBookings) ? nextBookings : []);
         if (nextProvider?.user) setUser(nextProvider.user);
         if (nextStats) setStats({ ...emptyStats, ...nextStats });
       })
@@ -152,9 +157,6 @@ export default function ProviderDashboard() {
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="absolute bottom-7 right-8 hidden text-[#e08c4c] lg:block">
-                <Users size={118} strokeWidth={1.15} />
               </div>
             </div>
 

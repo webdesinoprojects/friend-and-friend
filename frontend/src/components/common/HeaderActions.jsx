@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, CalendarCheck, Clock3, MessageCircle, Star, X } from "lucide-react";
+import { listBookings } from "../../api/bookings";
+import { listChats } from "../../api/chats";
 
 function readList(key) {
   try {
@@ -54,16 +56,57 @@ function buildNotifications() {
     .sort((a, b) => new Date(b.sortAt || 0) - new Date(a.sortAt || 0));
 }
 
+async function buildBackendNotifications() {
+  const [bookings, chats] = await Promise.all([
+    listBookings().catch(() => []),
+    listChats().catch(() => []),
+  ]);
+
+  const bookingRows = bookings.map((booking) => ({
+    id: `booking-${booking.id}`,
+    kind: "booking",
+    title: booking.providerName ? `Booking with ${booking.providerName}` : `Booking from ${booking.userName || "user"}`,
+    detail: `${booking.service || booking.activity || "Meetup"} on ${booking.date || "scheduled date"}${booking.time ? ` at ${booking.time}` : ""}`,
+    time: formatTime(booking.updatedAt || booking.createdAt || booking.date),
+    sortAt: booking.updatedAt || booking.createdAt || booking.date,
+  }));
+
+  const chatRows = chats
+    .filter((chat) => Number(chat.unreadCount || 0) > 0)
+    .map((chat) => ({
+      id: `chat-${chat.id}`,
+      kind: "chat",
+      title: `${chat.unreadCount} unread message${Number(chat.unreadCount) > 1 ? "s" : ""}`,
+      detail: `New message in ${chat.service || "chat"} with ${chat.userName || chat.providerName || "BuddyBOOK"}`,
+      time: formatTime(chat.updatedAt),
+      sortAt: chat.updatedAt,
+    }));
+
+  return [...chatRows, ...bookingRows, ...buildNotifications()]
+    .filter((item, index, rows) => rows.findIndex((row) => row.id === item.id) === index)
+    .sort((a, b) => new Date(b.sortAt || 0) - new Date(a.sortAt || 0));
+}
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState(() => buildNotifications());
 
   useEffect(() => {
-    const refresh = () => setNotifications(buildNotifications());
+    let mounted = true;
+    const refresh = () => {
+      setNotifications(buildNotifications());
+      buildBackendNotifications().then((rows) => {
+        if (mounted) setNotifications(rows);
+      });
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 5000);
     window.addEventListener("storage", refresh);
     window.addEventListener("buddybook:data-changed", refresh);
     return () => {
+      mounted = false;
+      window.clearInterval(timer);
       window.removeEventListener("storage", refresh);
       window.removeEventListener("buddybook:data-changed", refresh);
     };
@@ -106,7 +149,7 @@ export function NotificationBell() {
             <div className="mt-3 rounded-xl bg-[#fffaf3] p-3">
               <div className="flex gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-black">
-                  {latest.kind === "review" ? <Star size={17} /> : <CalendarCheck size={17} />}
+                  {latest.kind === "review" ? <Star size={17} /> : latest.kind === "chat" ? <MessageCircle size={17} /> : <CalendarCheck size={17} />}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-black">{latest.title}</p>

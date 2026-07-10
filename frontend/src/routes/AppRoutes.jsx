@@ -34,6 +34,7 @@ import ProviderCreate from "../pages/provider/ProviderCreate";
 import ProviderReviews from "../pages/provider/ProviderReviews";
 import ProviderSettings from "../pages/provider/ProviderSettings";
 import ProviderChats from "../pages/provider/ProviderChats";
+import ProviderUserProfile from "../pages/provider/ProviderUserProfile";
 import {
   ProviderBookings,
   ProviderEarnings,
@@ -125,6 +126,7 @@ export default function AppRoutes() {
         element={providerOnly(<ProviderBookings />)}
       />
       <Route path="/app/provider/chat" element={providerOnly(<ProviderChats />)} />
+      <Route path="/app/provider/users/:userId" element={providerOnly(<ProviderUserProfile />)} />
       <Route
         path="/app/provider/earnings"
         element={providerOnly(<ProviderEarnings />)}

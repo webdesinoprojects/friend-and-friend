@@ -53,6 +53,15 @@ function serializeMessage(message) {
   };
 }
 
+function canModifyMessage(message, userId) {
+  return !message.system && message.senderId === userId;
+}
+
+function isWithinEditWindow(message) {
+  const sentAt = new Date(message.createdAt).getTime();
+  return Number.isFinite(sentAt) && Date.now() - sentAt <= 2 * 60 * 1000;
+}
+
 exports.listMyChats = async (req, res) => {
   try {
     const threads = await prisma.chatThread.findMany({
@@ -178,11 +187,8 @@ exports.deleteMessage = async (req, res) => {
       return res.status(404).json({ success: false, message: "Message not found." });
     }
 
-    // Allow deletion if the user is the sender OR if they have access to the thread
-    // (both users and providers can delete any message in the chat)
-    // Note: System messages cannot be deleted
-    if (message.system) {
-      return res.status(403).json({ success: false, message: "System messages cannot be deleted." });
+    if (!canModifyMessage(message, req.user.id)) {
+      return res.status(403).json({ success: false, message: "You can delete only your own messages." });
     }
 
     await prisma.chatMessage.delete({ where: { id: message.id } });
@@ -190,5 +196,50 @@ exports.deleteMessage = async (req, res) => {
   } catch (error) {
     console.error("DELETE_MESSAGE_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not delete message." });
+  }
+};
+
+exports.editMessage = async (req, res) => {
+  try {
+    const cleanText = String(req.body.text || "").trim();
+    if (!cleanText) {
+      return res.status(400).json({ success: false, message: "Message cannot be empty." });
+    }
+
+    const message = await prisma.chatMessage.findUnique({
+      where: { id: req.params.messageId },
+      include: { thread: true },
+    });
+
+    if (!message || message.threadId !== req.params.threadId || !canAccessThread(message.thread, req.user.id)) {
+      return res.status(404).json({ success: false, message: "Message not found." });
+    }
+
+    if (!canModifyMessage(message, req.user.id)) {
+      return res.status(403).json({ success: false, message: "You can edit only your own messages." });
+    }
+
+    if (message.type !== "TEXT") {
+      return res.status(400).json({ success: false, message: "Only text messages can be edited." });
+    }
+
+    if (!isWithinEditWindow(message)) {
+      return res.status(400).json({ success: false, message: "Messages can be edited only within 2 minutes." });
+    }
+
+    const updated = await prisma.chatMessage.update({
+      where: { id: message.id },
+      data: { text: cleanText },
+    });
+
+    await prisma.chatThread.update({
+      where: { id: message.threadId },
+      data: { updatedAt: new Date() },
+    });
+
+    return res.json({ success: true, data: serializeMessage(updated) });
+  } catch (error) {
+    console.error("EDIT_MESSAGE_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not edit message." });
   }
 };

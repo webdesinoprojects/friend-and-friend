@@ -31,6 +31,7 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { getMyProviderProfile } from "../../api/providers";
+import { listBookings } from "../../api/bookings";
 import {
   addReview,
   getBookings,
@@ -165,7 +166,22 @@ export function ProviderBookings() {
   const { stats } = useProviderWorkspace();
   const [bookings, setBookings] = useState(() => getBookings());
 
-  useEffect(() => subscribeToUserData(() => setBookings(getBookings())), []);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = () => {
+      listBookings()
+        .then((rows) => mounted && setBookings(rows))
+        .catch(() => mounted && setBookings(getBookings()));
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 8000);
+    const unsubscribe = subscribeToUserData(refresh);
+    return () => {
+      mounted = false;
+      window.clearInterval(timer);
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <ProviderPageShell title="Bookings" subtitle="Review requests, accept safe plans, and monitor booking flow.">

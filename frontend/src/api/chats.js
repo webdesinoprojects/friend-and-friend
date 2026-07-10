@@ -21,3 +21,8 @@ export async function deleteChat(threadId) {
 export async function deleteChatMessage(threadId, messageId) {
   return api.delete(`/chats/${threadId}/messages/${messageId}`);
 }
+
+export async function editChatMessage(threadId, messageId, text) {
+  const { data } = await api.patch(`/chats/${threadId}/messages/${messageId}`, { text });
+  return data?.data || data?.message || data;
+}

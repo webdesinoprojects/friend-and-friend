@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import EmojiPicker from "emoji-picker-react";
 import {
   CheckCheck,
   Clipboard,
@@ -7,14 +8,16 @@ import {
   Mic,
   MoreVertical,
   Pause,
+  Pencil,
   Play,
   Search,
   Send,
   StopCircle,
   Trash2,
   User,
+  X,
 } from 'lucide-react';
-import { deleteChat, deleteChatMessage, listChats, markChatRead, sendChatMessage } from "../../api/chats";
+import { deleteChat, deleteChatMessage, editChatMessage, listChats, markChatRead, sendChatMessage } from "../../api/chats";
 import {
   addChatMessage,
   deleteLocalChat,
@@ -22,12 +25,6 @@ import {
   getChats,
   subscribeToUserData,
 } from "../../utils/userFlowStorage";
-
-const emojiCategories = {
-  Smileys: [":)", ":D", "<3", "OK"],
-  Plans: ["Coffee", "Movie", "Game", "Shop"],
-  Replies: ["Thanks", "Yes", "No", "Star"],
-};
 
 export default function ChatWorkspace({ role }) {
   const [chats, setChats] = useState([]);
@@ -45,6 +42,8 @@ export default function ChatWorkspace({ role }) {
   const [voiceDraft, setVoiceDraft] = useState(null);
   const [playingDraft, setPlayingDraft] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editingText, setEditingText] = useState("");
   const bottomRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recorderStreamRef = useRef(null);
@@ -89,7 +88,7 @@ export default function ChatWorkspace({ role }) {
 
   useEffect(() => {
     load();
-    const timer = window.setInterval(load, 3500);
+    const timer = window.setInterval(load, 1000);
     const unsubscribe = subscribeToUserData(() => setChats((rows) => mergeChatsForRole(rows, role)));
     return () => {
       window.clearInterval(timer);
@@ -326,6 +325,7 @@ export default function ChatWorkspace({ role }) {
           messages: (chat.messages || []).map((item) => (item.id === optimistic.id ? saved : item)),
         }))
       );
+      window.setTimeout(load, 150);
     } catch {
       await load();
     }
@@ -454,6 +454,65 @@ export default function ChatWorkspace({ role }) {
     } catch {
       await load();
     }
+  };
+
+  const startEditMessage = (message) => {
+    if (!canEditMessage(message)) return;
+    setEditingMessage(message);
+    setEditingText(message.text || "");
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessage(null);
+    setEditingText("");
+  };
+
+  const submitEditMessage = async () => {
+    const value = editingText.trim();
+    if (!active || !editingMessage || !value) return;
+    const message = editingMessage;
+    cancelEditMessage();
+
+    if (active.localOnly || !active.id || String(message.id).startsWith("MSG-")) {
+      setChats((rows) =>
+        patchChat(rows, active.id || active.bookingId, (chat) => ({
+          ...chat,
+          messages: (chat.messages || []).map((item) => (item.id === message.id ? { ...item, text: value } : item)),
+        }))
+      );
+      return;
+    }
+
+    setChats((rows) =>
+      patchChat(rows, active.id, (chat) => ({
+        ...chat,
+        messages: (chat.messages || []).map((item) => (item.id === message.id ? { ...item, text: value } : item)),
+      }))
+    );
+
+    try {
+      const saved = await editChatMessage(active.id, message.id, value);
+      setChats((rows) =>
+        patchChat(rows, active.id, (chat) => ({
+          ...chat,
+          messages: (chat.messages || []).map((item) => (item.id === message.id ? saved : item)),
+        }))
+      );
+      window.setTimeout(load, 150);
+    } catch {
+      await load();
+    }
+  };
+
+  const canEditMessage = (message) => {
+    if (!isCurrentUserMessage(message) || message.type !== "TEXT") return false;
+    const sentAt = new Date(message.createdAt).getTime();
+    return Number.isFinite(sentAt) && Date.now() - sentAt <= 2 * 60 * 1000;
+  };
+
+  const isCurrentUserMessage = (message) => {
+    const user = getStoredUser();
+    return Boolean(user?.id && message?.senderId === user.id);
   };
 
   const deleteActiveChat = async () => {
@@ -626,7 +685,7 @@ export default function ChatWorkspace({ role }) {
                     <MenuAction icon={Clipboard} label="Copy booking ID" onClick={copyBookingId} />
                     <MenuAction icon={User} label="View profile" onClick={() => {
                       if (peerId) {
-                        window.location.href = `/${role === 'PROVIDER' ? 'user' : 'provider'}/${peerId}`;
+                        window.location.href = role === "PROVIDER" ? `/app/provider/users/${peerId}` : `/app/user/provider/${peerId}`;
                       }
                     }} />
                     <MenuAction icon={Trash2} label="Delete chat" danger onClick={deleteActiveChat} />
@@ -724,7 +783,20 @@ export default function ChatWorkspace({ role }) {
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
               <div className="mx-auto grid max-w-4xl gap-3">
                 {(active.messages || []).map((message) => (
-                  <MessageBubble key={message.id} message={message} mine={message.senderRole === role} onDelete={() => deleteMessage(message)} />
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    mine={message.senderRole === role}
+                    canDelete={isCurrentUserMessage(message)}
+                    canEdit={canEditMessage(message)}
+                    editing={editingMessage?.id === message.id}
+                    editingText={editingText}
+                    onEditingTextChange={setEditingText}
+                    onEdit={() => startEditMessage(message)}
+                    onCancelEdit={cancelEditMessage}
+                    onSubmitEdit={submitEditMessage}
+                    onDelete={() => deleteMessage(message)}
+                  />
                 ))}
                 <div ref={bottomRef} />
               </div>
@@ -748,27 +820,16 @@ export default function ChatWorkspace({ role }) {
                   <button type="button" onClick={() => setEmojiOpen((value) => !value)} className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-black">😀</button>
                   <button type="button" onClick={() => setLocationOptionOpen(true)} className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-black ${locationPending ? 'opacity-50 cursor-not-allowed' : ''}`}><MapPin size={20} /></button>
                   {emojiOpen ? (
-                    <div className="absolute bottom-[60px] left-0 z-20 grid grid-cols-3 gap-2 rounded-2xl border border-[#eddac7] bg-white p-3 shadow-2xl sm:grid-cols-4">
-                      {Object.keys(emojiCategories).map((category) => (
-                        <div key={category} className="space-y-2">
-                          <p className="text-xs font-bold text-black/60">{category}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {emojiCategories[category].map((emoji) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                onClick={() => {
-                                  setText((value) => `${value} ${emoji}`.trim());
-                                  setEmojiOpen(false);
-                                }}
-                                className="rounded-xl px-3 py-2 text-sm font-black hover:bg-[#fffaf3]"
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="absolute bottom-[60px] left-0 z-20 overflow-hidden rounded-2xl border border-[#eddac7] bg-white shadow-2xl">
+                      <EmojiPicker
+                        height={360}
+                        width={320}
+                        previewConfig={{ showPreview: false }}
+                        onEmojiClick={(emojiData) => {
+                          setText((value) => `${value}${emojiData.emoji}`.trim());
+                          setEmojiOpen(false);
+                        }}
+                      />
                     </div>
                   ) : null}
                   {locationOptionOpen ? (
@@ -849,7 +910,19 @@ function VoicePreview({ draft, playing, audioRef, onPlayToggle, onEnded, onDelet
   );
 }
 
-function MessageBubble({ message, mine, onDelete }) {
+function MessageBubble({
+  message,
+  mine,
+  canDelete,
+  canEdit,
+  editing,
+  editingText,
+  onEditingTextChange,
+  onEdit,
+  onCancelEdit,
+  onSubmitEdit,
+  onDelete,
+}) {
   if (message.system) {
     return (
       <div className="mx-auto max-w-[86%] rounded-2xl bg-[#ffeedd] px-4 py-3 text-center text-sm font-bold text-black/65">
@@ -863,10 +936,37 @@ function MessageBubble({ message, mine, onDelete }) {
 
   return (
     <div className={`group relative max-w-[86%] rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm sm:max-w-[72%] ${mine ? "ml-auto rounded-br-md bg-black text-[#fffaf3]" : "mr-auto rounded-bl-md bg-white text-black"}`}>
-      <button type="button" onClick={onDelete} className={`absolute -top-2 ${mine ? "-left-2" : "-right-2"} grid h-7 w-7 place-items-center rounded-full bg-white text-rose-600 opacity-0 shadow transition group-hover:opacity-100`}>
-        <Trash2 size={13} />
-      </button>
-      {message.type === "VOICE" ? (
+      {(canEdit || canDelete) ? (
+        <div className={`absolute -top-2 ${mine ? "-left-16" : "-right-16"} flex gap-1 opacity-0 transition group-hover:opacity-100`}>
+          {canEdit ? (
+            <button type="button" onClick={onEdit} className="grid h-7 w-7 place-items-center rounded-full bg-white text-black shadow" aria-label="Edit message">
+              <Pencil size={13} />
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button type="button" onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-white text-rose-600 shadow" aria-label="Delete message">
+              <Trash2 size={13} />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {editing ? (
+        <div className="min-w-[240px]">
+          <textarea
+            value={editingText}
+            onChange={(event) => onEditingTextChange(event.target.value)}
+            className={`min-h-[76px] w-full resize-none rounded-xl border px-3 py-2 text-sm font-bold outline-none ${mine ? "border-white/25 bg-white/10 text-white" : "border-[#eddac7] bg-[#fffaf3] text-black"}`}
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button type="button" onClick={onCancelEdit} className={`grid h-8 w-8 place-items-center rounded-lg ${mine ? "bg-white/15 text-white" : "bg-[#fffaf3] text-black"}`} aria-label="Cancel edit">
+              <X size={14} />
+            </button>
+            <button type="button" onClick={onSubmitEdit} disabled={!editingText.trim()} className={`grid h-8 w-8 place-items-center rounded-lg disabled:opacity-40 ${mine ? "bg-white text-black" : "bg-black text-white"}`} aria-label="Save edit">
+              <CheckCheck size={14} />
+            </button>
+          </div>
+        </div>
+      ) : message.type === "VOICE" ? (
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <span className={`grid h-9 w-9 place-items-center rounded-full ${mine ? "bg-white/15" : "bg-[#fffaf3]"}`}><Mic size={17} /></span>
