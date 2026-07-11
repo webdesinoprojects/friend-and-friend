@@ -226,10 +226,6 @@ export default function ProviderDashboard() {
 
             <BookingRequestsTable bookings={filteredBookings} />
 
-            <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-              <PipelinePanel bookings={filteredBookings} />
-              <ActivityPanel profile={profile} bookings={filteredBookings} reviews={reviews} />
-            </div>
           </div>
 
           <aside className="grid h-max gap-5">

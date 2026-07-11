@@ -117,6 +117,7 @@ model ProviderProfile {
   availableCity    String?
   languages        String?
   availabilityDays String?
+  availabilitySlots Json?
   activities       String?
   bio              String?
   profileImages    Json?
@@ -235,4 +236,32 @@ model ReviewReport {
 
   @@index([status])
   @@index([reporterId])
+}
+
+model SiteContent {
+  id        String   @id
+  content   Json
+  updatedAt DateTime @updatedAt
+}
+
+model KycReviewHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  adminId   String
+  status    String
+  reason    String?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
 }

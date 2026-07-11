@@ -1,4 +1,6 @@
 const prisma = require("../config/prisma");
+const realtime = require("../utils/realtime");
+const crypto = require("crypto");
 
 function imageFromProvider(provider) {
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
@@ -64,9 +66,28 @@ function isWithinEditWindow(message) {
 
 exports.listMyChats = async (req, res) => {
   try {
+    const providerProfile = await prisma.providerProfile.findUnique({ where: { userId: req.user.id }, select: { id: true } });
+    const missingThreads = await prisma.booking.findMany({
+      where: {
+        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }, ...(providerProfile ? [{ providerId: providerProfile.id }] : [])],
+        chatThread: null,
+      },
+      select: { id: true, userId: true, providerId: true, providerUserId: true },
+    });
+    if (missingThreads.length) {
+      await prisma.chatThread.createMany({
+        data: missingThreads.map((booking) => ({
+          bookingId: booking.id,
+          userId: booking.userId,
+          providerId: booking.providerId,
+          providerUserId: booking.providerUserId,
+        })),
+        skipDuplicates: true,
+      });
+    }
     const threads = await prisma.chatThread.findMany({
       where: {
-        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }],
+        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }, ...(providerProfile ? [{ providerId: providerProfile.id }] : [])],
       },
       orderBy: { updatedAt: "desc" },
       include: {
@@ -129,6 +150,9 @@ exports.sendMessage = async (req, res) => {
       where: { id: thread.id },
       data: { updatedAt: new Date() },
     });
+    realtime.publish(req.user.id === thread.userId ? thread.providerUserId : thread.userId, "chat", { threadId: thread.id, message: serializeMessage(message) });
+    const recipient=req.user.id===thread.userId?thread.providerUserId:thread.userId;
+    try { await prisma.$executeRawUnsafe('INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())',crypto.randomUUID(),recipient,"CHAT",`New message from ${req.user.fullName}`,cleanText||"Shared an attachment",req.user.role==="PROVIDER"?"/app/user/chat":"/app/provider/chat"); } catch {}
 
     return res.status(201).json({ success: true, data: serializeMessage(message) });
   } catch (error) {
@@ -153,12 +177,28 @@ exports.markRead = async (req, res) => {
       },
       data: { readAt: new Date() },
     });
+    realtime.publish(req.user.id === thread.userId ? thread.providerUserId : thread.userId, "read", { threadId: thread.id, readBy: req.user.id });
 
     return res.json({ success: true });
   } catch (error) {
     console.error("MARK_CHAT_READ_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not mark messages read." });
   }
+};
+
+exports.streamEvents = async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream"); res.setHeader("Cache-Control", "no-cache, no-transform"); res.setHeader("Connection", "keep-alive"); res.flushHeaders?.();
+  res.write(`event: presence\ndata: ${JSON.stringify({ userId:req.user.id, online:true })}\n\n`);
+  const unsubscribe=realtime.subscribe(req.user.id,res); const heartbeat=setInterval(()=>res.write(": ping\n\n"),20000);
+  req.on("close",()=>{clearInterval(heartbeat);unsubscribe();});
+};
+
+exports.signalThread = async (req,res) => {
+  const thread=await prisma.chatThread.findUnique({where:{id:req.params.threadId}});
+  if(!canAccessThread(thread,req.user.id)) return res.status(404).json({success:false,message:"Chat not found."});
+  const peer=req.user.id===thread.userId?thread.providerUserId:thread.userId; const type=String(req.body?.type||"typing");
+  realtime.publish(peer,type,{threadId:thread.id,userId:req.user.id,active:req.body?.active!==false});
+  return res.json({success:true,peerOnline:realtime.online(peer)});
 };
 
 exports.deleteThread = async (req, res) => {

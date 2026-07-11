@@ -1,60 +1,32 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { SkeletonRows } from "../components/common/Feedback";
 
 /* PUBLIC */
-import Home from "../pages/public/Home";
-import HowItWorks from "../pages/public/HowItWorks";
-import Activities from "../pages/public/Activities";
-import Safety from "../pages/public/Safety";
-import Contact from "../pages/public/Contact";
-import EarnWithBuddyBook from "../pages/public/EarnWithBuddyBook";
-import TrustAndSafety from "../pages/public/TrustAndSafety";
-import PublicProviderProfile from "../pages/public/PublicProviderProfile";
-import NotFound from "../pages/public/NotFound";
+const Home = lazy(() => import("../pages/public/Home"));
+const HowItWorks = lazy(() => import("../pages/public/HowItWorks"));
+const Activities = lazy(() => import("../pages/public/Activities"));
+const Safety = lazy(() => import("../pages/public/Safety"));
+const Contact = lazy(() => import("../pages/public/Contact"));
+const EarnWithBuddyBook = lazy(() => import("../pages/public/EarnWithBuddyBook"));
+const TrustAndSafety = lazy(() => import("../pages/public/TrustAndSafety"));
+const PublicProviderProfile = lazy(() => import("../pages/public/PublicProviderProfile"));
+const NotFound = lazy(() => import("../pages/public/NotFound"));
 
 /* AUTH */
-import Login from "../pages/auth/Login";
-import Register from "../pages/auth/Register";
-import ChooseRole from "../pages/auth/ChooseRole";
+const Login=lazy(()=>import("../pages/auth/Login")); const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
 
 /* USER */
-import UserDashboard from "../pages/user/UserDashboard";
-import UserBookingPayment from "../pages/user/UserBookingPayment";
-import UserBookings from "../pages/user/UserBookings";
-import UserPayments from "../pages/user/UserPayments";
-import UserWatchlist from "../pages/user/UserWatchlist";
-import UserActiveMeet from "../pages/user/UserActiveMeet";
-import UserProfile from "../pages/user/UserProfile";
-import UserReviews from "../pages/user/UserReviews";
-import UserSettings from "../pages/user/UserSettings";
-import UserChats from "../pages/user/UserChats";
+const UserDashboard=lazy(()=>import("../pages/user/UserDashboard")); const UserBookingPayment=lazy(()=>import("../pages/user/UserBookingPayment")); const UserBookings=lazy(()=>import("../pages/user/UserBookings")); const UserPayments=lazy(()=>import("../pages/user/UserPayments")); const UserWatchlist=lazy(()=>import("../pages/user/UserWatchlist")); const UserActiveMeet=lazy(()=>import("../pages/user/UserActiveMeet")); const UserProfile=lazy(()=>import("../pages/user/UserProfile")); const UserReviews=lazy(()=>import("../pages/user/UserReviews")); const UserSettings=lazy(()=>import("../pages/user/UserSettings")); const UserChats=lazy(()=>import("../pages/user/UserChats"));
 
 /* PROVIDER */
-import ProviderDashboard from "../pages/provider/ProviderDashboard";
-import ProviderCreate from "../pages/provider/ProviderCreate";
-import ProviderReviews from "../pages/provider/ProviderReviews";
-import ProviderSettings from "../pages/provider/ProviderSettings";
-import ProviderChats from "../pages/provider/ProviderChats";
-import ProviderUserProfile from "../pages/provider/ProviderUserProfile";
-import {
-  ProviderBookings,
-  ProviderEarnings,
-} from "../pages/provider/ProviderWorkspacePages";
+const ProviderDashboard=lazy(()=>import("../pages/provider/ProviderDashboard")); const ProviderCreate=lazy(()=>import("../pages/provider/ProviderCreate")); const ProviderReviews=lazy(()=>import("../pages/provider/ProviderReviews")); const ProviderSettings=lazy(()=>import("../pages/provider/ProviderSettings")); const ProviderChats=lazy(()=>import("../pages/provider/ProviderChats")); const ProviderUserProfile=lazy(()=>import("../pages/provider/ProviderUserProfile"));
+const ProviderBookings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderBookings}))); const ProviderEarnings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderEarnings})));
 
 /* ADMIN */
-import AdminLogin from "../pages/admin/AdminLogin";
-import AdminDashboard from "../pages/admin/AdminDashboard";
-import AdminComingSoon from "../pages/admin/AdminComingSoon";
-import AdminOrders from "../pages/admin/AdminOrders";
-import AdminReturns from "../pages/admin/AdminReturns";
-import AdminCustomers from "../pages/admin/AdminCustomers";
-import AdminContent from "../pages/admin/AdminContent";
-import AdminUsers from "../pages/admin/AdminUsers";
-import AdminUserProfile from "../pages/admin/AdminUserProfile";
-import AdminProviders from "../pages/admin/AdminProviders";
-import AdminBookings from "../pages/admin/AdminBookings";
-import AdminPayments from "../pages/admin/AdminPayments";
-import AdminSettings from "../pages/admin/AdminSettings";
-import AdminReports from "../pages/admin/AdminReports";
+const AdminLogin=lazy(()=>import("../pages/admin/AdminLogin")); const AdminDashboard=lazy(()=>import("../pages/admin/AdminDashboard"));
+const AdminKyc = lazy(() => import("../pages/admin/AdminKyc"));
+const AdminOrders=lazy(()=>import("../pages/admin/AdminOrders")); const AdminReturns=lazy(()=>import("../pages/admin/AdminReturns")); const AdminContent=lazy(()=>import("../pages/admin/AdminContent")); const AdminUsers=lazy(()=>import("../pages/admin/AdminUsers")); const AdminUserProfile=lazy(()=>import("../pages/admin/AdminUserProfile")); const AdminProviders=lazy(()=>import("../pages/admin/AdminProviders")); const AdminBookings=lazy(()=>import("../pages/admin/AdminBookings")); const AdminPayments=lazy(()=>import("../pages/admin/AdminPayments")); const AdminSettings=lazy(()=>import("../pages/admin/AdminSettings")); const AdminReports=lazy(()=>import("../pages/admin/AdminReports"));
 import ProtectedAdminRoute from "../components/layout/ProtectedAdminRoute";
 import ProtectedRoleRoute from "../components/layout/ProtectedRoleRoute";
 
@@ -63,7 +35,7 @@ export default function AppRoutes() {
   const providerOnly = (element) => <ProtectedRoleRoute role="PROVIDER">{element}</ProtectedRoleRoute>;
 
   return (
-    <Routes>
+    <Suspense fallback={<div className="min-h-screen bg-[#fffaf3] p-8 pt-28"><SkeletonRows count={7} /></div>}><Routes>
       {/* PUBLIC ROUTES */}
       <Route path="/" element={<Home />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
@@ -178,7 +150,7 @@ export default function AppRoutes() {
       <Route
         path="/admin/kyc"
         element={
-          <ProtectedAdminRoute><AdminComingSoon title="KYC Approvals" /></ProtectedAdminRoute>
+          <ProtectedAdminRoute><AdminKyc /></ProtectedAdminRoute>
         }
       />
       <Route
@@ -202,6 +174,6 @@ export default function AppRoutes() {
 
       {/* FALLBACK */}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+    </Routes></Suspense>
   );
 }

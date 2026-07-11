@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const crypto = require("crypto");
 
 function toInt(value, fallback = 0) {
   const parsed = Number(value);
@@ -232,6 +233,9 @@ exports.createBooking = async (req, res) => {
 
       return { booking, thread, otp: process.env.NODE_ENV === "development" ? otp : undefined };
     });
+    try {
+      await prisma.$executeRawUnsafe('INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW()),($7,$8,$9,$10,$11,$12,NOW())', crypto.randomUUID(), req.user.id, "BOOKING", "Booking confirmed", `${service} with ${provider.user.fullName} is confirmed.`, "/app/user/bookings", crypto.randomUUID(), provider.userId, "BOOKING", "New booking received", `${req.user.fullName} booked ${service}.`, "/app/provider/bookings");
+    } catch {}
 
     return res.status(201).json({
       success: true,

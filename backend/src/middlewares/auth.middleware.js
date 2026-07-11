@@ -3,7 +3,7 @@ const prisma = require("../config/prisma");
 
 async function protect(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization || (req.query?.token ? `Bearer ${req.query.token}` : "");
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({

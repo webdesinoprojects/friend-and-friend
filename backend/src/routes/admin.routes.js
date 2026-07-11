@@ -33,6 +33,8 @@ router.post("/upload", adminOnly, handleUpload, adminController.uploadAdminImage
 router.get("/users", adminOnly, adminController.getAdminUsers);
 router.get("/users/:id", adminOnly, adminController.getAdminUserById);
 router.get("/providers", adminOnly, adminController.getAdminProviders);
+router.get("/kyc", adminOnly, adminController.getKycReviews);
+router.patch("/kyc/:userId", adminOnly, adminController.reviewKyc);
 router.post("/users/:id/block", adminOnly, adminController.blockUser);
 router.post("/users/:id/unblock", adminOnly, adminController.unblockUser);
 router.post("/providers/:id/block", adminOnly, adminController.blockUser);

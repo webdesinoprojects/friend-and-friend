@@ -17,7 +17,8 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { deleteChat, deleteChatMessage, editChatMessage, listChats, markChatRead, sendChatMessage } from "../../api/chats";
+import api from "../../api/api";
+import { deleteChat, deleteChatMessage, editChatMessage, listChats, markChatRead, sendChatMessage, signalChat } from "../../api/chats";
 import {
   addChatMessage,
   deleteLocalChat,
@@ -38,6 +39,9 @@ export default function ChatWorkspace({ role }) {
   const locationWatchIdRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [peerOnline, setPeerOnline] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingTimerRef = useRef(null);
   const [recordingStartedAt, setRecordingStartedAt] = useState(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState(null);
@@ -92,6 +96,12 @@ export default function ChatWorkspace({ role }) {
   };
 
   useEffect(() => {
+    const localRows = mergeChatsForRole([], role);
+    if (localRows.length) {
+      setChats(localRows);
+      setActiveId((current) => current || localRows[0]?.id || localRows[0]?.bookingId || "");
+      setLoading(false);
+    }
     try {
       const cached = JSON.parse(sessionStorage.getItem(`buddybook_chat_cache_${role}`) || "[]");
       if (Array.isArray(cached) && cached.length) {
@@ -102,13 +112,24 @@ export default function ChatWorkspace({ role }) {
     } catch {}
     load();
     const timer = window.setInterval(load, 10000); // Increased interval to 10 seconds to reduce frequent reloads
-    const unsubscribe = subscribeToUserData(() => setChats((rows) => mergeChatsForRole(rows, role)));
+    const unsubscribe = subscribeToUserData(() => {
+      setChats((rows) => mergePendingMessages(mergeChatsForRole(rows, role), pendingMessagesRef.current));
+    });
     return () => {
       window.clearInterval(timer);
       unsubscribe();
       stopRecorderTracks();
     };
-  }, [role, offlineMode]);
+  }, [role]);
+
+  useEffect(() => {
+    const token=localStorage.getItem("buddybook_token")||localStorage.getItem("token"); if(!token)return;
+    const base=String(api.defaults.baseURL||"/api").replace(/\/$/,""); const stream=new EventSource(`${base}/chats/events?token=${encodeURIComponent(token)}`);
+    stream.addEventListener("chat",()=>load()); stream.addEventListener("read",()=>load());
+    stream.addEventListener("typing",(event)=>{const data=JSON.parse(event.data||"{}");if(data.threadId===activeId){setPeerTyping(data.active!==false);clearTimeout(typingTimerRef.current);typingTimerRef.current=setTimeout(()=>setPeerTyping(false),1800);}});
+    stream.onopen=()=>setPeerOnline(true); stream.onerror=()=>setPeerOnline(false);
+    return()=>{stream.close();clearTimeout(typingTimerRef.current);};
+  },[role,activeId]);
 
   useEffect(() => {
     if (!recordingStartedAt) return undefined;
@@ -208,6 +229,7 @@ export default function ChatWorkspace({ role }) {
   const activeKey = active?.id || active?.bookingId || "";
   const peerName = active ? (role === "PROVIDER" ? active.userName : active.providerName) : "";
   const peerImage = active?.providerImage || "";
+  const changeText = (value) => { setText(value); if(active?.id&&!active.localOnly){ signalChat(active.id,"typing",Boolean(value.trim())).catch(()=>{}); clearTimeout(typingTimerRef.current); typingTimerRef.current=setTimeout(()=>signalChat(active.id,"typing",false).catch(()=>{}),1200); } };
   const peerId = role === "PROVIDER" ? active?.userId : active?.providerId;
 
   // We assume the booking object is available in active.booking
@@ -692,6 +714,7 @@ export default function ChatWorkspace({ role }) {
                 <Avatar name={peerName} image={role === "USER" ? peerImage : ""} large />
                 <div className="min-w-0">
                   <p className="truncate text-lg font-black text-black">{peerName}</p>
+                  <p className={`text-xs font-bold ${peerTyping ? "text-[#df843f]" : peerOnline ? "text-emerald-600" : "text-black/40"}`}>{peerTyping ? "typing…" : peerOnline ? "Online" : "Offline"}</p>
                   <p className="truncate text-xs font-bold text-[#6b5d52]">{active.bookingCode || active.bookingId} - {active.service}</p>
                 </div>
               </div>
@@ -863,17 +886,7 @@ export default function ChatWorkspace({ role }) {
                           }}
                           className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-black hover:bg-[#fffaf3]"
                         >
-                          <span>Current Location</span>
-                          <MapPin size={16} />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setLocationOptionOpen(false);
-                            await handleLiveLocation();
-                          }}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-black hover:bg-[#fffaf3]"
-                        >
-                          <span>Live Location (2 min)</span>
+                          <span>Share once via OpenStreetMap</span>
                           <MapPin size={16} />
                         </button>
                       </div>
@@ -887,7 +900,7 @@ export default function ChatWorkspace({ role }) {
                   ) : null}
                   <input
                     value={recordingStartedAt ? `Recording... ${formatDuration(recordingSeconds)}` : text}
-                    onChange={(event) => setText(event.target.value)}
+                    onChange={(event) => changeText(event.target.value)}
                     onKeyDown={(event) => { if (event.key === "Enter") sendText(); }}
                     disabled={Boolean(recordingStartedAt)}
                     placeholder="Type a message..."
@@ -1016,7 +1029,7 @@ function MessageBubble({
           </div>
         </div>
       ) : <p className="break-words">{message.text}</p>}
-      <p className={`mt-1 text-[10px] ${mine ? "text-white/55" : "text-black/35"}`}>{formatMessageTime(message.createdAt)}</p>
+      <p className={`mt-1 text-[10px] ${mine ? "text-white/55" : "text-black/35"}`}>{formatMessageTime(message.createdAt)}{mine ? ` · ${String(message.id||"").startsWith("pending-") ? "Sending" : message.readAt ? "Seen" : "Delivered"}` : ""}</p>
     </div>
   );
 }

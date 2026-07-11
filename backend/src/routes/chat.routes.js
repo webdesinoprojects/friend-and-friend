@@ -3,6 +3,8 @@ const protect = require("../middlewares/auth.middleware");
 const chatController = require("../controllers/chat.controller");
 
 const router = express.Router();
+router.get("/events", protect, chatController.streamEvents);
+router.post("/:threadId/signal", protect, chatController.signalThread);
 
 router.use(protect);
 

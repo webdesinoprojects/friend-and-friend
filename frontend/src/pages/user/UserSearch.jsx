@@ -143,7 +143,7 @@ export default function UserSearch() {
 
       return (
         (!keyword || text.includes(keyword)) &&
-        (filters.state === "All" || provider.state === filters.state) &&
+        (filters.state === "All" || sameText(provider.state, filters.state)) &&
         (filters.gender === "All" ||
           String(provider.gender || "").toLowerCase() ===
             filters.gender.toLowerCase()) &&
@@ -223,7 +223,7 @@ export default function UserSearch() {
                 <FilterSelect label="Gender" value={filters.gender} options={["All", "Male", "Female", "Non-binary"]} onChange={(value) => updateFilter("gender", value)} />
                 <FilterSelect label="Activity" value={filters.activity} options={activities} onChange={(value) => updateFilter("activity", value)} />
                 <FilterSelect label="Max ₹/hr" value={filters.maxPrice} options={["All", ...Array.from({ length: 11 }, (_, index) => String(500 + index * 100))]} onChange={(value) => updateFilter("maxPrice", value)} />
-                <FilterSelect label="Rating" value={filters.rating} options={["All", "1", "2", "3", "4", "5"]} onChange={(value) => updateFilter("rating", value)} />
+                <FilterSelect label="Highest rating (4 & above)" value={filters.rating} options={["All", "4"]} onChange={(value) => updateFilter("rating", value)} />
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -360,6 +360,10 @@ function readProviderCache() {
   } catch {
     return getCachedProviders();
   }
+}
+
+function sameText(left, right) {
+  return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
 }
 
 function writeProviderCache(rows) {

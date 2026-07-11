@@ -133,7 +133,7 @@ export default function Home() {
   );
   const [publicFilters, setPublicFilters] = useState(publicSearchDefaults);
   const [providerPage, setProviderPage] = useState(1);
-  const [siteContent, setSiteContent] = useState({});
+  const [siteContent, setSiteContent] = useState(() => readPreviewContent());
 
   useEffect(() => {
     let mounted = true;
@@ -160,11 +160,24 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const syncContent = (event) => setSiteContent(event.detail || readPreviewContent());
+    window.addEventListener("buddybook:content-updated", syncContent);
+    const syncStorage = (event) => { if (event.key === "buddybook_site_content_preview") syncContent({}); };
+    window.addEventListener("storage", syncStorage);
+    return () => { window.removeEventListener("buddybook:content-updated", syncContent); window.removeEventListener("storage", syncStorage); };
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     api
       .get("/admin/content")
       .then(({ data }) => {
-        if (mounted) setSiteContent(data?.data || {});
+        if (!mounted) return;
+        const remote = data?.data || {};
+        const preview = readPreviewContent();
+        const remoteTime = new Date(remote.updatedAt || 0).getTime();
+        const previewTime = Number(preview._previewUpdatedAt || new Date(preview.updatedAt || 0).getTime());
+        setSiteContent(previewTime > remoteTime ? preview : remote);
       })
       .catch(() => {});
     return () => {
@@ -321,8 +334,8 @@ heroStage.style.filter = "none";
 
       return (
         (!keyword || searchable.includes(keyword)) &&
-        (publicFilters.city === "All" || provider.city === publicFilters.city) &&
-        (publicFilters.state === "All" || provider.state === publicFilters.state) &&
+        (publicFilters.city === "All" || sameText(provider.city, publicFilters.city)) &&
+        (publicFilters.state === "All" || sameText(provider.state, publicFilters.state)) &&
         (publicFilters.gender === "All" ||
           String(provider.gender || "").toLowerCase() ===
             publicFilters.gender.toLowerCase()) &&
@@ -392,8 +405,8 @@ heroStage.style.filter = "none";
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href="#community"
-                  onClick={scrollToCommunity}
+                  href={isProviderAccount ? "/app/provider/dashboard" : "#community"}
+                  onClick={isProviderAccount ? undefined : scrollToCommunity}
                   className="group inline-flex items-center justify-center gap-2 rounded-md bg-[#171b30] px-7 py-4 text-sm font-black text-white shadow-[0_16px_35px_rgba(23,27,48,0.2)] transition hover:-translate-y-1 hover:bg-[#d77f40]"
                 >
                   Find trusted people
@@ -427,7 +440,7 @@ heroStage.style.filter = "none";
               </div>
             </div>
 
-            <HeroVisual user={user} />
+            <HeroVisual />
           </div>
           </div>
         </section>
@@ -452,13 +465,15 @@ heroStage.style.filter = "none";
 
         <section className="px-5 py-20 sm:px-8 lg:py-28">
           <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-3xl text-center [&>div]:mx-auto">
             <SectionHeading
               eyebrow="Safety by design"
               title={siteContent.trustTitle || "Trust tools for every part of the meetup"}
               text="BuddyBOOK gives members clear identity, communication, payment and location signals before a plan begins."
             />
-
-            <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            </div>
+            <div className="mt-12 grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="mt-12 grid gap-4 sm:grid-cols-2">
               {safetyItems.map(({ icon: Icon, title, text }, index) => (
                 <article
                   key={title}
@@ -472,6 +487,8 @@ heroStage.style.filter = "none";
                   <p className="mt-2 text-sm font-semibold leading-6 text-black/50">{text}</p>
                 </article>
               ))}
+            </div>
+            <SafetyOrbit profiles={publicProviders} />
             </div>
           </div>
         </section>
@@ -623,6 +640,11 @@ heroStage.style.filter = "none";
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes orbit-spin { to { transform: rotate(360deg); } }
+        @keyframes heart-pop { 0%,100% { opacity:0; transform:translateY(12px) scale(.5); } 45% { opacity:1; transform:translateY(-24px) scale(1); } }
+        .safety-orbiter { animation: orbit-spin 13s linear infinite; }
+        .safety-orbiter img { animation: orbit-spin 13s linear infinite reverse; }
+        .orbit-heart { animation: heart-pop 3.8s ease-in-out infinite; }
         @keyframes provider-scroll-rise {
           from { opacity: 0.28; transform: translateY(150px) scale(0.95); }
           to { opacity: 1; transform: translateY(0) scale(1); }
@@ -793,7 +815,7 @@ function TestimonialsSection({ testimonials }) {
     <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
       <SectionSparkles tone="green" />
 
-      <div className="relative z-10 mx-auto max-w-4xl">
+      <div className="relative z-10 mx-auto max-w-7xl">
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
             What buddies say
@@ -803,38 +825,19 @@ function TestimonialsSection({ testimonials }) {
           </h2>
         </div>
 
-        <div className="mt-12 relative">
+        <div className="relative mt-12 rounded-[2.5rem] border border-black/10 bg-white px-4 py-10 shadow-[0_35px_100px_rgba(94,56,88,.15)] sm:px-10">
           <div
             className={`transition-all duration-300 ${
               isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
             }`}
           >
             <div className="flex flex-col items-center text-center">
-              <div className="relative">
-                <img
-                  src={currentTestimonial.image}
-                  alt={currentTestimonial.name}
-                  className="h-24 w-24 rounded-full object-cover border-4 border-[#e08c4c] shadow-xl"
-                />
-                <div className="absolute -bottom-2 -right-2 grid h-10 w-10 place-items-center rounded-full bg-[#e08c4c] text-white shadow-lg">
-                  <Quote size={18} />
-                </div>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={18} className={i < currentTestimonial.rating ? "text-[#f59e0b]" : "text-black/20"} fill={i < currentTestimonial.rating ? "currentColor" : "none"} />)}
               </div>
-
-              <p className="mt-8 max-w-2xl text-lg font-semibold leading-8 text-black/70 sm:text-xl">
+              <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-black/70 sm:text-xl">
                 "{currentTestimonial.text}"
               </p>
-
-              <div className="mt-6 flex items-center gap-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={18}
-                    className={i < currentTestimonial.rating ? "text-[#f59e0b]" : "text-black/20"}
-                    fill={i < currentTestimonial.rating ? "currentColor" : "none"}
-                  />
-                ))}
-              </div>
 
               <p className="mt-3 text-base font-black text-black">
                 {currentTestimonial.name}
@@ -845,7 +848,22 @@ function TestimonialsSection({ testimonials }) {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-center gap-4">
+          <div className="relative mx-auto mt-8 h-[270px] max-w-5xl [perspective:1200px] sm:h-[360px]">
+            {testimonials.slice(0, 10).map((item, index) => {
+              const total = Math.min(testimonials.length, 10);
+              let offset = index - current;
+              if (offset > total / 2) offset -= total;
+              if (offset < -total / 2) offset += total;
+              const active = index === current;
+              return (
+                <button key={`${item.name}-${index}`} type="button" onClick={() => setCurrent(index)} className="absolute left-1/2 top-1/2 overflow-hidden rounded-[1.8rem] border-4 border-white shadow-2xl transition-all duration-500" style={{ width: active ? 180 : 125, height: active ? 250 : 190, zIndex: active ? 30 : 15 - Math.abs(offset), transform: `translate(-50%,-50%) translateX(${offset * 92}px) translateY(${Math.abs(offset) * 18}px) rotateY(${offset * -10}deg) scale(${active ? 1 : .88})`, background: ["#ef9dcc", "#6c9ce4", "#9b70d2", "#f1c64e", "#9dce9d"][index % 5] }} aria-label={`Show ${item.name}'s testimonial`}>
+                  <img src={item.image} alt={item.name} className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex items-center justify-center gap-4">
             <button
               type="button"
               onClick={prev}
@@ -855,8 +873,8 @@ function TestimonialsSection({ testimonials }) {
               <ChevronLeft size={20} />
             </button>
 
-            <div className="flex items-center gap-2">
-              {testimonials.map((_, index) => (
+            <div className="flex max-w-[280px] flex-wrap items-center justify-center gap-2">
+              {testimonials.slice(0, 10).map((_, index) => (
                 <button
                   key={index}
                   type="button"
@@ -884,15 +902,7 @@ function TestimonialsSection({ testimonials }) {
   );
 }
 
-function Quote() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M14 3.5c0-1.38-1.12-2.5-2.5-2.5S9 2.12 9 3.5v8c0 1.38 1.12 2.5 2.5 2.5h4l-2 4h-2c-2.21 0-4-1.79-4-4v-6c0-1.1.9-2 2-2h4V3.5zM22 3.5c0-1.38-1.12-2.5-2.5-2.5S17 2.12 17 3.5v8c0 1.38 1.12 2.5 2.5 2.5h4l-2 4h-2c-2.21 0-4-1.79-4-4v-6c0-1.1.9-2 2-2h4V3.5h2z" />
-    </svg>
-  );
-}
-
-function HeroVisual({ user }) {
+function HeroVisual() {
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
       <div className="absolute inset-x-[4%] bottom-24 top-4 overflow-hidden rounded-t-[45%] rounded-b-lg sm:inset-x-[10%] sm:bottom-16 lg:inset-x-[8%]">
@@ -953,11 +963,6 @@ function HeroVisual({ user }) {
         <Sparkles size={20} />
       </div>
 
-      {user?.city ? (
-        <div className="absolute left-[38%] top-[11%] z-20 rounded-md bg-white/90 px-3 py-2 text-[10px] font-black shadow-lg backdrop-blur">
-          Near {user.city}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1104,22 +1109,16 @@ function PublicServiceExploreSection({
       <div className="mx-auto max-w-[1520px]">
         <div className="flex flex-wrap items-center gap-3 border-b border-black/10 pb-5">
           <p className="mr-2 text-xl font-black text-black">Service Type</p>
-          <button className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black">
+          <span className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black">
             Meet up
-          </button>
-          {servicePills.map(([label, value], index) => (
-            <button
+          </span>
+          {servicePills.map(([label]) => (
+            <span
               key={label}
-              type="button"
-              onClick={() => onFilter("activity", value)}
-              className={`rounded-full px-5 py-3 text-sm font-black transition ${
-                filters.activity === value
-                  ? "bg-[#ffd23f] text-black"
-                  : "bg-[#f8f8f8] text-black hover:bg-[#eeeeee]"
-              }`}
+              className="cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black"
             >
               {label}
-            </button>
+            </span>
           ))}
           <Link
             to="/activities"
@@ -1315,6 +1314,23 @@ function FilterRadioGroup({ title, value, options, onChange }) {
           </label>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SafetyOrbit({ profiles: rows }) {
+  const orbitProfiles = (rows?.length ? rows : profiles).slice(0, 6);
+  return (
+    <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff7fb_52%,transparent_70%)]">
+      <div className="absolute inset-[9%] rounded-full border border-[#e8a8bb]/60" />
+      <div className="absolute inset-[25%] rounded-full border border-[#9dafe8]/55" />
+      <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e96d98] shadow-xl"><Heart size={34} fill="currentColor" /></div>
+      {orbitProfiles.map((profile, index) => (
+        <div key={profile.id || profile.name} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
+          <img src={profile.image} alt={profile.name} className="absolute left-1/2 top-0 h-14 w-14 -translate-x-1/2 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
+        </div>
+      ))}
+      {[12, 42, 74].map((left, index) => <Heart key={left} size={18 + index * 4} fill="currentColor" className="orbit-heart absolute bottom-[12%] text-[#f06d9b]" style={{ left: `${left}%`, animationDelay: `-${index * 1.2}s` }} />)}
     </div>
   );
 }
@@ -1528,6 +1544,14 @@ function uniqueValues(values) {
   );
 }
 
+function sameText(left, right) {
+  return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
+}
+
+function readPreviewContent() {
+  try { return JSON.parse(localStorage.getItem("buddybook_site_content_preview") || "{}"); } catch { return {}; }
+}
+
 function normalizeSiteTestimonials(value) {
   const rows = Array.isArray(value) ? value : [];
   const cleaned = rows
@@ -1536,12 +1560,13 @@ function normalizeSiteTestimonials(value) {
       city: String(item?.city || item?.role || "").trim(),
       text: String(item?.text || "").trim(),
       rating: Math.min(5, Math.max(1, Number(item?.rating || 5))),
+      published: item?.published !== false,
       image:
         item?.image ||
         testimonials[index % testimonials.length]?.image ||
         testimonials[0]?.image,
     }))
-    .filter((item) => item.name && item.text);
+    .filter((item) => item.name && item.text && item.published !== false);
 
   return cleaned.length ? cleaned : testimonials;
 }

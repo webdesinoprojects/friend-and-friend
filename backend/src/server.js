@@ -10,6 +10,7 @@ const contactRoutes = require("./routes/contact.routes");
 const bookingRoutes = require("./routes/booking.routes");
 const chatRoutes = require("./routes/chat.routes");
 const reportRoutes = require("./routes/report.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 const app = express();
 const allowedOrigins = [
@@ -51,6 +52,7 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

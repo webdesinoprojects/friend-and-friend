@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
+  BadgeCheck,
   CheckCircle2,
   Heart,
   Sparkles,
@@ -10,7 +11,7 @@ import {
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
-import { getProvider } from "../../api/providers";
+import { getProvider, getProviderImages } from "../../api/providers";
 import {
   getReviews,
   isInWatchlist,
@@ -26,10 +27,15 @@ export default function PublicProviderProfile() {
 
   useEffect(() => {
     let mounted = true;
-    getProvider(providerId)
-      .then((row) => {
+    Promise.allSettled([getProvider(providerId), getProviderImages(providerId)])
+      .then((results) => {
         if (!mounted) return;
-        setProvider(row);
+        const row = results[0].status === "fulfilled" ? results[0].value : null;
+        if (!row) throw results[0].reason || new Error("Provider not found");
+        const gallery = results[1].status === "fulfilled"
+          ? results[1].value.map((image) => image?.url || image?.thumbnailUrl || image).filter(Boolean)
+          : [];
+        setProvider({ ...row, images: gallery.length ? gallery : row.images });
         setSaved(isInWatchlist(row?.id));
       })
       .catch((error) => {
@@ -119,18 +125,7 @@ function PublicProviderDetail({ provider, saved, onSave }) {
     <div className="mt-6 overflow-hidden rounded-[2rem] bg-white shadow-[0_24px_90px_rgba(0,0,0,0.16)] lg:grid lg:grid-cols-[380px_minmax(0,1fr)]">
       <aside className="border-r border-black/10 bg-white p-4">
         <div className="relative h-[380px] overflow-hidden rounded-3xl bg-[#eeeeee]">
-          <ProviderImageCarousel images={images} alt={provider.name} />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5 text-white">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#34c759]">
-                <CheckCircle2 size={24} />
-              </span>
-              <div>
-                <p className="text-2xl font-black">Verified</p>
-                <p className="text-sm font-semibold text-white/75">Face-verified provider</p>
-              </div>
-            </div>
-          </div>
+          {hero ? <img src={hero} alt={provider.name} className="h-full w-full object-cover" decoding="async" /> : <ProviderImageCarousel images={images} alt={provider.name} />}
         </div>
 
         <div className="mt-3 flex items-center gap-2">
@@ -155,7 +150,7 @@ function PublicProviderDetail({ provider, saved, onSave }) {
 
         <div className="mt-6 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-black text-black">{provider.name}</h1>
+            <h1 className="text-3xl font-black text-black"><VerifiedName name={provider.name} /></h1>
             <p className="mt-1 text-lg font-medium text-black/65">Avg. response within <b>minutes</b></p>
           </div>
           <button
@@ -169,7 +164,6 @@ function PublicProviderDetail({ provider, saved, onSave }) {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <Pill>Verified provider</Pill>
           <Pill>{provider.city || "India"}</Pill>
           <Pill>Public meetups</Pill>
         </div>
@@ -309,6 +303,11 @@ function formatReviewDate(value) {
 
 function Pill({ children }) {
   return <span className="rounded-full border border-black/10 bg-[#fafafa] px-4 py-2 text-sm font-black">{children}</span>;
+}
+
+function VerifiedName({ name }) {
+  const value = String(name || "Verified provider");
+  return <span className="inline-flex items-center gap-3">{value}<BadgeCheck size={30} strokeWidth={2.5} fill="#1687ff" className="shrink-0 text-white drop-shadow-sm" aria-label="Verified provider" /></span>;
 }
 
 function InfoRow({ label, value }) {

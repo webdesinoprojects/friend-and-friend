@@ -1,0 +1,3 @@
+const prisma=require("../config/prisma");
+exports.list=async(req,res)=>{try{const rows=await prisma.$queryRawUnsafe('SELECT * FROM "Notification" WHERE "userId"=$1 ORDER BY "createdAt" DESC LIMIT 50',req.user.id);return res.json({success:true,data:rows});}catch(e){return res.json({success:true,data:[]});}};
+exports.markRead=async(req,res)=>{try{if(req.params.id==="all")await prisma.$executeRawUnsafe('UPDATE "Notification" SET "readAt"=NOW() WHERE "userId"=$1 AND "readAt" IS NULL',req.user.id);else await prisma.$executeRawUnsafe('UPDATE "Notification" SET "readAt"=NOW() WHERE "id"=$1 AND "userId"=$2',req.params.id,req.user.id);return res.json({success:true});}catch{return res.status(500).json({success:false,message:"Could not update notification."});}};

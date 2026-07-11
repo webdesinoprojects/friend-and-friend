@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlignLeft, Image, ListFilter, PanelLeft, Quote, Save, Type } from "lucide-react";
+import { AlignLeft, ArrowDown, ArrowUp, Eye, Image, ListFilter, PanelLeft, Quote, Save, Type } from "lucide-react";
 import api from "../../api/api";
 import AdminShell from "../../components/layout/AdminShell";
 import ImageField from "../../components/admin/ImageField";
@@ -64,7 +64,8 @@ const fieldGroups = {
   ],
 };
 
-const emptyTestimonial = { name: "", role: "", rating: "5", image: "", text: "" };
+const emptyTestimonial = { name: "", role: "", rating: "5", image: "", text: "", published: true };
+const CONTENT_CACHE_KEY = "buddybook_site_content_preview";
 
 export default function AdminContent() {
   const [content, setContent] = useState({});
@@ -81,7 +82,11 @@ export default function AdminContent() {
         if (mounted) setContent(data?.data || data?.content || data || {});
       })
       .catch(() => {
-        if (mounted) setMessage("Login as admin again to manage content.");
+        if (mounted) {
+          const cached = readCachedContent();
+          if (cached) setContent(cached);
+          setMessage(cached ? "Showing your locally saved website content." : "Login as admin again to manage content.");
+        }
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -106,7 +111,9 @@ export default function AdminContent() {
   const addTestimonial = () => {
     setContent((current) => ({
       ...current,
-      testimonials: [...normalizeTestimonials(current.testimonials), emptyTestimonial],
+      testimonials: normalizeTestimonials(current.testimonials).length >= 15
+        ? normalizeTestimonials(current.testimonials)
+        : [...normalizeTestimonials(current.testimonials), emptyTestimonial],
     }));
   };
 
@@ -116,18 +123,25 @@ export default function AdminContent() {
       testimonials: normalizeTestimonials(current.testimonials).filter((_, itemIndex) => itemIndex !== index),
     }));
   };
+  const moveTestimonial = (index, direction) => setContent((current) => { const rows=[...normalizeTestimonials(current.testimonials)]; const target=index+direction; if(target<0||target>=rows.length)return current; [rows[index],rows[target]]=[rows[target],rows[index]]; return {...current,testimonials:rows}; });
 
   const save = async (event) => {
     event.preventDefault();
     setSaving(true);
     setMessage("");
+    const nextContent = { ...content, updatedAt: new Date().toISOString(), _previewUpdatedAt: Date.now() };
+    setContent(nextContent);
+    localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(nextContent));
+    window.dispatchEvent(new CustomEvent("buddybook:content-updated", { detail: nextContent }));
 
     try {
-      const { data } = await api.put("/admin/content", content, getAdminHeaders());
-      setContent(data?.data || content);
+      const { data } = await api.put("/admin/content", nextContent, getAdminHeaders());
+      const savedContent = data?.data || nextContent;
+      setContent(savedContent);
+      localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(savedContent));
       setMessage("Website content saved successfully.");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Could not save content.");
+      setMessage(error.response?.data?.message || "Saved for local preview. Deploy the backend migration to sync it for everyone.");
     } finally {
       setSaving(false);
     }
@@ -163,6 +177,7 @@ export default function AdminContent() {
             onRemove={removeTestimonial}
             onChange={updateTestimonial}
             onMessage={setMessage}
+            onMove={moveTestimonial}
           />
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
@@ -195,16 +210,20 @@ export default function AdminContent() {
           </p>
         ) : null}
 
-        <button
+        <div className="mt-6 flex flex-wrap gap-3"><a href="/" target="_blank" rel="noreferrer" className="inline-flex h-12 items-center gap-2 rounded-2xl border border-black/10 bg-white px-6 text-sm font-black"><Eye size={17}/>Preview homepage</a><button
           type="submit"
           disabled={saving || loading}
           className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black px-8 text-sm font-black text-white transition hover:bg-black/90 disabled:opacity-50 md:w-auto"
         >
           <Save size={17} /> {saving ? "Saving..." : "Save website content"}
-        </button>
+        </button></div>
       </form>
     </AdminShell>
   );
+}
+
+function readCachedContent() {
+  try { return JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) || "null"); } catch { return null; }
 }
 
 function ContentField({ fieldKey, label, type, value, onChange }) {
@@ -233,21 +252,22 @@ function ContentField({ fieldKey, label, type, value, onChange }) {
   );
 }
 
-function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange, onMessage }) {
+function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange, onMessage, onMove }) {
+  const [dragIndex, setDragIndex] = useState(null);
   return (
     <div className="grid gap-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black">Testimonials</h2>
-          <p className="mt-1 text-sm font-semibold text-black/50">Add as many testimonials as needed.</p>
+          <p className="mt-1 text-sm font-semibold text-black/50">Add and organise up to 15 testimonials ({testimonials.length}/15).</p>
         </div>
-        <button type="button" onClick={onAdd} className="rounded-2xl bg-black px-5 py-3 text-sm font-black text-white">
-          Add testimonial
+        <button type="button" onClick={onAdd} disabled={testimonials.length >= 15} className="rounded-2xl bg-black px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45">
+          {testimonials.length >= 15 ? "Maximum reached" : "Add testimonial"}
         </button>
       </div>
 
       {testimonials.map((item, index) => (
-        <div key={index} className="grid gap-4 rounded-2xl border border-black/10 bg-[#f7f7f5] p-4 lg:grid-cols-2">
+        <div key={index} draggable onDragStart={()=>setDragIndex(index)} onDragOver={(event)=>event.preventDefault()} onDrop={()=>{if(dragIndex!==null&&dragIndex!==index)onMove(dragIndex,index-dragIndex);setDragIndex(null);}} className="grid cursor-grab gap-4 rounded-2xl border border-black/10 bg-[#f7f7f5] p-4 active:cursor-grabbing lg:grid-cols-2">
           <ContentField fieldKey="name" label="Name" type="text" value={item.name} onChange={(key, value) => onChange(index, key, value)} />
           <ContentField fieldKey="role" label="Role / city" type="text" value={item.role || item.city || ""} onChange={(key, value) => onChange(index, key, value)} />
           <ContentField fieldKey="rating" label="Rating" type="text" value={item.rating || "5"} onChange={(key, value) => onChange(index, key, value)} />
@@ -259,6 +279,8 @@ function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange, onMessage
             onMessage={onMessage}
           />
           <ContentField fieldKey="text" label="Testimonial text" type="textarea" value={item.text} onChange={(key, value) => onChange(index, key, value)} />
+          <label className="flex items-center gap-3 text-sm font-black"><input type="checkbox" checked={item.published !== false} onChange={(event)=>onChange(index,"published",event.target.checked)} className="h-5 w-5"/>Published on homepage</label>
+          <div className="flex gap-2"><button type="button" onClick={()=>onMove(index,-1)} disabled={!index} className="rounded-xl border bg-white p-3 disabled:opacity-30" aria-label="Move up"><ArrowUp size={17}/></button><button type="button" onClick={()=>onMove(index,1)} disabled={index===testimonials.length-1} className="rounded-xl border bg-white p-3 disabled:opacity-30" aria-label="Move down"><ArrowDown size={17}/></button></div>
           <button type="button" onClick={() => onRemove(index)} className="w-fit rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-black text-black">
             Remove
           </button>

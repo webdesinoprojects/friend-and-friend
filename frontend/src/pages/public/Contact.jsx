@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
-  Clock,
   Home,
   Mail,
   MapPin,
@@ -32,11 +31,6 @@ const contactInfo = [
     icon: Mail,
     title: "Email Address",
     text: CONTACT_EMAIL,
-  },
-  {
-    icon: Clock,
-    title: "Opening Hour",
-    text: "Mon - Sat 9:00 AM - 7:00 PM",
   },
   {
     icon: MapPin,

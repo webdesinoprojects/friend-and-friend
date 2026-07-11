@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   BadgeCheck,
+  Camera,
   CheckCircle2,
   Edit3,
   Heart,
@@ -25,6 +25,7 @@ export default function UserProfile() {
   const [user, setUser] = useState(() => readUser());
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [photoSaving, setPhotoSaving] = useState(false);
   const [form, setForm] = useState(() => userToForm(readUser()));
   const reviews = getReceivedReviews("USER");
 
@@ -66,6 +67,34 @@ export default function UserProfile() {
     : "New";
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const changePhoto = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 3 * 1024 * 1024) {
+      alert("Choose an image smaller than 3 MB.");
+      return;
+    }
+    const profileImage = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const optimistic = { ...user, profileImage };
+    setUser(optimistic);
+    localStorage.setItem("buddybook_auth_user", JSON.stringify(optimistic));
+    window.dispatchEvent(new CustomEvent("buddybook:profile-updated", { detail: optimistic }));
+    try {
+      setPhotoSaving(true);
+      const response = await api.patch("/auth/me", { profileImage });
+      const savedUser = response.data?.user || response.data?.data || optimistic;
+      setUser(savedUser);
+      localStorage.setItem("buddybook_auth_user", JSON.stringify(savedUser));
+      window.dispatchEvent(new CustomEvent("buddybook:profile-updated", { detail: savedUser }));
+    } catch (error) {
+      alert(error.response?.data?.message || "Profile photo could not be saved.");
+    } finally { setPhotoSaving(false); }
+  };
   const saveProfile = async () => {
     try {
       setSaving(true);
@@ -100,11 +129,14 @@ export default function UserProfile() {
       <section className="min-h-full rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-4 shadow-sm lg:p-6">
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="h-max rounded-2xl border border-[#eddac7] bg-white p-5">
-            <img
-              src={avatar}
-              alt={user?.fullName || "User profile"}
-              className="h-44 w-44 rounded-[1.5rem] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.12)]"
-            />
+            <div className="relative w-max">
+              <img src={avatar} alt={user?.fullName || "User profile"} className="h-44 w-44 rounded-[1.5rem] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.12)]" />
+              <label className="absolute -bottom-3 -right-3 grid h-12 w-12 cursor-pointer place-items-center rounded-full border-4 border-white bg-black text-white shadow-xl transition hover:scale-105" aria-label="Change profile photo">
+                <Camera size={19} />
+                <input type="file" accept="image/*" onChange={changePhoto} className="sr-only" disabled={photoSaving} />
+              </label>
+            </div>
+            <p className="mt-4 text-xs font-bold text-[#8b7563]">{photoSaving ? "Saving photo…" : "Tap the camera to change your photo everywhere instantly."}</p>
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-black text-black">{user?.fullName || "BuddyBOOK User"}</h2>
               <button type="button" onClick={() => setEditing((value) => !value)} className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-2 text-[10px] font-black text-[#fffaf3]">

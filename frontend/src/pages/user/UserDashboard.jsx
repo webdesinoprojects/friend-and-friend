@@ -192,8 +192,6 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <SafetyChecklist />
-
           <div className="hidden min-h-0 overflow-hidden rounded-xl border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Recent Bookings</h2>
@@ -261,6 +259,7 @@ export default function UserDashboard() {
         <aside className="grid min-h-0 gap-6">
           <WeeklyChart values={weeklyBookings} />
           <SuggestedProviders providers={providers.filter((provider) => Number(provider.rating || 0) >= 4).slice(0, 3)} />
+          <SafetyChecklist />
         </aside>
       </section>
     </UserAppLayout>
@@ -358,27 +357,37 @@ function OverviewCard({ totalSpent, rating, dailyLimit, todayBookings, verified 
 
 function WeeklyChart({ values }) {
   const max = Math.max(...values, 1);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const bestIndex = values.indexOf(max);
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return (
-    <div className="min-h-0 rounded-lg border border-[#dce5f2] bg-white p-5 shadow-sm">
+    <div className="relative min-h-0 overflow-hidden rounded-[1.8rem] border border-[#ead8c8] bg-white p-6 shadow-[0_18px_55px_rgba(84,53,31,.09)]">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#ffe4ca] blur-3xl" />
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-black">Weekly Bookings</h2>
-          <p className="text-xs font-bold text-[#8693a6]">Bookings completed by day</p>
+        <div className="relative">
+          <p className="text-[10px] font-black uppercase tracking-[.18em] text-[#df843f]">Your momentum</p>
+          <h2 className="mt-1 text-2xl font-black">Weekly Bookings</h2>
+          <p className="text-xs font-bold text-[#8693a6]">Completed plans across this week</p>
         </div>
-        <Link to="/app/user/bookings" className="text-xs font-black text-[#e08c4c]">
-          View all
+        <Link to="/app/user/bookings" className="relative rounded-full bg-black px-4 py-2 text-xs font-black text-white transition hover:-translate-y-0.5">
+          View all →
         </Link>
       </div>
-      <div className="mt-4 flex h-[calc(100%-50px)] min-h-[180px] items-end gap-3 border-b border-[#e8edf5] px-2 pb-5">
+      <div className="relative mt-5 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-[#fff4e9] p-3"><p className="text-2xl font-black">{total}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#9b7354]">Total completed</p></div>
+        <div className="rounded-2xl bg-[#f2f0ff] p-3"><p className="text-2xl font-black">{total ? days[bestIndex] : "—"}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#756d9d]">Most active day</p></div>
+      </div>
+      <div className="relative mt-5 flex h-36 items-end gap-3 rounded-2xl bg-[#fffaf5] px-3 pb-4 pt-4">
         {values.map((value, index) => (
-          <div key={index} className="flex h-full flex-1 flex-col justify-end text-center">
+          <div key={index} className="group flex h-full flex-1 flex-col justify-end text-center">
+            <span className="mb-1 text-[10px] font-black text-[#df843f] opacity-0 transition group-hover:opacity-100">{value}</span>
             <div
-              className="mx-auto w-full max-w-8 rounded-t-md bg-black transition hover:bg-[#e08c4c]"
-              style={{ height: value ? `${Math.max((value / max) * 82, 12)}%` : "3%" }}
+              className="mx-auto w-full max-w-9 rounded-t-xl bg-gradient-to-t from-black to-[#3d3540] shadow-[0_8px_18px_rgba(0,0,0,.16)] transition duration-300 group-hover:-translate-y-1 group-hover:from-[#dd7e38] group-hover:to-[#f4ad75]"
+              style={{ height: value ? `${Math.max((value / max) * 70, 14)}%` : "4%" }}
               title={`${value} bookings`}
             />
             <p className="mt-3 text-[10px] font-black text-[#8794a7]">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
+              {days[index]}
             </p>
           </div>
         ))}

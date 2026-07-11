@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const { uploadProviderImage } = require("../utils/imagekit");
 
@@ -115,19 +116,34 @@ const loginAdmin = (req, res) => {
   });
 };
 
-const getAdminContent = (req, res) => {
-  return res.json({ success: true, data: readContent() });
+const getAdminContent = async (req, res) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe('SELECT "content" FROM "SiteContent" WHERE "id" = $1 LIMIT 1', "website");
+    return res.json({ success: true, data: { ...defaultContent, ...(rows[0]?.content || readContent()) } });
+  } catch (error) {
+    console.error("GET_ADMIN_CONTENT_ERROR:", error);
+    return res.json({ success: true, data: readContent() });
+  }
 };
 
-const updateAdminContent = (req, res) => {
+const updateAdminContent = async (req, res) => {
   const next = {
     ...readContent(),
     ...req.body,
+    testimonials: Array.isArray(req.body?.testimonials) ? req.body.testimonials.slice(0, 15) : readContent().testimonials,
     updatedAt: new Date().toISOString(),
   };
-
-  writeContent(next);
-  return res.json({ success: true, data: next });
+  try {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "SiteContent" ("id", "content", "updatedAt") VALUES ($1, $2::jsonb, NOW()) ON CONFLICT ("id") DO UPDATE SET "content" = EXCLUDED."content", "updatedAt" = NOW()',
+      "website",
+      JSON.stringify(next)
+    );
+    return res.json({ success: true, data: next });
+  } catch (error) {
+    console.error("UPDATE_ADMIN_CONTENT_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Content database is not ready. Run the latest Prisma migration." });
+  }
 };
 
 const getAdminSummary = async (req, res) => {
@@ -576,6 +592,41 @@ const unblockUser = async (req, res) => {
   }
 };
 
+const getKycReviews = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: { in: ["USER", "PROVIDER"] } },
+      select: { id: true, fullName: true, email: true, phone: true, role: true, profileImage: true, referenceSelfie: true, aadhaarLast4: true, kycStatus: true, faceStatus: true, createdAt: true, kycVerification: true },
+      orderBy: { updatedAt: "desc" },
+    });
+    let history = [];
+    try { history = await prisma.$queryRawUnsafe('SELECT * FROM "KycReviewHistory" ORDER BY "createdAt" DESC'); } catch {}
+    return res.json({ success: true, data: users.map((user) => ({ ...user, history: history.filter((item) => item.userId === user.id) })) });
+  } catch (error) {
+    console.error("GET_KYC_REVIEWS_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not load KYC reviews." });
+  }
+};
+
+const reviewKyc = async (req, res) => {
+  try {
+    const status = String(req.body?.status || "").toUpperCase();
+    const reason = String(req.body?.reason || "").trim();
+    if (!["VERIFIED", "REJECTED", "PENDING"].includes(status)) return res.status(400).json({ success: false, message: "Invalid KYC decision." });
+    if (status === "REJECTED" && !reason) return res.status(400).json({ success: false, message: "A rejection reason is required." });
+    const user = await prisma.user.update({ where: { id: req.params.userId }, data: { kycStatus: status, faceStatus: status === "VERIFIED" ? "VERIFIED" : undefined } });
+    await prisma.kycVerification.upsert({ where: { userId: user.id }, create: { userId: user.id, status, rejectionReason: reason || null }, update: { status, rejectionReason: reason || null } });
+    try {
+      await prisma.$executeRawUnsafe('INSERT INTO "KycReviewHistory" ("id","userId","adminId","status","reason","createdAt") VALUES ($1,$2,$3,$4,$5,NOW())', crypto.randomUUID(), user.id, req.admin.id || "admin", status, reason || null);
+      await prisma.$executeRawUnsafe('INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())', crypto.randomUUID(), user.id, "KYC", `Verification ${status.toLowerCase()}`, status === "VERIFIED" ? "Your BuddyBOOK identity verification is approved." : `Your verification needs attention: ${reason}`, "/app/user/profile");
+    } catch {}
+    return res.json({ success: true, data: { id: user.id, kycStatus: status }, message: `KYC marked ${status.toLowerCase()}.` });
+  } catch (error) {
+    console.error("REVIEW_KYC_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not save the KYC decision." });
+  }
+};
+
 module.exports = {
   loginAdmin,
   getAdminContent,
@@ -591,4 +642,6 @@ module.exports = {
   uploadAdminImage,
   blockUser,
   unblockUser,
+  getKycReviews,
+  reviewKyc,
 };

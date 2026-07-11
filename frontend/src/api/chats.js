@@ -1,7 +1,7 @@
 import api from "./api";
 
 export async function listChats() {
-  const { data } = await api.get("/chats");
+  const { data } = await api.get("/chats", { timeout: 10000 });
   return Array.isArray(data?.data) ? data.data : [];
 }
 
@@ -13,6 +13,7 @@ export async function sendChatMessage(threadId, payload) {
 export async function markChatRead(threadId) {
   return api.post(`/chats/${threadId}/read`);
 }
+export async function signalChat(threadId, type, active = true) { return api.post(`/chats/${threadId}/signal`, { type, active }); }
 
 export async function deleteChat(threadId) {
   return api.delete(`/chats/${threadId}`);

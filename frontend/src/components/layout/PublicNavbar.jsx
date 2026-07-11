@@ -90,11 +90,13 @@ export default function PublicNavbar() {
 
     window.addEventListener("storage", syncUser);
     window.addEventListener("buddybook:auth-changed", syncUser);
+    window.addEventListener("buddybook:profile-updated", syncUser);
 
     return () => {
       mounted = false;
       window.removeEventListener("storage", syncUser);
       window.removeEventListener("buddybook:auth-changed", syncUser);
+      window.removeEventListener("buddybook:profile-updated", syncUser);
     };
   }, []);
 

@@ -2,8 +2,11 @@ import { HeartHandshake, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Logo() {
+  const goHome = () => {
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
+  };
   return (
-    <Link to="/" className="flex items-center gap-3">
+    <Link to="/" onClick={goHome} className="flex items-center gap-3" aria-label="BuddyBOOK home">
       <div className="grid h-9 w-9 place-items-center border-2 border-yellow-200 rounded-2xl bg-blue-950 text-yellow-100 shadow-md">
         <HeartHandshake size={20} strokeWidth={2.2} />
       </div>

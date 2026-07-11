@@ -31,6 +31,7 @@ const emptyForm = {
   availableCity: "",
   languages: "",
   availabilityDays: "",
+  availabilitySlots: [],
   activities: "",
   bio: "",
   profileImages: [],
@@ -140,14 +141,11 @@ export default function ProviderCreate() {
   };
 
   const addAvailabilitySlot = () => {
-    const label = `${slot.day}${slot.date ? ` ${slot.date}` : ""} ${slot.time}`;
-    const current = String(form.availabilityDays || "")
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-    if (current.includes(label)) return;
-    updateField("availabilityDays", [...current, label].join(", "));
+    if (!slot.date || !slot.time) return;
+    const next={...slot,id:`${slot.date}-${slot.time}`}; if((form.availabilitySlots||[]).some(item=>item.id===next.id))return;
+    setForm(current=>({...current,availabilitySlots:[...(current.availabilitySlots||[]),next],availabilityDays:[...(current.availabilitySlots||[]),next].map(item=>item.day).filter((day,index,rows)=>rows.indexOf(day)===index).join(", ")}));
   };
+  const removeAvailabilitySlot = (id) => setForm(current=>({...current,availabilitySlots:(current.availabilitySlots||[]).filter(item=>item.id!==id)}));
 
   const handleImages = async (event) => {
     const files = Array.from(event.target.files || []).slice(0, 4);
@@ -383,12 +381,7 @@ export default function ProviderCreate() {
                   Add
                 </button>
               </div>
-              <input
-                value={form.availabilityDays}
-                onChange={(event) => updateField("availabilityDays", event.target.value)}
-                placeholder="Mon 2026-06-27 17:00, Sat 2026-06-28 18:30"
-                className="mt-3 h-12 w-full rounded-xl border border-[#eddac7] bg-white px-4 text-sm font-bold outline-none focus:border-black"
-              />
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{(form.availabilitySlots||[]).map(item=><div key={item.id} className="flex items-center justify-between rounded-2xl border border-[#eddac7] bg-white p-4"><div><p className="text-xs font-black uppercase tracking-wider text-[#df843f]">{item.day} · Available</p><p className="mt-1 text-sm font-black">{new Date(`${item.date}T${item.time}`).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</p></div><button type="button" onClick={()=>removeAvailabilitySlot(item.id)} className="rounded-full bg-rose-50 px-3 py-2 text-xs font-black text-rose-600">Remove</button></div>)}</div>
             </div>
 
             <div className="mt-5 grid gap-4">
@@ -670,6 +663,7 @@ function providerToForm(provider) {
     availableCity: provider.availableCity || "",
     languages: provider.languages || "",
     availabilityDays: provider.availabilityDays || "",
+    availabilitySlots: Array.isArray(provider.availabilitySlots) ? provider.availabilitySlots : [],
     activities: provider.activities || provider.hobbies || "",
     bio: provider.bio || "",
     profileImages: Array.isArray(provider.profileImages)

@@ -66,9 +66,8 @@ export default function UserProviderProfile() {
       .then((row) => {
         if (!mounted || !row) return;
         setProvider(row);
-        setGalleryImages((current) =>
-          current.length ? current : getProviderImageUrls(row)
-        );
+        const nextImages = getProviderImageUrls(row);
+        if (nextImages.length) setGalleryImages(nextImages);
       })
       .catch(() => {
         if (mounted && !cachedProvider) setProvider(null);
