@@ -74,6 +74,7 @@ model KycVerification {
   userId              String             @unique
   aadhaarLast4        String?
   documentType        String?
+  documentNumber      String?
   documentNumberLast4 String?
   documentUrl         String?
   consentAccepted     Boolean            @default(false)
@@ -180,6 +181,8 @@ model ChatThread {
   providerUserId String
   closed    Boolean  @default(false)
   closedReason String?
+  hiddenForUser Boolean @default(false)
+  hiddenForProvider Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,6 +192,7 @@ model ChatThread {
 
   @@index([userId])
   @@index([providerUserId])
+  @@index([userId, providerId])
 }
 
 model ChatMessage {
@@ -199,9 +203,12 @@ model ChatMessage {
   type      String   @default("TEXT")
   text      String?
   mediaUrl  String?
+  mediaFileId String?
   durationSeconds Int?
   system    Boolean  @default(false)
   readAt    DateTime?
+  editedAt  DateTime?
+  deletedAt DateTime?
 
   createdAt DateTime @default(now())
 

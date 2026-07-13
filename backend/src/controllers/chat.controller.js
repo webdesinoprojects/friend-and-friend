@@ -1,6 +1,13 @@
+const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const realtime = require("../utils/realtime");
-const crypto = require("crypto");
+const { uploadChatVoice, deleteImageKitFile } = require("../utils/imagekit");
+
+const TEXT_LIMIT = 2000;
+const MESSAGE_PAGE_SIZE = 50;
+const MESSAGE_PAGE_MAX = 100;
+const VOICE_DURATION_MAX = 120;
+const SENDABLE_TYPES = new Set(["TEXT", "LOCATION", "LIVE_LOCATION"]);
 
 function imageFromProvider(provider) {
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
@@ -13,63 +20,188 @@ function canAccessThread(thread, userId) {
   return thread?.userId === userId || thread?.providerUserId === userId;
 }
 
-function serializeThread(thread, viewerId) {
-  const booking = thread.booking || {};
-  const provider = booking.provider || {};
-  const user = booking.user || {};
-  return {
-    id: thread.id,
-    bookingId: thread.bookingId,
-    bookingCode: booking.code,
-    userId: thread.userId,
-    userName: user.fullName || "BuddyBOOK user",
-    userImage: user.profileImage || "",
-    providerId: thread.providerId,
-    providerUserId: thread.providerUserId,
-    providerName: provider.user?.fullName || "BuddyBOOK provider",
-    providerImage: imageFromProvider(provider),
-    service: booking.service,
-    status: booking.status,
-    closed: thread.closed || booking.status === "CANCELLED",
-    closedReason: thread.closedReason || booking.cancelReason,
-    unreadCount: (thread.messages || []).filter((message) => !message.readAt && message.senderId !== viewerId && !message.system).length,
-    messages: (thread.messages || []).map(serializeMessage),
-    createdAt: thread.createdAt,
-    updatedAt: thread.updatedAt,
-  };
+function isProviderParticipant(thread, userId) {
+  return thread?.providerUserId === userId;
+}
+
+function conversationWhere(thread) {
+  return { userId: thread.userId, providerId: thread.providerId };
 }
 
 function serializeMessage(message) {
+  const deleted = Boolean(message.deletedAt);
   return {
     id: message.id,
     threadId: message.threadId,
     senderId: message.senderId,
     senderRole: message.senderRole,
-    type: message.type,
-    text: message.text,
-    mediaUrl: message.mediaUrl,
-    durationSeconds: message.durationSeconds,
+    type: deleted ? "DELETED" : message.type,
+    text: deleted ? "This message was deleted." : message.text,
+    mediaUrl: deleted ? null : message.mediaUrl,
+    durationSeconds: deleted ? null : message.durationSeconds,
     system: message.system,
     readAt: message.readAt,
+    editedAt: message.editedAt,
+    deletedAt: message.deletedAt,
     createdAt: message.createdAt,
   };
 }
 
-function canModifyMessage(message, userId) {
-  return !message.system && message.senderId === userId;
+function serializeBooking(booking) {
+  return {
+    id: booking.id,
+    code: booking.code,
+    service: booking.service,
+    date: booking.date,
+    time: booking.time,
+    durationHours: booking.durationHours,
+    status: booking.status,
+  };
 }
 
-function isWithinEditWindow(message) {
-  const sentAt = new Date(message.createdAt).getTime();
-  return Number.isFinite(sentAt) && Date.now() - sentAt <= 2 * 60 * 1000;
+function groupConversationThreads(threads, viewerId) {
+  const groups = new Map();
+  for (const thread of threads) {
+    const key = `${thread.userId}:${thread.providerId}`;
+    const rows = groups.get(key) || [];
+    rows.push(thread);
+    groups.set(key, rows);
+  }
+
+  return Array.from(groups.values())
+    .map((rows) => {
+      rows.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const active = rows.find(
+        (row) => !row.closed && String(row.booking?.status || "").toUpperCase() !== "CANCELLED"
+      ) || rows[0];
+      const booking = active.booking || {};
+      const provider = booking.provider || {};
+      const user = booking.user || {};
+      const allMessages = rows
+        .flatMap((row) => (row.messages || []).map(serializeMessage))
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const messages = allMessages.slice(-MESSAGE_PAGE_SIZE);
+      const totalMessages = rows.reduce((sum, row) => sum + Number(row._count?.messages || 0), 0);
+
+      return {
+        id: active.id,
+        threadIds: rows.map((row) => row.id),
+        bookingId: active.bookingId,
+        bookingCode: booking.code,
+        userId: active.userId,
+        userName: user.fullName || "BuddyBOOK user",
+        userImage: user.profileImage || "",
+        providerId: active.providerId,
+        providerUserId: active.providerUserId,
+        providerName: provider.user?.fullName || "BuddyBOOK provider",
+        providerImage: imageFromProvider(provider),
+        service: booking.service,
+        status: booking.status,
+        closed: active.closed || String(booking.status || "").toUpperCase() === "CANCELLED",
+        closedReason: active.closedReason || booking.cancelReason,
+        peerOnline: realtime.online(viewerId === active.userId ? active.providerUserId : active.userId),
+        unreadCount: allMessages.filter(
+          (message) => !message.readAt && message.senderId !== viewerId && !message.system && !message.deletedAt
+        ).length,
+        messages,
+        hasMore: totalMessages > messages.length,
+        bookingHistory: rows.map((row) => serializeBooking(row.booking)),
+        createdAt: rows[rows.length - 1]?.createdAt || active.createdAt,
+        updatedAt: rows[0]?.updatedAt || active.updatedAt,
+      };
+    })
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+async function getAccessibleThread(threadId, userId) {
+  const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
+  return canAccessThread(thread, userId) ? thread : null;
+}
+
+async function getConversationThreads(thread, select = { id: true }) {
+  return prisma.chatThread.findMany({
+    where: conversationWhere(thread),
+    select,
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+function peerIdFor(thread, userId) {
+  return userId === thread.userId ? thread.providerUserId : thread.userId;
+}
+
+function publishToParticipants(thread, event, data) {
+  realtime.publish(thread.userId, event, data);
+  realtime.publish(thread.providerUserId, event, data);
+}
+
+function parseCoordinates(body) {
+  const latitude = Number(body?.latitude);
+  const longitude = Number(body?.longitude);
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return null;
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return null;
+  return { latitude, longitude };
+}
+
+function locationContent(coordinates, live) {
+  const latitude = coordinates.latitude.toFixed(6);
+  const longitude = coordinates.longitude.toFixed(6);
+  return {
+    text: `${live ? "Live location" : "Shared location"}: ${latitude}, ${longitude}`,
+    mediaUrl: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`,
+  };
+}
+
+async function unhideConversation(thread) {
+  await prisma.chatThread.updateMany({
+    where: conversationWhere(thread),
+    data: { hiddenForUser: false, hiddenForProvider: false },
+  });
+}
+
+async function createMessage(thread, sender, payload) {
+  const senderRole = isProviderParticipant(thread, sender.id) ? "PROVIDER" : "USER";
+  const message = await prisma.chatMessage.create({
+    data: {
+      threadId: thread.id,
+      senderId: sender.id,
+      senderRole,
+      type: payload.type,
+      text: payload.text || null,
+      mediaUrl: payload.mediaUrl || null,
+      mediaFileId: payload.mediaFileId || null,
+      durationSeconds: payload.durationSeconds || null,
+    },
+  });
+  await Promise.all([
+    prisma.chatThread.update({ where: { id: thread.id }, data: { updatedAt: new Date() } }),
+    unhideConversation(thread),
+  ]);
+
+  const serialized = serializeMessage(message);
+  publishToParticipants(thread, "chat", { threadId: thread.id, message: serialized });
+
+  const recipient = peerIdFor(thread, sender.id);
+  try {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())',
+      crypto.randomUUID(),
+      recipient,
+      "CHAT",
+      `New message from ${sender.fullName}`,
+      payload.type === "TEXT" ? payload.text.slice(0, 160) : payload.type === "VOICE" ? "Voice message" : "Location shared",
+      senderRole === "PROVIDER" ? "/app/user/chat" : "/app/provider/chat"
+    );
+  } catch {}
+
+  return serialized;
 }
 
 exports.listMyChats = async (req, res) => {
   try {
-    const providerProfile = await prisma.providerProfile.findUnique({ where: { userId: req.user.id }, select: { id: true } });
     const missingThreads = await prisma.booking.findMany({
       where: {
-        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }, ...(providerProfile ? [{ providerId: providerProfile.id }] : [])],
+        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }],
         chatThread: null,
       },
       select: { id: true, userId: true, providerId: true, providerUserId: true },
@@ -85,101 +217,158 @@ exports.listMyChats = async (req, res) => {
         skipDuplicates: true,
       });
     }
+
     const threads = await prisma.chatThread.findMany({
       where: {
-        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }, ...(providerProfile ? [{ providerId: providerProfile.id }] : [])],
+        OR: [
+          { userId: req.user.id, hiddenForUser: false },
+          { providerUserId: req.user.id, hiddenForProvider: false },
+        ],
       },
       orderBy: { updatedAt: "desc" },
       include: {
-        booking: {
-          include: {
-            user: true,
-            provider: { include: { user: true } },
-          },
-        },
-        messages: { orderBy: { createdAt: "asc" } },
+        booking: { include: { user: true, provider: { include: { user: true } } } },
+        messages: { orderBy: { createdAt: "desc" }, take: MESSAGE_PAGE_SIZE },
+        _count: { select: { messages: true } },
       },
     });
-
-    return res.json({
-      success: true,
-      data: threads.map((thread) => serializeThread(thread, req.user.id)),
-    });
+    for (const thread of threads) thread.messages.reverse();
+    return res.json({ success: true, data: groupConversationThreads(threads, req.user.id) });
   } catch (error) {
     console.error("LIST_CHATS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load chats." });
   }
 };
 
+exports.listMessages = async (req, res) => {
+  try {
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    const threadRows = await getConversationThreads(thread);
+    const limit = Math.min(MESSAGE_PAGE_MAX, Math.max(1, Number(req.query.limit) || MESSAGE_PAGE_SIZE));
+    const before = req.query.before ? new Date(req.query.before) : null;
+    const rows = await prisma.chatMessage.findMany({
+      where: {
+        threadId: { in: threadRows.map((row) => row.id) },
+        ...(before && !Number.isNaN(before.getTime()) ? { createdAt: { lt: before } } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+    });
+    const hasMore = rows.length > limit;
+    const data = rows.slice(0, limit).reverse().map(serializeMessage);
+    return res.json({ success: true, data, hasMore });
+  } catch (error) {
+    console.error("LIST_CHAT_MESSAGES_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not load older messages." });
+  }
+};
+
 exports.sendMessage = async (req, res) => {
   try {
-    const { text, type = "TEXT", mediaUrl, durationSeconds } = req.body;
-    const cleanText = String(text || "").trim();
-    const cleanType = String(type || "TEXT").toUpperCase();
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    if (thread.closed) return res.status(400).json({ success: false, message: "This booking chat is closed." });
 
-    if (!cleanText && !mediaUrl) {
-      return res.status(400).json({ success: false, message: "Message cannot be empty." });
+    const type = String(req.body?.type || "TEXT").toUpperCase();
+    if (!SENDABLE_TYPES.has(type)) {
+      return res.status(400).json({ success: false, message: "Unsupported message type." });
     }
 
-    const thread = await prisma.chatThread.findUnique({
-      where: { id: req.params.threadId },
-    });
-
-    if (!canAccessThread(thread, req.user.id)) {
-      return res.status(404).json({ success: false, message: "Chat not found." });
+    let payload;
+    if (type === "TEXT") {
+      const text = String(req.body?.text || "").trim();
+      if (!text) return res.status(400).json({ success: false, message: "Message cannot be empty." });
+      if (text.length > TEXT_LIMIT) return res.status(400).json({ success: false, message: `Messages are limited to ${TEXT_LIMIT} characters.` });
+      payload = { type, text };
+    } else {
+      const coordinates = parseCoordinates(req.body);
+      if (!coordinates) return res.status(400).json({ success: false, message: "Valid location coordinates are required." });
+      payload = { type, ...locationContent(coordinates, type === "LIVE_LOCATION") };
     }
 
-    if (thread.closed) {
-      return res.status(400).json({ success: false, message: "This chat is closed." });
-    }
-
-    const senderRole = req.user.id === thread.providerUserId ? "PROVIDER" : "USER";
-    const message = await prisma.chatMessage.create({
-      data: {
-        threadId: thread.id,
-        senderId: req.user.id,
-        senderRole,
-        type: cleanType,
-        text: cleanText || (cleanType === "VOICE" ? "Voice message" : ""),
-        mediaUrl: mediaUrl || null,
-        durationSeconds: durationSeconds ? Number(durationSeconds) : null,
-      },
-    });
-
-    await prisma.chatThread.update({
-      where: { id: thread.id },
-      data: { updatedAt: new Date() },
-    });
-    realtime.publish(req.user.id === thread.userId ? thread.providerUserId : thread.userId, "chat", { threadId: thread.id, message: serializeMessage(message) });
-    const recipient=req.user.id===thread.userId?thread.providerUserId:thread.userId;
-    try { await prisma.$executeRawUnsafe('INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())',crypto.randomUUID(),recipient,"CHAT",`New message from ${req.user.fullName}`,cleanText||"Shared an attachment",req.user.role==="PROVIDER"?"/app/user/chat":"/app/provider/chat"); } catch {}
-
-    return res.status(201).json({ success: true, data: serializeMessage(message) });
+    const message = await createMessage(thread, req.user, payload);
+    return res.status(201).json({ success: true, data: message });
   } catch (error) {
     console.error("SEND_MESSAGE_ERROR:", error);
-    return res.status(500).json({ success: false, message: "Could not send message." });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Could not send message." });
+  }
+};
+
+exports.sendVoiceMessage = async (req, res) => {
+  let uploaded = null;
+  try {
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    if (thread.closed) return res.status(400).json({ success: false, message: "This booking chat is closed." });
+    const durationSeconds = Math.round(Number(req.body?.durationSeconds));
+    if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > VOICE_DURATION_MAX) {
+      return res.status(400).json({ success: false, message: `Voice recordings must be between 1 and ${VOICE_DURATION_MAX} seconds.` });
+    }
+    uploaded = await uploadChatVoice(req.file, thread.id);
+    const message = await createMessage(thread, req.user, {
+      type: "VOICE",
+      text: "Voice message",
+      mediaUrl: uploaded.url,
+      mediaFileId: uploaded.fileId,
+      durationSeconds,
+    });
+    return res.status(201).json({ success: true, data: message });
+  } catch (error) {
+    if (uploaded?.fileId) await deleteImageKitFile(uploaded.fileId).catch(() => {});
+    console.error("SEND_VOICE_MESSAGE_ERROR:", error);
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Could not send voice message." });
+  }
+};
+
+exports.updateLiveLocation = async (req, res) => {
+  try {
+    const message = await prisma.chatMessage.findUnique({ where: { id: req.params.messageId }, include: { thread: true } });
+    if (!message || message.threadId !== req.params.threadId || !canAccessThread(message.thread, req.user.id)) {
+      return res.status(404).json({ success: false, message: "Live location message not found." });
+    }
+    if (message.senderId !== req.user.id || message.type !== "LIVE_LOCATION" || message.deletedAt) {
+      return res.status(403).json({ success: false, message: "You cannot update this live location." });
+    }
+    const coordinates = parseCoordinates(req.body);
+    if (!coordinates) return res.status(400).json({ success: false, message: "Valid location coordinates are required." });
+    const content = locationContent(coordinates, true);
+    const updated = await prisma.chatMessage.update({
+      where: { id: message.id },
+      data: { ...content, editedAt: new Date() },
+    });
+    await prisma.chatThread.update({ where: { id: message.threadId }, data: { updatedAt: new Date() } });
+    const serialized = serializeMessage(updated);
+    publishToParticipants(message.thread, "location", { threadId: message.threadId, message: serialized });
+    return res.json({ success: true, data: serialized });
+  } catch (error) {
+    console.error("UPDATE_LIVE_LOCATION_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not update live location." });
   }
 };
 
 exports.markRead = async (req, res) => {
   try {
-    const thread = await prisma.chatThread.findUnique({ where: { id: req.params.threadId } });
-    if (!canAccessThread(thread, req.user.id)) {
-      return res.status(404).json({ success: false, message: "Chat not found." });
-    }
-
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    const rows = await getConversationThreads(thread);
+    const readAt = new Date();
     await prisma.chatMessage.updateMany({
       where: {
-        threadId: thread.id,
+        threadId: { in: rows.map((row) => row.id) },
         senderId: { not: req.user.id },
         system: false,
+        deletedAt: null,
         readAt: null,
       },
-      data: { readAt: new Date() },
+      data: { readAt },
     });
-    realtime.publish(req.user.id === thread.userId ? thread.providerUserId : thread.userId, "read", { threadId: thread.id, readBy: req.user.id });
-
-    return res.json({ success: true });
+    publishToParticipants(thread, "read", {
+      threadIds: rows.map((row) => row.id),
+      readBy: req.user.id,
+      readAt,
+    });
+    return res.json({ success: true, readAt });
   } catch (error) {
     console.error("MARK_CHAT_READ_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not mark messages read." });
@@ -187,52 +376,85 @@ exports.markRead = async (req, res) => {
 };
 
 exports.streamEvents = async (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream"); res.setHeader("Cache-Control", "no-cache, no-transform"); res.setHeader("Connection", "keep-alive"); res.flushHeaders?.();
-  res.write(`event: presence\ndata: ${JSON.stringify({ userId:req.user.id, online:true })}\n\n`);
-  const unsubscribe=realtime.subscribe(req.user.id,res); const heartbeat=setInterval(()=>res.write(": ping\n\n"),20000);
-  req.on("close",()=>{clearInterval(heartbeat);unsubscribe();});
-};
-
-exports.signalThread = async (req,res) => {
-  const thread=await prisma.chatThread.findUnique({where:{id:req.params.threadId}});
-  if(!canAccessThread(thread,req.user.id)) return res.status(404).json({success:false,message:"Chat not found."});
-  const peer=req.user.id===thread.userId?thread.providerUserId:thread.userId; const type=String(req.body?.type||"typing");
-  realtime.publish(peer,type,{threadId:thread.id,userId:req.user.id,active:req.body?.active!==false});
-  return res.json({success:true,peerOnline:realtime.online(peer)});
-};
-
-exports.deleteThread = async (req, res) => {
-  try {
-    const thread = await prisma.chatThread.findUnique({ where: { id: req.params.threadId } });
-    if (!canAccessThread(thread, req.user.id)) {
-      return res.status(404).json({ success: false, message: "Chat not found." });
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders?.();
+  res.write(`event: connected\ndata: ${JSON.stringify({ userId: req.user.id })}\n\n`);
+  const unsubscribe = realtime.subscribe(req.user.id, res);
+  const peerRows = await prisma.chatThread.findMany({
+    where: { OR: [{ userId: req.user.id }, { providerUserId: req.user.id }] },
+    select: { userId: true, providerUserId: true },
+  }).catch(() => []);
+  const peers = new Set(peerRows.map((row) => peerIdFor(row, req.user.id)));
+  peers.forEach((peerId) => realtime.publish(peerId, "presence", { userId: req.user.id, active: true }));
+  const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+    if (!realtime.online(req.user.id)) {
+      peers.forEach((peerId) => realtime.publish(peerId, "presence", { userId: req.user.id, active: false }));
     }
+  });
+};
 
-    await prisma.chatThread.delete({ where: { id: thread.id } });
+exports.signalThread = async (req, res) => {
+  try {
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    const type = String(req.body?.type || "typing");
+    if (!new Set(["typing", "presence"]).has(type)) {
+      return res.status(400).json({ success: false, message: "Unsupported chat signal." });
+    }
+    const peer = peerIdFor(thread, req.user.id);
+    realtime.publish(peer, type, { threadId: thread.id, userId: req.user.id, active: req.body?.active !== false });
+    return res.json({ success: true, peerOnline: realtime.online(peer) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Could not update chat presence." });
+  }
+};
+
+exports.hideConversation = async (req, res) => {
+  try {
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    await prisma.chatThread.updateMany({
+      where: conversationWhere(thread),
+      data: isProviderParticipant(thread, req.user.id) ? { hiddenForProvider: true } : { hiddenForUser: true },
+    });
     return res.json({ success: true });
   } catch (error) {
-    console.error("DELETE_CHAT_ERROR:", error);
-    return res.status(500).json({ success: false, message: "Could not delete chat." });
+    console.error("HIDE_CHAT_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not hide conversation." });
   }
 };
 
 exports.deleteMessage = async (req, res) => {
   try {
-    const message = await prisma.chatMessage.findUnique({
-      where: { id: req.params.messageId },
-      include: { thread: true },
-    });
-
-    if (!message || !canAccessThread(message.thread, req.user.id)) {
+    const message = await prisma.chatMessage.findUnique({ where: { id: req.params.messageId }, include: { thread: true } });
+    if (!message || message.threadId !== req.params.threadId || !canAccessThread(message.thread, req.user.id)) {
       return res.status(404).json({ success: false, message: "Message not found." });
     }
-
-    if (!canModifyMessage(message, req.user.id)) {
+    if (message.system || message.senderId !== req.user.id) {
       return res.status(403).json({ success: false, message: "You can delete only your own messages." });
     }
-
-    await prisma.chatMessage.delete({ where: { id: message.id } });
-    return res.json({ success: true });
+    if (message.deletedAt) return res.json({ success: true, data: serializeMessage(message) });
+    const mediaFileId = message.mediaFileId;
+    const updated = await prisma.chatMessage.update({
+      where: { id: message.id },
+      data: {
+        text: null,
+        mediaUrl: null,
+        mediaFileId: null,
+        durationSeconds: null,
+        deletedAt: new Date(),
+      },
+    });
+    if (mediaFileId) await deleteImageKitFile(mediaFileId).catch(() => {});
+    const serialized = serializeMessage(updated);
+    publishToParticipants(message.thread, "delete", { threadId: message.threadId, message: serialized });
+    return res.json({ success: true, data: serialized });
   } catch (error) {
     console.error("DELETE_MESSAGE_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not delete message." });
@@ -241,43 +463,27 @@ exports.deleteMessage = async (req, res) => {
 
 exports.editMessage = async (req, res) => {
   try {
-    const cleanText = String(req.body.text || "").trim();
-    if (!cleanText) {
-      return res.status(400).json({ success: false, message: "Message cannot be empty." });
-    }
-
-    const message = await prisma.chatMessage.findUnique({
-      where: { id: req.params.messageId },
-      include: { thread: true },
-    });
-
+    const text = String(req.body?.text || "").trim();
+    if (!text) return res.status(400).json({ success: false, message: "Message cannot be empty." });
+    if (text.length > TEXT_LIMIT) return res.status(400).json({ success: false, message: `Messages are limited to ${TEXT_LIMIT} characters.` });
+    const message = await prisma.chatMessage.findUnique({ where: { id: req.params.messageId }, include: { thread: true } });
     if (!message || message.threadId !== req.params.threadId || !canAccessThread(message.thread, req.user.id)) {
       return res.status(404).json({ success: false, message: "Message not found." });
     }
-
-    if (!canModifyMessage(message, req.user.id)) {
+    if (message.system || message.senderId !== req.user.id) {
       return res.status(403).json({ success: false, message: "You can edit only your own messages." });
     }
-
-    if (message.type !== "TEXT") {
-      return res.status(400).json({ success: false, message: "Only text messages can be edited." });
+    if (message.type !== "TEXT" || message.deletedAt) {
+      return res.status(400).json({ success: false, message: "Only active text messages can be edited." });
     }
-
-    if (!isWithinEditWindow(message)) {
+    if (Date.now() - new Date(message.createdAt).getTime() > 2 * 60 * 1000) {
       return res.status(400).json({ success: false, message: "Messages can be edited only within 2 minutes." });
     }
-
-    const updated = await prisma.chatMessage.update({
-      where: { id: message.id },
-      data: { text: cleanText },
-    });
-
-    await prisma.chatThread.update({
-      where: { id: message.threadId },
-      data: { updatedAt: new Date() },
-    });
-
-    return res.json({ success: true, data: serializeMessage(updated) });
+    const updated = await prisma.chatMessage.update({ where: { id: message.id }, data: { text, editedAt: new Date() } });
+    await prisma.chatThread.update({ where: { id: message.threadId }, data: { updatedAt: new Date() } });
+    const serialized = serializeMessage(updated);
+    publishToParticipants(message.thread, "edit", { threadId: message.threadId, message: serialized });
+    return res.json({ success: true, data: serialized });
   } catch (error) {
     console.error("EDIT_MESSAGE_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not edit message." });

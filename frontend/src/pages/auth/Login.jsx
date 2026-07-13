@@ -144,7 +144,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f4ef] text-black">
+    <div className="min-h-screen overflow-x-hidden bg-[#f7f4ef] text-black">
       <main className="grid min-h-screen lg:grid-cols-[0.92fr_1.08fr]">
         {/* LEFT IMAGE PANEL */}
         <aside className="relative hidden min-h-screen overflow-hidden bg-black lg:block">
@@ -153,12 +153,12 @@ export default function Login() {
           <div className="absolute inset-0 opacity-[0.14] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:9px_9px]" />
 
           <div className="relative z-10 flex min-h-screen flex-col justify-between p-10 text-white">
-            <div className="inline-block w-max rounded-xl bg-white p-3 shadow-sm">
+            <div className="inline-block w-max rounded-none bg-white p-3 shadow-sm">
               <Logo />
             </div>
 
             <div className="max-w-lg">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] backdrop-blur-xl">
+              <div className="inline-flex items-center gap-2 rounded-none border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] backdrop-blur-xl">
                 <ShieldCheck size={15} className="text-[#b5e48c]" />
                 Welcome back
               </div>
@@ -182,7 +182,7 @@ export default function Login() {
                 (item) => (
                   <div
                     key={item}
-                    className="rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur-xl"
+                    className="rounded-none border border-white/15 bg-white/10 p-4 backdrop-blur-xl"
                   >
                     <Sparkles size={18} className="text-[#b5e48c]" />
                     <p className="mt-3 text-sm font-black">{item}</p>
@@ -194,17 +194,17 @@ export default function Login() {
         </aside>
 
         {/* RIGHT LOGIN PANEL */}
-        <section className="flex min-h-screen items-center justify-center bg-[#fbfaf7] px-5 py-10">
+        <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-8 sm:px-6 sm:py-10">
           <div className="w-full max-w-[480px]">
             <div className="mb-8 lg:hidden">
-              <div className="inline-block rounded-xl bg-white p-3 shadow-sm">
+              <div className="inline-block rounded-none bg-white p-3 shadow-sm">
                 <Logo />
               </div>
             </div>
 
-            <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm md:p-8">
+            <div className="border border-black/10 bg-white p-6 shadow-sm md:p-8">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#f5f3ee] px-4 py-2 text-xs font-black text-black">
+                <div className="inline-flex items-center gap-2 rounded-none bg-[#f5f3ee] px-4 py-2 text-xs font-black text-black">
                   <ShieldCheck size={15} />
                   Secure account login
                 </div>
@@ -220,14 +220,16 @@ export default function Login() {
               </div>
 
               {/* GOOGLE LOGIN */}
-              <div className="mt-7 overflow-hidden rounded-lg border border-black/10 bg-white p-2">
-                <GoogleLogin
-                  onSuccess={handleGoogleLogin}
-                  onError={() => alert("Google login was cancelled or failed.")}
-                  text="continue_with"
-                  shape="rectangular"
-                  width="400"
-                />
+              <div className="mt-7 overflow-hidden rounded-none border border-black/10 bg-white p-2">
+                <div className="login-google [&>div]:w-full [&>div]:max-w-full">
+                  <GoogleLogin
+                    onSuccess={handleGoogleLogin}
+                    onError={() => alert("Google login was cancelled or failed.")}
+                    text="continue_with"
+                    shape="rectangular"
+                    width="400"
+                  />
+                </div>
               </div>
 
               {/* OR DIVIDER */}
@@ -239,11 +241,11 @@ export default function Login() {
                 <div className="h-px flex-1 bg-black/10" />
               </div>
 
-              <div className="mb-5 grid grid-cols-2 rounded-lg bg-[#f5f3ee] p-1">
+              <div className="mb-5 grid grid-cols-2 rounded-none bg-[#f5f3ee] p-1">
                 <button
                   type="button"
                   onClick={() => setLoginMode("password")}
-                  className={`rounded-md px-4 py-3 text-sm font-black transition ${
+                  className={`rounded-none px-4 py-3 text-sm font-black transition ${
                     loginMode === "password" ? "bg-black text-white shadow-sm" : "text-black/55"
                   }`}
                 >
@@ -252,7 +254,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setLoginMode("otp")}
-                  className={`rounded-md px-4 py-3 text-sm font-black transition ${
+                  className={`rounded-none px-4 py-3 text-sm font-black transition ${
                     loginMode === "otp" ? "bg-black text-white shadow-sm" : "text-black/55"
                   }`}
                 >
@@ -267,7 +269,7 @@ export default function Login() {
                     Email or mobile number
                   </label>
 
-                  <div className="flex items-center gap-3 rounded-lg border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
+                  <div className="flex items-center gap-3 rounded-none border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
                     <Mail size={18} className="text-black/35" />
                     <input
                       value={form.identifier}
@@ -288,7 +290,7 @@ export default function Login() {
                     Password
                   </label>
 
-                  <div className="flex items-center gap-3 rounded-lg border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
+                  <div className="flex items-center gap-3 rounded-none border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
                     <Lock size={18} className="text-black/35" />
                     <input
                       type={showPassword ? "text" : "password"}
@@ -319,7 +321,7 @@ export default function Login() {
                     <label className="mb-2 block text-sm font-bold text-black">
                       Registered mobile number
                     </label>
-                    <div className="flex items-center gap-3 rounded-lg border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
+                    <div className="flex items-center gap-3 rounded-none border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
                       <Phone size={18} className="text-black/35" />
                       <input
                         value={form.phone}
@@ -337,7 +339,7 @@ export default function Login() {
                       <label className="mb-2 block text-sm font-bold text-black">
                         OTP
                       </label>
-                      <div className="flex items-center gap-3 rounded-lg border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
+                      <div className="flex items-center gap-3 rounded-none border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black focus-within:bg-white">
                         <Lock size={18} className="text-black/35" />
                         <input
                           value={form.otp}
@@ -355,7 +357,7 @@ export default function Login() {
 
               <div className="mt-4 flex items-center justify-between gap-3 text-sm">
                 <label className="flex cursor-pointer items-center gap-2 font-semibold text-black/55">
-                  <input type="checkbox" className="rounded border-black/20" />
+                  <input type="checkbox" className="rounded-none border-black/20" />
                   Remember me
                 </label>
 
@@ -372,7 +374,7 @@ export default function Login() {
                 type="button"
                 onClick={loginMode === "password" ? handleLogin : otpSent ? handleOtpLogin : sendLoginOtp}
                 disabled={isLoading}
-                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-black px-7 py-4 text-sm font-black text-white shadow-sm transition hover:bg-[#3f37ff] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-none bg-black px-7 py-4 text-sm font-black text-white shadow-sm transition hover:bg-[#3f37ff] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
                   ? "Please wait..."
@@ -394,6 +396,8 @@ export default function Login() {
           </div>
         </section>
       </main>
+
+      <style>{`.login-google > div{width:100% !important;max-width:100% !important}`}</style>
     </div>
   );
 }

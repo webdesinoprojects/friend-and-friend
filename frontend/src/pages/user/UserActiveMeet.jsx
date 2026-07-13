@@ -1,12 +1,18 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { MapPin, Phone, ShieldCheck } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { completeBookingApi } from "../../api/bookings";
+import { getBookings, updateBooking } from "../../utils/userFlowStorage";
 
 export default function UserActiveMeet() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const bookings = JSON.parse(localStorage.getItem("buddybook_bookings") || "[]");
+  const bookings = getBookings();
   const booking = bookings.find((item) => item.id === bookingId);
+
+  // Get user role from localStorage
+  const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+  const isProvider = user && user.role === "PROVIDER";
 
   if (!booking) {
     return (
@@ -17,6 +23,29 @@ export default function UserActiveMeet() {
       </UserAppLayout>
     );
   }
+
+  const handleEndMeet = async () => {
+    if (!isProvider) {
+      alert("Only the provider can end the meet.");
+      return;
+    }
+    try {
+      await completeBookingApi(bookingId);
+      // Update local storage
+      updateBooking(bookingId, { status: "COMPLETED" });
+      navigate("/app/user/dashboard");
+    } catch (error) {
+      alert("Failed to end the meet: " + (error.message || "Unknown error"));
+    }
+  };
+
+  const handleCall = () => {
+    alert("Call feature is not implemented yet.");
+  };
+
+  const handleSOS = () => {
+    alert("SOS feature is not implemented yet.");
+  };
 
   return (
     <UserAppLayout title="Location Transfer / Active Meet">
@@ -69,19 +98,25 @@ export default function UserActiveMeet() {
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#eef4ff] px-5 py-3 text-sm font-black text-[#3f37ff] shadow-sm">
+            <button
+              onClick={handleCall}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#eef4ff] px-5 py-3 text-sm font-black text-[#3f37ff] shadow-sm"
+            >
               <Phone size={16} />
               Call
             </button>
 
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#eef4ff] px-5 py-3 text-sm font-black text-[#3f37ff] shadow-sm">
+            <button
+              onClick={handleSOS}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#eef4ff] px-5 py-3 text-sm font-black text-[#3f37ff] shadow-sm"
+            >
               <ShieldCheck size={16} />
               SOS
             </button>
           </div>
 
           <button
-            onClick={() => navigate("/app/user/dashboard")}
+            onClick={handleEndMeet}
             className="mt-5 w-full rounded-2xl bg-[#3f37ff] px-5 py-4 text-sm font-black text-white"
           >
             End Meet

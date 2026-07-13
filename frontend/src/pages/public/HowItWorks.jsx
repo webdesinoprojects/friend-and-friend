@@ -154,6 +154,17 @@ export default function HowItWorks() {
         stagger: 0.12,
         delay: 0.45,
       });
+
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        gsap.from(".how-step-mobile", {
+          y: 30,
+          opacity: 0,
+          duration: 0.6,
+          ease: "power3.out",
+          stagger: 0.12,
+          delay: 0.2,
+        });
+      }
     }, sectionRef);
 
     return () => context.revert();
@@ -242,12 +253,12 @@ export default function HowItWorks() {
                       key={step.title}
                       type="button"
                       onClick={() => setActiveIndex(active ? null : index)}
-                    className={`rounded-[1.5rem] p-3.5 text-left shadow-[0_16px_44px_rgba(71,52,36,0.09)] backdrop-blur-xl transition ${
-                        active ? "bg-white/80" : "bg-white/46"
+                    className={`how-step-mobile rounded-[1.5rem] p-3.5 text-left shadow-[0_16px_44px_rgba(71,52,36,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 active:scale-[0.99] ${
+                        active ? "bg-white/80 shadow-[0_22px_60px_rgba(255,116,95,0.16)]" : "bg-white/46"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${active ? "bg-[#ff745f] text-white" : "bg-[#fff0ec] text-[#ff745f]"}`}>
+                        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition-transform duration-300 ${active ? "scale-105 bg-[#ff745f] text-white" : "bg-[#fff0ec] text-[#ff745f]"}`}>
                           <Icon size={22} />
                         </span>
                         <div className="min-w-0">
@@ -264,7 +275,7 @@ export default function HowItWorks() {
                       </div>
 
                       {active ? (
-                        <div className="mt-3">
+                        <div className="mt-3 animate-[hiwFade_.25s_ease-out]">
                           <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
                             {step.flow.map((item, itemIndex) => (
                               <div
@@ -432,6 +443,13 @@ export default function HowItWorks() {
           </div>
         </section>
       </main>
+
+      <style>{`
+        @keyframes hiwFade {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

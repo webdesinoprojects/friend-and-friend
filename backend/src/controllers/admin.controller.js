@@ -148,8 +148,13 @@ const updateAdminContent = async (req, res) => {
 
 const getAdminSummary = async (req, res) => {
   try {
-    const [totalUsers, verifiedProviders, pendingKyc, activeBookings, revenueAgg] = await Promise.all([
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const thirtyDaysAgo = new Date(today); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    const eightWeeksAgo = new Date(today); eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 55);
+    const [totalUsers, userCount, providerCount, verifiedProviders, pendingKyc, activeBookings, revenueAgg, bookings, recentReports] = await Promise.all([
       prisma.user.count(),
+      prisma.user.count({ where: { role: "USER" } }),
+      prisma.user.count({ where: { role: "PROVIDER" } }),
       prisma.providerProfile.count({ where: { approved: true } }),
       prisma.user.count({
         where: {
@@ -157,7 +162,9 @@ const getAdminSummary = async (req, res) => {
         },
       }),
       prisma.booking.count({ where: { status: { in: ["CONFIRMED", "PAID", "ACCEPTED"] } } }),
-      prisma.booking.aggregate({ _sum: { amount: true }, where: { paymentStatus: "PAID" } }),
+      prisma.booking.aggregate({ _sum: { amount: true }, where: { paymentStatus: "PAID", createdAt: { gte: today } } }),
+      prisma.booking.findMany({ where: { createdAt: { gte: eightWeeksAgo } }, include: { user: true, provider: { include: { user: true } } }, orderBy: { createdAt: "desc" } }),
+      prisma.reviewReport.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
     ]);
 
     const latestProviders = await prisma.providerProfile.findMany({
@@ -172,6 +179,9 @@ const getAdminSummary = async (req, res) => {
       take: 4,
     });
 
+    const bookingGrowth = Array.from({ length: 30 }, (_, index) => { const date = new Date(thirtyDaysAgo); date.setDate(date.getDate() + index); const key = date.toISOString().slice(0, 10); return { label: date.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), value: bookings.filter((booking) => booking.createdAt.toISOString().slice(0, 10) === key).length }; });
+    const revenueByWeek = Array.from({ length: 8 }, (_, index) => { const start = new Date(eightWeeksAgo); start.setDate(start.getDate() + index * 7); const end = new Date(start); end.setDate(end.getDate() + 7); return { label: start.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), value: bookings.filter((booking) => booking.paymentStatus === "PAID" && booking.createdAt >= start && booking.createdAt < end).reduce((sum, booking) => sum + Number(booking.amount || 0), 0) }; });
+    const recentActivity = bookings.slice(0, 8).map((booking) => ({ id: booking.id, date: booking.createdAt, user: booking.user?.fullName, action: "Booking created", details: `${booking.service} with ${booking.provider?.user?.fullName || "provider"}`, status: booking.status }));
     return res.json({
       success: true,
       data: {
@@ -184,36 +194,24 @@ const getAdminSummary = async (req, res) => {
           liveTotalUsers: totalUsers,
           liveVerifiedProviders: verifiedProviders,
           livePendingKyc: pendingKyc,
+          userCount,
+          providerCount,
         },
+        charts: { bookingGrowth, revenueByWeek },
+        recentActivity,
+        safetyAlerts: recentReports.map((report) => ({ id: report.id, label: report.reason, status: report.status, createdAt: report.createdAt })),
         latestProviders,
         pendingApprovals: [
           { label: "KYC Verifications", count: pendingKyc },
           { label: "Provider Applications", count: await prisma.providerProfile.count({ where: { approved: false } }) },
-          { label: "Content Reports", count: 0 },
+          { label: "Content Reports", count: recentReports.filter((report) => report.status === "OPEN").length },
           { label: "Payout Requests", count: 0 },
         ],
       },
     });
-  } catch {
-    return res.json({
-      success: true,
-      data: {
-        metrics: {
-          totalUsers: 12458,
-          verifiedProviders: 1245,
-          activeBookings: 382,
-          revenueToday: 8742,
-          pendingKyc: 37,
-        },
-        latestProviders: [],
-        pendingApprovals: [
-          { label: "KYC Verifications", count: 37 },
-          { label: "Provider Applications", count: 12 },
-          { label: "Content Reports", count: 5 },
-          { label: "Payout Requests", count: 8 },
-        ],
-      },
-    });
+  } catch (error) {
+    console.error("ADMIN_SUMMARY_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not load admin dashboard data." });
   }
 };
 
@@ -518,8 +516,33 @@ function formatAdminBooking(booking) {
   };
 }
 
+const formatPayment = (booking) => ({
+  id: `payment-${booking.id}`,
+  userName: booking.user?.fullName || "System",
+  amount: Number(booking.amount || 0),
+  type: booking.paymentMethod || "PAYMENT",
+  status: (booking.paymentStatus || "COMPLETED").toLowerCase(),
+  createdAt: booking.createdAt,
+});
+
 const getAdminPayments = async (req, res) => {
-  return res.json({ success: true, data: [] });
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        paymentStatus: { not: null },
+        amount: { gt: 0 },
+      },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    const payments = bookings.map(formatPayment);
+    return res.json({ success: true, data: payments });
+  } catch (error) {
+    console.error("GET_ADMIN_PAYMENTS_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not load payment data." });
+  }
 };
 
 const uploadAdminImage = async (req, res) => {

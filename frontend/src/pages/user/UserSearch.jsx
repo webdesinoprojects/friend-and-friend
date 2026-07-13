@@ -264,7 +264,7 @@ export default function UserSearch() {
 
           <div className="custom-scrollbar h-[calc(100%-48px)] overflow-y-auto pr-1">
             {filteredProviders.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                 {filteredProviders.map((provider) => (
                   <ProviderCard
                     key={provider.id}

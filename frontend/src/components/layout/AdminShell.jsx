@@ -20,6 +20,7 @@ const navItems = [
   { label: "Overview", to: "/admin/dashboard", icon: Home },
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Providers", to: "/admin/providers", icon: UserCheck },
+  { label: "KYC Reviews", to: "/admin/kyc", icon: ShieldCheck },
   { label: "Bookings", to: "/admin/bookings", icon: CalendarCheck },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
   { label: "Reports", to: "/admin/reports", icon: Flag },

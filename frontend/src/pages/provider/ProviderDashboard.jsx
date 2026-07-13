@@ -132,7 +132,7 @@ export default function ProviderDashboard() {
       <div className="min-h-0 bg-[#fff7ed] text-[#14231f]">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="grid gap-5">
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-7 text-black shadow-sm">
+            <div className="relative overflow-hidden rounded-none border border-[#eddac7] bg-[#fffaf3] p-7 text-black shadow-sm">
               <div className="relative z-10 max-w-3xl">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
                   Provider command center
@@ -152,7 +152,7 @@ export default function ProviderDashboard() {
                     [CameraBadge, `${photoCount}/4 photos`],
                     [ShieldCheck, provider?.approved ? "Explore live" : "Setup needed"],
                   ].map(([Icon, label]) => (
-                    <div key={label} className="flex items-center gap-2 rounded-2xl bg-[#ffeedd] px-3 py-3 text-xs font-black transition hover:-translate-y-0.5 hover:bg-white">
+                    <div key={label} className="flex items-center gap-2 rounded-none bg-[#ffeedd] px-3 py-3 text-xs font-black transition hover:-translate-y-0.5 hover:bg-white">
                       <Icon size={16} />
                       {label}
                     </div>
@@ -166,30 +166,6 @@ export default function ProviderDashboard() {
               <Metric icon={Briefcase} label="Bookings" value={loading ? "..." : liveStats.totalBookings} tone="bg-[#fffaf3] text-black" />
               <Metric icon={Wallet} label="Revenue" value={`Rs ${revenue.toLocaleString("en-IN")}`} tone="bg-[#fff4e6] text-[#d67f3d]" />
               <Metric icon={Star} label="Rating" value={liveStats.rating ? `${liveStats.rating} (${liveStats.reviewCount})` : "New"} tone="bg-[#ffeedd] text-black" />
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <ActionCard
-                icon={Rocket}
-                title="Create profile"
-                text="Open the profile builder, add photos and publish your public listing."
-                to="/app/provider/create"
-                tone="from-black to-[#e08c4c]"
-              />
-              <ActionCard
-                icon={CalendarCheck}
-                title="Set availability"
-                text="Tune your weekly slots so users know when you are ready."
-                to="/app/provider/availability"
-                tone="from-[#16815f] to-[#e08c4c]"
-              />
-              <ActionCard
-                icon={MessageCircle}
-                title="Review requests"
-                text="Check pending bookings and accept the plans that fit."
-                to="/app/provider/bookings"
-                tone="from-[#d67f3d] to-[#f59e0b]"
-              />
             </div>
 
             <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -241,7 +217,7 @@ export default function ProviderDashboard() {
 
 function Metric({ icon: Icon, label, value, tone }) {
   return (
-    <div className="group rounded-[1.5rem] border border-[#eddac7] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
+    <div className="group rounded-none border border-[#eddac7] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
       <div className={`grid h-11 w-11 place-items-center rounded-2xl transition group-hover:scale-110 ${tone}`}>
         <Icon size={20} />
       </div>
@@ -255,7 +231,7 @@ function ActionCard({ icon: Icon, title, text, to, tone }) {
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]"
+      className="group relative overflow-hidden rounded-none border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]"
     >
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone}`} />
       <div className="flex items-start justify-between gap-4">
@@ -272,7 +248,7 @@ function ActionCard({ icon: Icon, title, text, to, tone }) {
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <div className="h-[260px] rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
+      <div className="h-[260px] rounded-none border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
       <div className="mb-4">
         <h2 className="text-lg font-black">{title}</h2>
         <p className="text-xs font-bold text-[#8b7563]">{subtitle}</p>
@@ -286,7 +262,7 @@ function BookingRequestsTable({ bookings = [] }) {
   const rows = bookings.slice(0, 5);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="overflow-hidden rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-black">Booking Requests</h2>
         <Link to="/app/provider/bookings" className="rounded-lg border border-black/10 px-3 py-2 text-xs font-black hover:bg-[#fff7ed]">
@@ -355,7 +331,7 @@ function PipelinePanel({ bookings = [] }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black">Booking flow</h2>
       <p className="mt-1 text-xs font-bold text-[#8b7563]">A quick conversion view for your profile.</p>
       <div className="mt-5 grid gap-4">
@@ -401,7 +377,7 @@ function ActivityPanel({ profile, bookings = [], reviews = [] }) {
     : [["No live activity", "Bookings, reviews and availability changes will appear here.", "Now", "bg-[#fffaf3] text-black"]];
 
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-black">Recent activity</h2>
@@ -411,7 +387,7 @@ function ActivityPanel({ profile, bookings = [], reviews = [] }) {
       </div>
       <div className="mt-5 grid gap-3">
         {displayRows.map(([title, text, time, tone], index) => (
-          <div key={`${title}-${index}`} className="group flex items-center justify-between gap-3 rounded-2xl bg-[#fffaf3] p-3 transition hover:-translate-y-0.5 hover:bg-[#ffeedd]">
+          <div key={`${title}-${index}`} className="group flex items-center justify-between gap-3 rounded-none bg-[#fffaf3] p-3 transition hover:-translate-y-0.5 hover:bg-[#ffeedd]">
             <div className="min-w-0">
               <p className="truncate text-sm font-black">{title}</p>
               <p className="truncate text-xs font-bold text-[#8b7563]">{text}</p>
@@ -427,7 +403,7 @@ function ActivityPanel({ profile, bookings = [], reviews = [] }) {
 function ProfileHealthCard({ profile, completion, photoCount, provider }) {
   const images = getProviderImageUrls(provider);
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-black">Profile health</h2>
         <span className={`rounded-full px-3 py-1 text-[10px] font-black ${provider?.approved ? "bg-[#e8f6ef] text-[#16815f]" : "bg-[#fff4e6] text-[#b66b12]"}`}>
@@ -435,7 +411,7 @@ function ProfileHealthCard({ profile, completion, photoCount, provider }) {
         </span>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-[#eddac7]">
+      <div className="mt-4 overflow-hidden rounded-none border border-[#eddac7]">
         <div className="h-56 bg-[#ffeedd]">
           <ProviderImageCarousel images={images} alt={profile.name} className="h-full w-full" />
         </div>
@@ -469,11 +445,11 @@ function NextStepsCard({ provider, completion }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black">Next best actions</h2>
       <div className="mt-4 grid gap-3">
         {steps.map(([done, label]) => (
-          <div key={label} className="flex items-center gap-3 rounded-2xl bg-[#fffaf3] p-3 transition hover:bg-[#ffeedd]">
+          <div key={label} className="flex items-center gap-3 rounded-none bg-[#fffaf3] p-3 transition hover:bg-[#ffeedd]">
             <span className={`grid h-9 w-9 place-items-center rounded-xl ${done ? "bg-[#e8f6ef] text-[#16815f]" : "bg-[#ffeedd] text-black"}`}>
               {done ? <CheckCircle2 size={17} /> : <Clock size={17} />}
             </span>
@@ -481,7 +457,7 @@ function NextStepsCard({ provider, completion }) {
           </div>
         ))}
       </div>
-      <Link to="/app/provider/create" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
+      <Link to="/app/provider/create" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-none bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
         Open builder <ArrowRight size={16} />
       </Link>
     </section>
@@ -503,11 +479,11 @@ function MiniScheduleCard({ provider, bookings = [] }) {
       : [["Today", "No backend schedule yet"]];
 
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black">Today</h2>
       <div className="mt-4 grid gap-3">
         {rows.map(([time, label]) => (
-          <div key={time} className="flex items-center gap-3 rounded-2xl bg-[#fffaf3] p-3">
+          <div key={time} className="flex items-center gap-3 rounded-none bg-[#fffaf3] p-3">
             <span className="rounded-xl bg-[#ffeedd] px-3 py-2 text-xs font-black text-black">{time}</span>
             <p className="text-sm font-black">{label}</p>
           </div>

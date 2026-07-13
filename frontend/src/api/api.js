@@ -9,7 +9,7 @@ api.interceptors.request.use((config) => {
   const isAdminRoute = String(config.url || "").startsWith("/admin");
   const token = isAdminRoute
     ? localStorage.getItem("buddybook_admin_token")
-    : localStorage.getItem("buddybook_token");
+    : localStorage.getItem("buddybook_token") || localStorage.getItem("token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -22,13 +22,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       const isAdmin = String(error?.config?.url || "").startsWith("/admin");
       if (isAdmin) {
         localStorage.removeItem("buddybook_admin_token");
         localStorage.removeItem("buddybook_admin_user");
       } else {
         localStorage.removeItem("buddybook_token");
+        localStorage.removeItem("token");
         localStorage.removeItem("buddybook_auth_user");
       }
     }

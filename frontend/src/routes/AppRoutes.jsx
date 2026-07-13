@@ -21,7 +21,7 @@ const UserDashboard=lazy(()=>import("../pages/user/UserDashboard")); const UserB
 
 /* PROVIDER */
 const ProviderDashboard=lazy(()=>import("../pages/provider/ProviderDashboard")); const ProviderCreate=lazy(()=>import("../pages/provider/ProviderCreate")); const ProviderReviews=lazy(()=>import("../pages/provider/ProviderReviews")); const ProviderSettings=lazy(()=>import("../pages/provider/ProviderSettings")); const ProviderChats=lazy(()=>import("../pages/provider/ProviderChats")); const ProviderUserProfile=lazy(()=>import("../pages/provider/ProviderUserProfile"));
-const ProviderBookings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderBookings}))); const ProviderEarnings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderEarnings})));
+const ProviderBookings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderBookings}))); const ProviderEarnings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderEarnings}))); const ProviderServices=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderServices}))); const ProviderAvailability=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderAvailability})));
 
 /* ADMIN */
 const AdminLogin=lazy(()=>import("../pages/admin/AdminLogin")); const AdminDashboard=lazy(()=>import("../pages/admin/AdminDashboard"));
@@ -89,11 +89,11 @@ export default function AppRoutes() {
       <Route path="/app/provider/create" element={providerOnly(<ProviderCreate />)} />
       <Route
         path="/app/provider/services"
-        element={providerOnly(<Navigate to="/app/provider/profile" replace />)}
+        element={providerOnly(<ProviderServices />)}
       />
       <Route
         path="/app/provider/availability"
-        element={providerOnly(<ProviderCreate />)}
+        element={providerOnly(<ProviderAvailability />)}
       />
       <Route
         path="/app/provider/bookings"

@@ -107,14 +107,14 @@ export default function Contact() {
       <PublicNavbar />
 
       <main className="relative overflow-hidden px-4 pb-16 pt-28 sm:px-5 lg:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,116,95,0.22),transparent_31%),radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.92),transparent_28%),radial-gradient(circle_at_88%_70%,rgba(255,205,175,0.32),transparent_30%)]" />
-        <div className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[40rem] -translate-x-1/2 rounded-full bg-[#f5cac3]/12 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(224,140,76,0.20),transparent_31%),radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.92),transparent_28%),radial-gradient(circle_at_88%_70%,rgba(244,173,117,0.30),transparent_30%)]" />
+        <div className="pointer-events-none absolute -top-28 left-1/2 h-72 w-[40rem] -translate-x-1/2 rounded-full bg-[#e08c4c]/12 blur-3xl" />
 
         {toast && (
           <div className="fixed right-5 top-24 z-[99999] max-w-sm rounded-[1.4rem] bg-white p-4 shadow-[0_24px_80px_rgba(80,45,30,0.22)]">
             <div className="flex items-start gap-3">
               <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
-                toast.type === "success" ? "bg-[#ecfdf3] text-[#16815f]" : "bg-[#fff0ec] text-[#ff5f3f]"
+                toast.type === "success" ? "bg-[#ecfdf3] text-[#16815f]" : "bg-[#ffeedd] text-[#e08c4c]"
               }`}>
                 {toast.type === "success" ? <CheckCircle2 size={22} /> : <X size={22} />}
               </div>
@@ -145,7 +145,7 @@ export default function Contact() {
 
             <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-[#17120f] sm:text-5xl lg:text-6xl">
               Contact{" "}
-              <span className="rounded-2xl bg-[#f5cac3] px-4 py-1 text-black">
+              <span className="rounded-2xl bg-[#e08c4c] px-4 py-1 text-black">
                 BuddyBOOK
               </span>
             </h1>
@@ -178,7 +178,7 @@ export default function Contact() {
                         : ""
                     }`}
                   >
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#fff0ec] text-[#f5cac3]">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#ffeedd] text-[#e08c4c]">
                       <Icon size={24} />
                     </div>
 
@@ -196,7 +196,7 @@ export default function Contact() {
 
               <div className="mt-8 rounded-[1.5rem] bg-[#17120f] p-5 text-white">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f5cac3]">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#e08c4c]">
                     <ShieldCheck size={21} />
                   </div>
                   <div>
@@ -211,13 +211,13 @@ export default function Contact() {
             </aside>
 
             <section className="relative overflow-hidden rounded-[1.8rem] bg-[#fffaf6] p-6 shadow-[0_24px_90px_rgba(80,45,30,0.10)] sm:p-8 lg:p-10">
-              <div className="pointer-events-none absolute right-0 top-0 h-56 w-56 translate-x-1/3 -translate-y-1/3 rounded-full bg-[#f5cac3]/12 blur-2xl" />
+              <div className="pointer-events-none absolute right-0 top-0 h-56 w-56 translate-x-1/3 -translate-y-1/3 rounded-full bg-[#e08c4c]/12 blur-2xl" />
               <div className="pointer-events-none absolute bottom-0 left-0 h-56 w-56 -translate-x-1/3 translate-y-1/3 rounded-full bg-white blur-2xl" />
 
               <form onSubmit={handleSubmit} className="relative z-10">
                 <div className="mb-8">
                   <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-[#17120f] shadow-sm">
-                    <Sparkles size={16} className="text-[#f5cac3]" />
+                    <Sparkles size={16} className="text-[#e08c4c]" />
                     Get In Touch
                   </div>
 
@@ -238,7 +238,7 @@ export default function Contact() {
                     onChange={handleChange}
                     required
                     placeholder="Name"
-                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff2ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#f5cac3] focus:bg-white"
+                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff6ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#e08c4c] focus:bg-white"
                   />
 
                   <input
@@ -248,7 +248,7 @@ export default function Contact() {
                     required
                     type="email"
                     placeholder="Email Address"
-                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff2ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#f5cac3] focus:bg-white"
+                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff6ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#e08c4c] focus:bg-white"
                   />
 
                   <input
@@ -257,14 +257,14 @@ export default function Contact() {
                     onChange={handleChange}
                     required
                     placeholder="Phone Number"
-                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff2ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#f5cac3] focus:bg-white"
+                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff6ea] px-4 text-sm font-bold text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#e08c4c] focus:bg-white"
                   />
 
                   <select
                     name="service"
                     value={form.service}
                     onChange={handleChange}
-                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff2ea] px-4 text-sm font-bold text-[#17120f] outline-none transition focus:border-[#f5cac3] focus:bg-white"
+                    className="h-14 w-full rounded-none border border-[#ead7c7] bg-[#fff6ea] px-4 text-sm font-bold text-[#17120f] outline-none transition focus:border-[#e08c4c] focus:bg-white"
                   >
                     {services.map((service) => (
                       <option key={service} value={service}>
@@ -281,22 +281,22 @@ export default function Contact() {
                   required
                   rows="6"
                   placeholder="Message"
-                  className="mt-4 w-full resize-none rounded-none border border-[#ead7c7] bg-[#fff2ea] px-4 py-4 text-sm font-bold leading-6 text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#f5cac3] focus:bg-white"
+                  className="mt-4 w-full resize-none rounded-none border border-[#ead7c7] bg-[#fff6ea] px-4 py-4 text-sm font-bold leading-6 text-[#17120f] outline-none transition placeholder:text-[#9a8575] focus:border-[#e08c4c] focus:bg-white"
                 />
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="mt-5 inline-flex items-center gap-3 rounded-full bg-[#ff5f3f] px-7 py-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(255,95,63,0.28)] transition hover:-translate-y-1 hover:bg-[#17120f]"
+                  className="mt-5 inline-flex items-center gap-3 rounded-full bg-[#e08c4c] px-7 py-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(224,140,76,0.28)] transition hover:-translate-y-1 hover:bg-[#17120f]"
                 >
                   {isSubmitting ? "Sending..." : "Send Message"}
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#ff5f3f]">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#e08c4c]">
                     <Send size={16} />
                   </span>
                 </button>
 
                 <div className="mt-6 flex items-start gap-3 rounded-[1.3rem] bg-white p-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fff0ec] text-[#f5cac3]">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ffeedd] text-[#e08c4c]">
                     <MessageCircle size={18} />
                   </div>
 
@@ -312,7 +312,7 @@ export default function Contact() {
           <div className="mt-8 rounded-[1.8rem] bg-[#17120f] p-5 text-white shadow-[0_24px_80px_rgba(23,18,15,0.20)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm font-black text-[#ffb4a5]">
+                <p className="text-sm font-black text-[#f4ad75]">
                   Need to create an account?
                 </p>
                 <h3 className="mt-1 text-2xl font-black">
@@ -322,7 +322,7 @@ export default function Contact() {
 
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-black text-[#17120f] transition hover:-translate-y-1 hover:bg-[#fff0ec]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-black text-[#17120f] transition hover:-translate-y-1 hover:bg-[#ffeedd]"
               >
                 Create account
                 <ArrowRight size={16} />

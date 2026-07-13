@@ -287,6 +287,7 @@ const register = async (req, res) => {
 
       aadhaarLast4,
       documentType,
+      documentNumber,
       documentNumberLast4,
       kycConsent,
       referenceSelfie,
@@ -394,10 +395,14 @@ const register = async (req, res) => {
       }
     }
 
-    if (!documentType || !documentNumberLast4 || !kycConsent) {
+    const fullDocumentNumber = documentNumber ? String(documentNumber).trim() : "";
+    const resolvedDocumentLast4 =
+      documentNumberLast4 || (fullDocumentNumber ? fullDocumentNumber.slice(-4) : null);
+
+    if (!documentType || (!fullDocumentNumber && !resolvedDocumentLast4) || !kycConsent) {
       return res.status(400).json({
         success: false,
-        message: "KYC document type, document last 4 and consent are required.",
+        message: "KYC document type, document number and consent are required.",
       });
     }
 
@@ -429,13 +434,14 @@ const register = async (req, res) => {
         faceStatus: "VERIFIED",
         referenceSelfie,
         profileImage: normalizeProfileImage(profileImage),
-        aadhaarLast4: aadhaarLast4 || documentNumberLast4 || null,
+        aadhaarLast4: aadhaarLast4 || resolvedDocumentLast4 || null,
 
         kycVerification: {
           create: {
-            aadhaarLast4: aadhaarLast4 || documentNumberLast4 || null,
+            aadhaarLast4: aadhaarLast4 || resolvedDocumentLast4 || null,
             documentType: documentType || null,
-            documentNumberLast4: documentNumberLast4 || null,
+            documentNumber: fullDocumentNumber || null,
+            documentNumberLast4: resolvedDocumentLast4 || null,
             consentAccepted: Boolean(kycConsent),
             status: "PENDING",
           },

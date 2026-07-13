@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
   Heart,
+  Home,
   LayoutDashboard,
   Menu,
   MessageCircle,
@@ -95,6 +96,14 @@ export default function UserAppLayout({
         <div className="flex min-h-0 min-w-0 flex-col">
           <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:bg-[#fff7ed] lg:hidden"
+                aria-label="Go to home page"
+              >
+                <Home size={18} />
+              </button>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}

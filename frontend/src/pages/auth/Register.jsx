@@ -48,8 +48,8 @@ const kycTypes = [
   {
     value: "AADHAAR",
     label: "Aadhaar Card",
-    placeholder: "Enter Aadhaar last 4 digits",
-    maxLength: 4,
+    placeholder: "Enter 12-digit Aadhaar number",
+    maxLength: 12,
   },
   {
     value: "PAN",
@@ -102,6 +102,7 @@ export default function Register() {
   const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
   const [aadhaarVerified, setAadhaarVerified] = useState(false);
   const [selfie, setSelfie] = useState(null);
+  const [cameraStarted, setCameraStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -354,6 +355,25 @@ export default function Register() {
     setSelfie(imageSrc);
   };
 
+  const startCamera = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        notify("Camera needs a secure (HTTPS) connection to work.", "error");
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraStarted(true);
+    } catch {
+      notify("Camera permission is required to capture your live selfie.", "error");
+    }
+  };
+
   const validateQuestionAnswers = () => {
     const completed = activeQuestions.filter(
       (item) => item.question && item.answer.trim()
@@ -494,6 +514,7 @@ export default function Register() {
 
         aadhaarLast4: documentLast4,
         documentType: form.documentType,
+        documentNumber: form.documentNumber,
         documentNumberLast4: documentLast4,
         kycConsent: form.kycConsent,
         referenceSelfie: selfie,
@@ -564,7 +585,7 @@ export default function Register() {
   return (
     <div className="relative h-screen overflow-hidden bg-[#f5f3ee] text-black">
       {notice ? (
-        <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
+        <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-none border border-black/10 bg-white p-4 shadow-2xl">
           <p className={`text-sm font-black ${notice.type === "error" ? "text-rose-600" : notice.type === "success" ? "text-emerald-700" : "text-black"}`}>
             {notice.message}
           </p>
@@ -572,8 +593,8 @@ export default function Register() {
       ) : null}
       {stepLoading ? (
         <div className="absolute inset-0 z-50 grid place-items-center bg-white/70 backdrop-blur-sm">
-          <div className="w-[220px] rounded-[1.5rem] border border-black/10 bg-white p-5 text-center shadow-[0_25px_80px_rgba(0,0,0,0.12)]">
-            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-black/10 border-t-black" />
+          <div className="w-[220px] rounded-none border border-black/10 bg-white p-5 text-center shadow-[0_25px_80px_rgba(0,0,0,0.12)]">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-none border-4 border-black/10 border-t-black" />
             <p className="mt-4 text-sm font-black">Preparing next step</p>
             <p className="mt-1 text-xs font-bold text-black/45">Saving progress locally</p>
           </div>
@@ -586,12 +607,12 @@ export default function Register() {
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.28),rgba(0,0,0,0.88))]" />
 
           <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white">
-            <div className="inline-block w-max rounded-2xl bg-white p-3 shadow-lg shadow-black/20">
+            <div className="inline-block w-max rounded-none bg-white p-3 shadow-lg shadow-black/20">
               <Logo />
             </div>
 
             <div className="max-w-lg">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] backdrop-blur-xl">
+              <div className="inline-flex items-center gap-2 rounded-none border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] backdrop-blur-xl">
                 <ShieldCheck size={15} className="text-[#b5e48c]" />
                 Verified social meetups
               </div>
@@ -614,7 +635,7 @@ export default function Register() {
               {["Mobile verified", "KYC checked", "Public meetups"].map((item) => (
                 <div
                   key={item}
-                  className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl"
+                  className="rounded-none border border-white/15 bg-white/10 p-4 backdrop-blur-xl"
                 >
                   <CheckCircle2 size={18} className="text-[#b5e48c]" />
                   <p className="mt-3 text-sm font-black">{item}</p>
@@ -631,14 +652,14 @@ export default function Register() {
           </p>
 
           <div className="flex flex-1 flex-col items-center justify-center">
-            <div className="relative flex h-[390px] w-4 items-end overflow-hidden rounded-full bg-black/10">
+            <div className="relative flex h-[390px] w-4 items-end overflow-hidden rounded-none bg-black/10">
               <div
-                className="w-full rounded-full bg-black transition-all duration-500"
+                className="w-full rounded-none bg-black transition-all duration-500"
                 style={{ height: `${progress}%` }}
               />
             </div>
 
-            <div className="mt-6 grid h-12 w-12 place-items-center rounded-2xl bg-black text-white shadow-lg">
+            <div className="mt-6 grid h-12 w-12 place-items-center rounded-none bg-black text-white shadow-lg">
               <ActiveIcon size={20} />
             </div>
 
@@ -648,12 +669,12 @@ export default function Register() {
 
         {/* RIGHT SIDE FIXED CARD, INNER CONTENT SCROLLS */}
         <section className="flex h-screen items-center justify-center overflow-hidden bg-[#fbfaf7] px-4 py-4 md:px-6">
-          <div className="flex h-full w-full max-w-[640px] flex-col rounded-[2rem] border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)]">
+          <div className="flex h-full w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)]">
             {/* CARD HEADER FIXED */}
             <div className="shrink-0 border-b border-black/10 p-5 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[#f5f3ee] px-4 py-2 text-xs font-black text-black">
+                  <div className="inline-flex items-center gap-2 rounded-none bg-[#f5f3ee] px-4 py-2 text-xs font-black text-black">
                     <Sparkles size={15} />
                     BuddyBOOK registration
                   </div>
@@ -663,18 +684,18 @@ export default function Register() {
                   </h1>
 
                   <p className="mt-2 text-sm font-semibold text-black/55">
-                    Step {currentStep} of {steps.length} · {activeStep?.title}
+                    Step {currentStep} of {steps.length} Â· {activeStep?.title}
                   </p>
                 </div>
 
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black text-white">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-none bg-black text-white">
                   <ActiveIcon size={20} />
                 </div>
               </div>
 
-              <div className="mt-6 h-2 overflow-hidden rounded-full bg-black/10 lg:hidden">
+              <div className="mt-6 h-2 overflow-hidden rounded-none bg-black/10 lg:hidden">
                 <div
-                  className="h-full rounded-full bg-black transition-all duration-500"
+                  className="h-full rounded-none bg-black transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -685,7 +706,7 @@ export default function Register() {
                     key={id}
                     type="button"
                     onClick={() => setCurrentStep(id)}
-                    className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-xs font-black transition ${
+                    className={`flex shrink-0 items-center gap-2 rounded-none border px-4 py-2.5 text-xs font-black transition ${
                       currentStep === id
                         ? "border-black bg-black text-white"
                         : id < currentStep
@@ -755,9 +776,9 @@ export default function Register() {
                     />
                   </div>
 
-                  <div className="mt-5 rounded-xl border border-black/10 bg-[#fffaf3] p-4">
+                  <div className="mt-5 rounded-none border border-black/10 bg-[#fffaf3] p-4">
                     <div className="flex flex-wrap items-center gap-4">
-                      <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#ffeedd]">
+                      <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-none bg-[#ffeedd]">
                         {form.profileImagePreview || form.profileImage?.url ? (
                           <img
                             src={form.profileImagePreview || form.profileImage.url}
@@ -774,7 +795,7 @@ export default function Register() {
                           This appears in your user/provider workspace after registration.
                         </p>
                       </div>
-                      <label className="inline-flex cursor-pointer rounded-lg bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
+                      <label className="inline-flex cursor-pointer rounded-none bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
                         Upload photo
                         <input
                           type="file"
@@ -804,7 +825,7 @@ export default function Register() {
                         <button
                           type="button"
                           onClick={sendMobileOtp}
-                          className="rounded-full bg-black px-5 py-3 text-sm font-black text-white"
+                          className="rounded-none bg-black px-5 py-3 text-sm font-black text-white"
                         >
                           Send OTP
                         </button>
@@ -813,7 +834,7 @@ export default function Register() {
                           <button
                             type="button"
                             onClick={verifyMobileOtp}
-                            className="rounded-full bg-[#b5e48c] px-5 py-3 text-sm font-black text-black"
+                            className="rounded-none bg-[#b5e48c] px-5 py-3 text-sm font-black text-black"
                           >
                             Verify
                           </button>
@@ -851,7 +872,7 @@ export default function Register() {
                           <button
                             type="button"
                             onClick={sendEmailOtp}
-                            className="rounded-full bg-black px-5 py-3 text-sm font-black text-white"
+                            className="rounded-none bg-black px-5 py-3 text-sm font-black text-white"
                           >
                             Send OTP
                           </button>
@@ -860,7 +881,7 @@ export default function Register() {
                             <button
                               type="button"
                               onClick={verifyEmailOtp}
-                              className="rounded-full bg-[#b5e48c] px-5 py-3 text-sm font-black text-black"
+                              className="rounded-none bg-[#b5e48c] px-5 py-3 text-sm font-black text-black"
                             >
                               Verify
                             </button>
@@ -891,7 +912,7 @@ export default function Register() {
                   />
 
                   <div className="grid gap-4">
-                    <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+                    <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
                       <div className="mb-5 flex items-center gap-3">
                         <IconBox icon={IdCard} />
                         <div>
@@ -923,7 +944,7 @@ export default function Register() {
                       </div>
 
                       {form.documentType === "AADHAAR" && (
-                        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+                        <div className="mt-4 rounded-none border border-black/10 bg-white p-4">
                           <Input
                             label="Aadhaar OTP"
                             value={form.aadhaarOtp}
@@ -931,11 +952,11 @@ export default function Register() {
                             placeholder="Enter Aadhaar OTP"
                           />
                           <div className="mt-4 flex flex-wrap gap-3">
-                            <button type="button" onClick={sendAadhaarOtp} className="rounded-full bg-black px-5 py-3 text-sm font-black text-white">
+                            <button type="button" onClick={sendAadhaarOtp} className="rounded-none bg-black px-5 py-3 text-sm font-black text-white">
                               Send Aadhaar OTP
                             </button>
                             {aadhaarOtpSent && (
-                              <button type="button" onClick={verifyAadhaarOtp} className="rounded-full bg-[#b5e48c] px-5 py-3 text-sm font-black text-black">
+                              <button type="button" onClick={verifyAadhaarOtp} className="rounded-none bg-[#b5e48c] px-5 py-3 text-sm font-black text-black">
                                 Verify Aadhaar
                               </button>
                             )}
@@ -955,11 +976,11 @@ export default function Register() {
                           onChange={(e) =>
                             updateField("kycFile", e.target.files?.[0] || null)
                           }
-                          className="w-full rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black outline-none file:mr-4 file:rounded-full file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-black file:text-white"
+                          className="w-full rounded-none border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black outline-none file:mr-4 file:rounded-none file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-black file:text-white"
                         />
                       </div>
 
-                      <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[1.3rem] border border-black/10 bg-white p-4">
+                      <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-none border border-black/10 bg-white p-4">
                         <input
                           type="checkbox"
                           checked={form.kycConsent}
@@ -974,7 +995,7 @@ export default function Register() {
                       </label>
                     </div>
 
-                    <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+                    <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
                       <div className="mb-5 flex items-center gap-3">
                         <IconBox icon={Camera} />
                         <div>
@@ -985,24 +1006,36 @@ export default function Register() {
                         </div>
                       </div>
 
-                      <div className="overflow-hidden rounded-[1.4rem] border border-black/10 bg-black p-2">
-                        <Webcam
-                          ref={webcamRef}
-                          audio={false}
-                          screenshotFormat="image/jpeg"
-                          videoConstraints={{ facingMode: "user" }}
-                          className="h-[230px] w-full rounded-[1.1rem] object-cover"
-                        />
+                      <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-none border border-black/10 bg-black p-2">
+                        {cameraStarted ? (
+                          <Webcam
+                            ref={webcamRef}
+                            audio={false}
+                            screenshotFormat="image/jpeg"
+                            videoConstraints={{ facingMode: "user" }}
+                            playsInline
+                            className="h-full w-full rounded-none object-cover"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={startCamera}
+                            className="grid h-full w-full place-items-center gap-2 text-center text-white"
+                          >
+                            <Camera size={28} />
+                            <span className="text-xs font-black">Tap to enable camera</span>
+                          </button>
+                        )}
                       </div>
 
                       {selfie ? (
                         <img
                           src={selfie}
                           alt="Captured selfie"
-                          className="mt-4 h-[150px] w-full rounded-[1.2rem] object-cover"
+                          className="mx-auto mt-4 aspect-square w-full max-w-[200px] rounded-none object-cover"
                         />
                       ) : (
-                        <div className="mt-4 grid h-[150px] place-items-center rounded-[1.2rem] border border-dashed border-black/20 bg-white text-center">
+                        <div className="mx-auto mt-4 grid aspect-square w-full max-w-[200px] place-items-center rounded-none border border-dashed border-black/20 bg-white text-center">
                           <div>
                             <Camera className="mx-auto" size={30} />
                             <p className="mt-2 text-xs font-black text-black">
@@ -1016,7 +1049,7 @@ export default function Register() {
                         <button
                           type="button"
                           onClick={captureSelfie}
-                          className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-black text-white"
+                          className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-5 py-3 text-sm font-black text-white"
                         >
                           <Camera size={17} />
                           Capture
@@ -1025,7 +1058,7 @@ export default function Register() {
                         <button
                           type="button"
                           onClick={() => setSelfie(null)}
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black text-black"
+                          className="inline-flex items-center justify-center gap-2 rounded-none border border-black/10 bg-white px-5 py-3 text-sm font-black text-black"
                         >
                           <RotateCcw size={17} />
                           Retake
@@ -1062,7 +1095,7 @@ export default function Register() {
                   </div>
 
                   {!form.role && (
-                    <div className="mt-5 rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5 text-center">
+                    <div className="mt-5 rounded-none border border-black/10 bg-[#fbfaf7] p-5 text-center">
                       <p className="text-sm font-black text-black">
                         Select User or Provider to continue.
                       </p>
@@ -1071,7 +1104,7 @@ export default function Register() {
 
                   {form.role === "USER" && (
                     <div className="mt-5 grid gap-5">
-                      <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+                      <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
                         <h3 className="text-lg font-black text-black">
                           User preferences
                         </h3>
@@ -1109,7 +1142,7 @@ export default function Register() {
 
                   {form.role === "PROVIDER" && (
                     <div className="mt-5 grid gap-5">
-                      <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+                      <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
                         <h3 className="text-lg font-black text-black">
                           Provider details
                         </h3>
@@ -1121,7 +1154,7 @@ export default function Register() {
                           <Input label="Hobbies" value={form.hobbies} onChange={(v) => updateField("hobbies", v)} placeholder="Movies, cafes" />
                         </div>
 
-                        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[1.5rem] border border-black/10 bg-white p-5">
+                        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-none border border-black/10 bg-white p-5">
                           <input
                             type="checkbox"
                             checked={form.providerSafetyAgreement}
@@ -1156,7 +1189,7 @@ export default function Register() {
                   type="button"
                   onClick={prevStep}
                   disabled={currentStep === 1}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 rounded-none border border-black/10 bg-white px-6 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ArrowLeft size={16} />
                   Back
@@ -1166,7 +1199,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20"
+                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20"
                   >
                     Continue
                     <ArrowRight size={16} />
@@ -1176,7 +1209,7 @@ export default function Register() {
                     type="button"
                     onClick={handleRegister}
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? "Creating account..." : "Register Securely"}
                     <CheckCircle2 size={16} />
@@ -1220,7 +1253,7 @@ function Input({ label, value, onChange, placeholder, type = "text", maxLength }
         maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-full border border-black/10 bg-white px-5 py-4 text-sm font-semibold text-black outline-none transition placeholder:text-black/25 focus:border-black"
+        className="w-full rounded-none border border-black/10 bg-white px-5 py-4 text-sm font-semibold text-black outline-none transition placeholder:text-black/25 focus:border-black"
       />
     </div>
   );
@@ -1234,7 +1267,7 @@ function Select({ label, value, onChange, options }) {
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-full border border-black/10 bg-white px-5 py-4 pr-11 text-sm font-semibold text-black outline-none transition focus:border-black"
+          className="w-full appearance-none rounded-none border border-black/10 bg-white px-5 py-4 pr-11 text-sm font-semibold text-black outline-none transition focus:border-black"
         >
           <option value="">Select</option>
           {options.map((item) => {
@@ -1260,7 +1293,7 @@ function Select({ label, value, onChange, options }) {
 
 function IconBox({ icon: Icon }) {
   return (
-    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-black text-white">
+    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-none bg-black text-white">
       <Icon size={20} />
     </div>
   );
@@ -1268,7 +1301,7 @@ function IconBox({ icon: Icon }) {
 
 function VerifyBox({ title, hint, verified, icon: Icon, children }) {
   return (
-    <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+    <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <IconBox icon={Icon} />
@@ -1294,14 +1327,14 @@ function RoleCard({ active, icon: Icon, title, text, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`relative rounded-[1.7rem] border p-5 text-left transition ${
+      className={`relative rounded-none border p-5 text-left transition ${
         active
           ? "border-black bg-black text-white"
           : "border-black/10 bg-[#fbfaf7] text-black hover:border-black"
       }`}
     >
       <div
-        className={`grid h-12 w-12 place-items-center rounded-2xl ${
+        className={`grid h-12 w-12 place-items-center rounded-none ${
           active ? "bg-white text-black" : "bg-black text-white"
         }`}
       >
@@ -1332,7 +1365,7 @@ function PillMultiSelect({ options, selected, onToggle }) {
             key={item}
             type="button"
             onClick={() => onToggle(item)}
-            className={`rounded-full border px-4 py-2 text-sm font-black transition ${
+            className={`rounded-none border px-4 py-2 text-sm font-black transition ${
               active
                 ? "border-black bg-black text-white"
                 : "border-black/10 bg-white text-black hover:border-black"
@@ -1348,7 +1381,7 @@ function PillMultiSelect({ options, selected, onToggle }) {
 
 function QuestionSection({ title, answers, onUpdate }) {
   return (
-    <div className="rounded-[1.5rem] border border-black/10 bg-[#fbfaf7] p-5">
+    <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
       <h3 className="text-lg font-black text-black">{title}</h3>
       <p className="mt-1 text-sm font-semibold text-black/50">
         Choose any 3 different questions and write honest short answers.
@@ -1358,7 +1391,7 @@ function QuestionSection({ title, answers, onUpdate }) {
         {answers.map((item, index) => (
           <div
             key={index}
-            className="grid gap-3 rounded-[1.3rem] border border-black/10 bg-white p-4"
+            className="grid gap-3 rounded-none border border-black/10 bg-white p-4"
           >
             <Select
               label={`Question ${index + 1}`}

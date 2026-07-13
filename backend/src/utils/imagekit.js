@@ -3,6 +3,16 @@ const ImageKit = require("imagekit");
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const IMAGEKIT_PROVIDER_FOLDER = "/buddybook/providers";
+const IMAGEKIT_CHAT_VOICE_FOLDER = "/buddybook/chat/voice";
+const MAX_VOICE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_VOICE_MIME_TYPES = new Set([
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/x-wav",
+]);
 
 function getImageKitClient() {
   const { IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, IMAGEKIT_URL_ENDPOINT } =
@@ -70,6 +80,59 @@ async function uploadProviderImage(file, index = 0) {
   };
 }
 
+function validateVoice(file) {
+  if (!file) {
+    const error = new Error("Voice recording is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const mimetype = String(file.mimetype || "").split(";")[0].toLowerCase();
+  if (!ALLOWED_VOICE_MIME_TYPES.has(mimetype)) {
+    const error = new Error("Only WebM, OGG, MP4, MP3 and WAV voice recordings are allowed.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!file.size || file.size > MAX_VOICE_BYTES) {
+    const error = new Error("Voice recording must be 5 MB or smaller.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+async function uploadChatVoice(file, threadId) {
+  validateVoice(file);
+  const imagekit = getImageKitClient();
+  const mimetype = String(file.mimetype || "audio/webm").split(";")[0];
+  const extensions = {
+    "audio/webm": "webm",
+    "audio/ogg": "ogg",
+    "audio/mp4": "m4a",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+  };
+  const uploaded = await imagekit.upload({
+    file: file.buffer,
+    fileName: `voice-${threadId}-${Date.now()}.${extensions[mimetype] || "webm"}`,
+    folder: IMAGEKIT_CHAT_VOICE_FOLDER,
+    useUniqueFileName: true,
+  });
+
+  return {
+    url: uploaded.url,
+    fileId: uploaded.fileId,
+    size: uploaded.size || file.size,
+  };
+}
+
+async function deleteImageKitFile(fileId) {
+  if (!fileId) return;
+  const imagekit = getImageKitClient();
+  await imagekit.deleteFile(fileId);
+}
+
 function fileFromBase64Image(value) {
   if (typeof value !== "string") return null;
 
@@ -131,4 +194,8 @@ module.exports = {
   uploadProviderBase64Image,
   fileFromBase64Image,
   normalizeStoredImage,
+  MAX_VOICE_BYTES,
+  ALLOWED_VOICE_MIME_TYPES,
+  uploadChatVoice,
+  deleteImageKitFile,
 };

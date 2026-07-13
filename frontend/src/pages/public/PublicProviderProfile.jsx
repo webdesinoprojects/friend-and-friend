@@ -27,6 +27,7 @@ export default function PublicProviderProfile() {
 
   useEffect(() => {
     let mounted = true;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     Promise.allSettled([getProvider(providerId), getProviderImages(providerId)])
       .then((results) => {
         if (!mounted) return;
@@ -58,7 +59,7 @@ export default function PublicProviderProfile() {
   }, [providerId]);
 
   return (
-    <div className="min-h-screen bg-[#fffaf3] text-[#171b30]">
+    <div className="min-h-screen scroll-smooth bg-[#fffaf3] text-[#171b30]">
       <PublicNavbar />
       <main className="px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
         <section className="mx-auto max-w-7xl">
@@ -94,13 +95,13 @@ export default function PublicProviderProfile() {
           )}
         </section>
       </main>
+
       <PublicFooter />
     </div>
   );
 }
 
-function PublicProviderDetail({ provider, saved, onSave }) {
-  const images = provider.images?.length ? provider.images : [provider.image].filter(Boolean);
+function PublicProviderDetail({ provider, saved, onSave }) {  const images = provider.images?.length ? provider.images : [provider.image].filter(Boolean);
   const [activeImage, setActiveImage] = useState(0);
   const hero = images[activeImage] || images[0] || "";
   const activities = getProviderActivities(provider);
@@ -248,15 +249,15 @@ function PublicProviderDetail({ provider, saved, onSave }) {
           </div>
         </section>
 
-        <div className="fixed bottom-6 left-1/2 z-50 grid w-[min(92vw,720px)] -translate-x-1/2 gap-4 rounded-full bg-white p-4 shadow-[0_16px_50px_rgba(0,0,0,0.22)] md:grid-cols-[1fr_auto] md:items-center">
-          <div className="flex items-center gap-4">
-            <img src={hero || ""} alt="" className="h-12 w-12 rounded-full object-cover" />
-            <div className="grid gap-1 md:grid-cols-[1fr_auto] md:items-center md:gap-5">
-              <p className="text-xl font-black">#{toSlug(activity)}</p>
-              <p className="flex items-center gap-2 text-xl font-black"><Star fill="#ffcf33" className="text-[#ffcf33]" /> {rating}</p>
+        <div className={`fixed bottom-4 left-1/2 z-50 w-[min(94vw,720px)] -translate-x-1/2 rounded-2xl bg-white p-3 shadow-[0_16px_50px_rgba(0,0,0,0.22)] md:bottom-6 md:grid md:grid-cols-[1fr_auto] md:items-center md:gap-4 md:rounded-full md:p-4`}>
+          <div className="flex items-center gap-3 md:gap-4">
+            <img src={hero || ""} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover md:h-12 md:w-12" />
+            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-3 md:gap-5">
+              <p className="truncate text-base font-black md:text-xl">#{toSlug(activity)}</p>
+              <p className="flex items-center gap-1 text-sm font-black md:text-xl"><Star size={18} fill="#ffcf33" className="text-[#ffcf33]" /> {rating}</p>
             </div>
           </div>
-          <Link to={schedulePath} onClick={() => rememberProvider(provider)} className="rounded-full bg-black px-6 py-3 text-center text-sm font-black text-white">
+          <Link to={schedulePath} onClick={() => rememberProvider(provider)} className="mt-3 block w-full rounded-full bg-black px-6 py-3 text-center text-sm font-black text-white md:mt-0 md:w-auto">
             {providerAccount ? "Provider accounts cannot book" : "Schedule a meeting"}
           </Link>
         </div>

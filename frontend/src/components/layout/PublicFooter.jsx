@@ -36,7 +36,7 @@ const footerGroups = [
 
 export default function PublicFooter() {
   return (
-    <footer className="w-full bg-[#292622] px-5 py-10 text-[#f5efe7]">
+    <footer className="w-full bg-[#292622] px-5 py-7 text-[#f5efe7] sm:py-10">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 md:grid-cols-[1.2fr_2fr]">
           <div>
@@ -82,7 +82,7 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        <div className="mt-9 flex flex-col gap-3 border-t border-[#f5efe7]/12 pt-5 text-[11px] font-semibold text-[#b9aa9b] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-7 flex flex-col gap-3 border-t border-[#f5efe7]/12 pt-4 text-[11px] font-semibold text-[#b9aa9b] sm:mt-9 sm:flex-row sm:items-center sm:justify-between sm:pt-5">
           <p>(c) {new Date().getFullYear()} BuddyBOOK. All rights reserved.</p>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2">

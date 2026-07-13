@@ -61,6 +61,7 @@ export default function AdminUsers() {
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_14px_45px_rgba(0,0,0,0.04)]">
+        <style>{`.users-table th,.users-table td{padding:1rem 1.25rem;vertical-align:middle;white-space:nowrap}.users-table th:first-child,.users-table td:first-child{padding-left:1.25rem}`}</style>
         {loading ? (
           <div className="p-8 space-y-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -69,7 +70,7 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] text-left text-sm">
+            <table className="users-table w-full min-w-[1200px] text-left text-sm">
               <thead className="bg-[#f7f7f5] text-xs font-black uppercase tracking-[0.16em] text-black/45">
                 <tr>
                   <th className="px-5 py-4">Name</th>

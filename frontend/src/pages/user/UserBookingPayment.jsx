@@ -24,6 +24,16 @@ const paymentMethods = [
   ["Wallet", Wallet, "BuddyBOOK wallet balance"],
 ];
 
+const TIME_OPTIONS = (() => {
+  const list = [];
+  for (let hour = 6; hour <= 23; hour += 1) {
+    for (const minute of ["00", "30"]) {
+      list.push(`${String(hour).padStart(2, "0")}:${minute}`);
+    }
+  }
+  return list;
+})();
+
 export default function UserBookingPayment() {
   const { providerId } = useParams();
   const navigate = useNavigate();
@@ -155,8 +165,8 @@ export default function UserBookingPayment() {
 
   return (
     <UserAppLayout title="Secure Checkout" user={user}>
-      <section className="custom-scrollbar grid h-full gap-4 overflow-y-auto rounded-[1.5rem] bg-[#fffaf3] p-3 lg:grid-cols-[0.92fr_1.08fr]">
-        <div className="rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
+      <section className="custom-scrollbar grid h-full min-w-0 gap-4 rounded-[1.5rem] bg-[#fffaf3] p-3 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="min-w-0 rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
           <h1 className="text-2xl font-black">Booking Summary</h1>
           <div className="mt-5 flex items-center gap-4 rounded-[1.25rem] bg-[#ffeedd] p-4">
             <img src={provider.image} alt={provider.name} className="h-20 w-20 rounded-lg object-cover" />
@@ -169,20 +179,22 @@ export default function UserBookingPayment() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Field label="Activity">
-              <select value={service} onChange={(event) => setService(event.target.value)} className="field-control">
+              <select value={service} onChange={(event) => setService(event.target.value)} className="field-control w-full min-w-0 max-w-full">
                 {[...new Set([service, ...getProviderActivities(provider)].filter(Boolean))].map((activity) => <option key={activity}>{activity}</option>)}
               </select>
             </Field>
             <Field label="Duration">
-              <select value={duration} onChange={(event) => setDuration(event.target.value)} className="field-control">
+              <select value={duration} onChange={(event) => setDuration(event.target.value)} className="field-control w-full min-w-0 max-w-full">
                 {[1, 2, 3, 4, 5, 6].map((hours) => <option key={hours} value={hours}>{hours} Hour{hours > 1 ? "s" : ""}</option>)}
               </select>
             </Field>
             <Field label="Meetup date" icon={CalendarDays}>
-              <input type="date" min={dateValue(0)} max={dateValue(10)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control" />
+              <input type="date" min={dateValue(0)} max={dateValue(10)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control w-full min-w-0 max-w-full" />
             </Field>
             <Field label="Start time" icon={Clock3}>
-              <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="field-control" />
+              <select value={time} onChange={(event) => setTime(event.target.value)} className="field-control w-full min-w-0 max-w-full">
+                {TIME_OPTIONS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+              </select>
             </Field>
           </div>
 
@@ -193,7 +205,7 @@ export default function UserBookingPayment() {
           </div>
         </div>
 
-        <div className="rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
+        <div className="min-w-0 rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
           <h2 className="text-2xl font-black">Choose Payment Method</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">Your booking is created after successful payment.</p>
 
@@ -234,14 +246,14 @@ export default function UserBookingPayment() {
         </div>
       </section>
 
-      <style>{`.field-control{width:100%;background:transparent;font-size:.875rem;font-weight:800;outline:none;color:#111}`}</style>
+      <style>{`.field-control{width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:transparent;font-size:.875rem;font-weight:800;outline:none;color:#111}`}</style>
     </UserAppLayout>
   );
 }
 
 function Field({ label, icon: Icon, children }) {
   return (
-    <label className="rounded-[1rem] border border-black/10 bg-[#fffaf3] p-3">
+    <label className="min-w-0 rounded-[1rem] border border-black/10 bg-[#fffaf3] p-3">
       <span className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">{Icon ? <Icon size={12} /> : null}{label}</span>
       {children}
     </label>

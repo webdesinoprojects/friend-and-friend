@@ -10,7 +10,6 @@ import {
   Menu,
   Settings,
   ShieldCheck,
-  Sparkles,
   Star,
   User,
   Wallet,
@@ -133,11 +132,11 @@ export default function PublicNavbar() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-4 z-[9999] px-4">
+      <header className="fixed left-0 right-0 top-2 z-[9999] px-3 sm:top-4 sm:px-4">
         <div className="relative z-[9999] mx-auto max-w-7xl">
           <div className="overflow-hidden rounded-full border-2 border-black bg-white/10 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-2xl">
-            <div className="mx-auto px-4 sm:px-5">
-              <div className="flex h-16 items-center justify-between gap-4">
+            <div className="mx-auto px-3 sm:px-5">
+              <div className="flex h-14 items-center justify-between gap-3 sm:h-16 sm:gap-4">
 <div className="flex items-center gap-3">
                    <div className="rounded-full bg-white/30 px-2 py-1 shadow-sm backdrop-blur-2xl">
                      <Logo />
@@ -158,104 +157,68 @@ export default function PublicNavbar() {
                   ))}
                 </nav>
 
-                <div className="hidden items-center gap-3 md:flex">
-                  {user ? (
-                    <button
-                      type="button"
-                      onClick={openAccount}
-                      className="flex items-center gap-2 rounded-full border border-black bg-white px-2 py-1.5 text-sm font-black text-black shadow-[0_12px_30px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:bg-black hover:text-white"
-                      aria-label="Open account menu"
-                    >
-                      <img
-                        src={avatar}
-                        alt={user.fullName || "Account"}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                      <ChevronDown size={17} />
-                    </button>
-                  ) : (
-                    <Link
-                      to="/login"
-                      className="group relative overflow-hidden rounded-full bg-black px-6 py-3 text-sm font-black text-white shadow-[0_16px_35px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(0,0,0,0.28)]"
-                    >
-                      <span className="absolute inset-0 bg-black" />
-                      <span className="absolute inset-0 bg-gradient-to-r from-[#f8f7ff]/25 via-[#caf0f8]/20 to-[#e8e8e4]/25 opacity-0 transition duration-300 group-hover:opacity-100" />
-                      <span className="absolute -left-8 top-0 h-full w-8 rotate-12 bg-white/40 transition duration-700 group-hover:left-[120%]" />
-                      <span className="relative z-10 flex items-center gap-2">
-                        Get Started
-                        <ArrowRight
-                          size={16}
-                          className="transition group-hover:translate-x-0.5"
+                <div className="flex shrink-0 items-center gap-2 sm:gap-2">
+                  <div className="flex items-center">
+                    {user ? (
+                      <button
+                        type="button"
+                        onClick={openAccount}
+                        className="flex shrink-0 items-center gap-2 rounded-full border border-black bg-white px-2 py-1.5 text-sm font-black text-black shadow-[0_12px_30px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:bg-black hover:text-white"
+                        aria-label="Open account menu"
+                      >
+                        <img
+                          src={avatar}
+                          alt={user.fullName || "Account"}
+                          className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"
                         />
-                      </span>
-                    </Link>
-                  )}
-                </div>
+                        <ChevronDown size={17} className="hidden sm:block" />
+                      </button>
+                    ) : (
+                      <Link
+                        to="/login"
+                        className="group relative shrink-0 overflow-hidden rounded-full bg-black px-4 py-2 text-xs font-black text-white shadow-[0_16px_35px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(0,0,0,0.28)] sm:px-6 sm:py-3 sm:text-sm"
+                      >
+                        <span className="absolute inset-0 bg-black" />
+                        <span className="absolute inset-0 bg-gradient-to-r from-[#f8f7ff]/25 via-[#caf0f8]/20 to-[#e8e8e4]/25 opacity-0 transition duration-300 group-hover:opacity-100" />
+                        <span className="absolute -left-8 top-0 h-full w-8 rotate-12 bg-white/40 transition duration-700 group-hover:left-[120%]" />
+                        <span className="relative z-10 flex items-center gap-2">
+                          Get Started
+                          <ArrowRight
+                            size={16}
+                            className="hidden transition group-hover:translate-x-0.5 sm:block"
+                          />
+                        </span>
+                      </Link>
+                    )}
+                  </div>
 
-                <button
-                  onClick={() => setIsOpen((prev) => !prev)}
-                  className="grid h-12 w-12 place-items-center rounded-full border border-black bg-white text-black shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#caf0f8] md:hidden"
-                  aria-label="Toggle menu"
-                >
-                  {isOpen ? <X size={22} /> : <Menu size={22} />}
-                </button>
+                  <button
+                    onClick={() => setIsOpen((prev) => !prev)}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black bg-white text-black shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#caf0f8] md:hidden"
+                    aria-label="Toggle menu"
+                  >
+                    {isOpen ? <X size={22} /> : <Menu size={22} />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {isOpen && (
-            <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] rounded-[2rem] border-2 border-black bg-gradient-to-br from-[#caf0f8] via-white to-[#f8f7ff] p-4 shadow-2xl backdrop-blur-xl md:hidden">
+            <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] rounded-none border-2 border-black bg-white p-4 shadow-2xl md:hidden">
               <div className="grid gap-3">
-                <div className="rounded-[1.5rem] border border-black/10 bg-white p-4 shadow-sm">
-                  <div className="flex items-center gap-2 text-sm font-black text-black">
-                    <Sparkles size={17} />
-                    Safe, verified and platonic meetups
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-black/65">
-                    Book trusted people for movies, dinner, shopping, gaming, city tours and more.
-                  </p>
-                </div>
-
-                <nav className="grid gap-2 rounded-[1.5rem] border border-black/10 bg-white p-2 shadow-sm">
+                <nav className="grid gap-2 rounded-none border border-black/10 bg-white p-2 shadow-sm">
                   {navItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.to}
                       onClick={closeMenu}
-                      className="rounded-full bg-[#e9ecef] px-4 py-3 text-sm font-black text-black transition hover:bg-[#e8e8e4]"
+                      className="rounded-none bg-[#e9ecef] px-4 py-3 text-sm font-black text-black transition hover:bg-[#e8e8e4]"
                     >
                       {item.label}
                     </Link>
                   ))}
                 </nav>
-
-                {user ? (
-                  <button
-                    type="button"
-                    onClick={openAccount}
-                    className="flex items-center justify-between rounded-full bg-black px-4 py-3 text-sm font-black text-white shadow-lg shadow-black/20"
-                  >
-                    <span className="flex items-center gap-2">
-                      <img
-                        src={avatar}
-                        alt={user.fullName || "Account"}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    </span>
-                    <ChevronDown size={16} />
-                  </button>
-                ) : (
-                  <Link
-                    to="/login"
-                    onClick={closeMenu}
-                    className="rounded-full bg-black px-4 py-3 text-center text-sm font-black text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5"
-                  >
-                    <span className="inline-flex items-center justify-center gap-2">
-                      Get Started
-                      <ArrowRight size={16} />
-                    </span>
-                  </Link>
-                )}
               </div>
             </div>
           )}

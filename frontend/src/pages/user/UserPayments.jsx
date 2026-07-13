@@ -26,8 +26,11 @@ function readTransactions() {
     .map((booking) => ({
       id: booking.paymentId || `LEGACY-${booking.id}`,
       bookingId: booking.id,
+      providerId: booking.providerId,
       providerName: booking.providerName,
       service: booking.service,
+      date: booking.date,
+      time: booking.time,
       amount: booking.amount,
       method: booking.paymentMethod || "Online",
       status:
@@ -38,13 +41,6 @@ function readTransactions() {
       createdAt: booking.createdAt,
     }));
 }
-
-const statusClass = {
-  PAID: "bg-[#ffeedd] text-black",
-  PENDING: "bg-[#fff4e6] text-[#b66b12]",
-  FAILED: "bg-rose-50 text-rose-700",
-  REFUNDED: "bg-[#fffaf3] text-black",
-};
 
 export default function UserPayments() {
   const [transactions, setTransactions] = useState(() => readTransactions());
@@ -115,14 +111,7 @@ export default function UserPayments() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-[#eddac7] bg-white">
-              <div className="hidden grid-cols-[1.4fr_1fr_0.8fr_0.7fr_auto] gap-4 bg-[#fffaf3] px-5 py-3 text-[10px] font-black uppercase tracking-wider text-[#8b7563] md:grid">
-                <span>Transaction</span>
-                <span>Date</span>
-                <span>Method</span>
-                <span>Status</span>
-                <span>Amount</span>
-              </div>
+            <div className="grid gap-3">
               {visible.map((transaction) => {
                 const status = String(transaction.status || "PENDING").toUpperCase();
                 const date = transaction.createdAt
@@ -130,15 +119,21 @@ export default function UserPayments() {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
                     })
                   : "Date unavailable";
+                const meetingTime = [transaction.date, transaction.time]
+                  .filter(Boolean)
+                  .join(" · ");
+                const providerTo = transaction.providerId
+                  ? `/app/user/provider/${transaction.providerId}`
+                  : transaction.bookingId
+                    ? `/app/user/provider/${transaction.bookingId}`
+                    : "#";
 
                 return (
                   <article
                     key={transaction.id}
-                    className="grid gap-4 border-t border-[#f0dfcf] p-5 first:border-t-0 md:grid-cols-[1.4fr_1fr_0.8fr_0.7fr_auto] md:items-center"
+                    className="grid gap-4 rounded-2xl border border-[#eddac7] bg-white p-4 shadow-sm md:grid-cols-[1.5fr_1.1fr_1fr_0.8fr_0.8fr_auto] md:items-center md:gap-4 md:p-5"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-black">
@@ -146,24 +141,49 @@ export default function UserPayments() {
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black text-black">
-                          {transaction.service || "BuddyBOOK meetup"}
+                          {transaction.providerName || "Provider"}
                         </p>
                         <p className="truncate text-xs font-bold text-slate-500">
-                          {transaction.providerName || "Provider"} · {transaction.id}
+                          Pay ID: {transaction.id}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs font-bold text-slate-600">{date}</p>
-                    <p className="text-sm font-extrabold text-black">
-                      {transaction.method || "Online"}
-                    </p>
-                    <span className={`w-max rounded-full px-3 py-1.5 text-[10px] font-black ${statusClass[status] || statusClass.PENDING}`}>
-                      {status}
-                    </span>
-                    <p className="flex items-center gap-1 text-base font-black text-black md:justify-end">
-                      ₹{Number(transaction.amount || 0).toLocaleString("en-IN")}
-                      <ArrowUpRight size={15} className="text-slate-400" />
-                    </p>
+
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Activity</p>
+                      <p className="truncate text-sm font-black text-black">
+                        {transaction.service || "BuddyBOOK meetup"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Meeting</p>
+                      <p className="truncate text-xs font-bold text-slate-600">
+                        {meetingTime || date}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Method</p>
+                      <p className="text-sm font-extrabold text-black">
+                        {transaction.method || "Online"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Amount</p>
+                      <p className="flex items-center gap-1 text-base font-black text-black">
+                        ₹{Number(transaction.amount || 0).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+
+                    <Link
+                      to={providerTo}
+                      className="grid h-11 w-11 shrink-0 place-items-center justify-self-end rounded-xl bg-black text-[#fffaf3] transition hover:-translate-y-0.5"
+                      aria-label="Open provider profile"
+                    >
+                      <ArrowUpRight size={18} />
+                    </Link>
                   </article>
                 );
               })}

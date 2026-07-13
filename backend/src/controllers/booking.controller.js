@@ -220,7 +220,7 @@ exports.createBooking = async (req, res) => {
             create: {
               senderRole: "SYSTEM",
               system: true,
-              text: "Booking confirmed. You can now chat about meetup details.",
+              text: `New booking confirmed: ${service} (${code}). You can continue chatting here.`,
             },
           },
         },

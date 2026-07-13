@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   CalendarCheck2,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Coffee,
@@ -263,14 +264,21 @@ export default function Home() {
           return;
         }
 
-        const isMobile = window.innerWidth < 1024;
-        const scale = 1 - progress * (isMobile ? 0.04 : 0.14);
-        const translateY = isMobile ? 0 : progress * 18;
+        if (window.innerWidth < 1024) {
+          heroStage.style.transform = "none";
+          heroStage.style.opacity = "1";
+          heroStage.style.borderRadius = "0px";
+          heroStage.style.boxShadow = "none";
+          return;
+        }
 
-heroStage.style.filter = "none";
+        const scale = 1 - progress * 0.14;
+        const translateY = progress * 18;
+
+ heroStage.style.filter = "none";
         heroStage.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
         heroStage.style.opacity = `${1 - progress * 0.008}`;
-        heroStage.style.borderRadius = `${progress * (isMobile ? 22 : 38)}px`;
+        heroStage.style.borderRadius = `${progress * 38}px`;
         heroStage.style.boxShadow = `0 ${progress * 35}px ${progress * 90}px rgba(24, 27, 42, ${progress * 0.24})`;
       });
     };
@@ -426,21 +434,12 @@ heroStage.style.filter = "none";
                 )}
               </div>
 
-              <div className="mt-10 grid max-w-xl grid-cols-3 border-t border-[#dbc7b7]/65 pt-7">
-                {[
-                  [siteContent.statVerifiedMembers || "300+", siteContent.statVerifiedMembersLabel || "Verified members"],
-                  [siteContent.statPlansCreated || "1,456", siteContent.statPlansCreatedLabel || "Plans created"],
-                  [siteContent.statAverageRating || "4.8", siteContent.statAverageRatingLabel || "Average rating"],
-                ].map(([value, label]) => (
-                  <div key={label} className="pr-3">
-                    <p className="text-2xl font-black sm:text-3xl">{value}</p>
-                    <p className="mt-1 text-[11px] font-bold leading-4 text-black/40 sm:text-xs">{label}</p>
-                  </div>
-                ))}
-              </div>
+              <HeroStats siteContent={siteContent} className="mt-10 hidden lg:grid" />
             </div>
 
             <HeroVisual />
+
+            <HeroStats siteContent={siteContent} className="mt-6 lg:hidden" />
           </div>
           </div>
         </section>
@@ -472,23 +471,20 @@ heroStage.style.filter = "none";
               text="BuddyBOOK gives members clear identity, communication, payment and location signals before a plan begins."
             />
             </div>
-            <div className="mt-12 grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="mt-12 grid gap-4 sm:grid-cols-2">
-              {safetyItems.map(({ icon: Icon, title, text }, index) => (
-                <article
-                  key={title}
-                  className="group animate-rise rounded-lg border border-black/10 bg-white p-6 shadow-[0_14px_40px_rgba(73,48,30,0.06)] transition duration-300 hover:-translate-y-2 hover:border-[#e6a572]/60 hover:shadow-[0_22px_55px_rgba(73,48,30,0.12)]"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <span className="grid h-11 w-11 place-items-center rounded-md bg-[#fff0df] text-[#c97031] transition group-hover:bg-[#171b30] group-hover:text-white">
-                    <Icon size={20} />
-                  </span>
-                  <h3 className="mt-5 text-lg font-black">{title}</h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-black/50">{text}</p>
-                </article>
-              ))}
-            </div>
-            <SafetyOrbit profiles={publicProviders} />
+            <div className="mt-12 grid items-center gap-8 lg:grid-cols-[1fr_1.15fr_1fr]">
+              <div className="grid gap-4">
+                {safetyItems.slice(0, 2).map((item, index) => (
+                  <SafetyCard key={item.title} {...item} index={index} />
+                ))}
+              </div>
+
+              <SafetyOrbit profiles={publicProviders} />
+
+              <div className="grid gap-4">
+                {safetyItems.slice(2, 4).map((item, index) => (
+                  <SafetyCard key={item.title} {...item} index={index} />
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -784,6 +780,18 @@ function ProfileCollageCard({ profile, index, grid = false }) {
 function TestimonialsSection({ testimonials }) {
   const [current, setCurrent] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [direction, setDirection] = useState(0); // 1 for next, -1 for prev, 0 idle
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (event) => setIsMobile(event.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
 
   useEffect(() => {
     setCurrent(0);
@@ -793,23 +801,37 @@ function TestimonialsSection({ testimonials }) {
 
   const next = () => {
     if (isAnimating) return;
+    setDirection(1);
     setIsAnimating(true);
     setTimeout(() => {
       setCurrent((prev) => (prev + 1) % testimonials.length);
+      setDirection(0);
       setIsAnimating(false);
     }, 300);
   };
 
   const prev = () => {
     if (isAnimating) return;
+    setDirection(-1);
     setIsAnimating(true);
     setTimeout(() => {
       setCurrent((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+      setDirection(0);
       setIsAnimating(false);
     }, 300);
   };
 
   const currentTestimonial = testimonials[current];
+
+  // Keep the component in its place; only fade/scale in position during transition
+  const scale = isAnimating ? 0.95 : 1;
+  const opacity = isAnimating ? 0 : 1;
+
+  const containerStyle = {
+    opacity,
+    transform: `scale(${scale})`,
+    transition: `opacity 300ms ease, transform 300ms ease`,
+  };
 
   return (
     <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
@@ -826,14 +848,17 @@ function TestimonialsSection({ testimonials }) {
         </div>
 
         <div className="relative mt-12 rounded-[2.5rem] border border-black/10 bg-white px-4 py-10 shadow-[0_35px_100px_rgba(94,56,88,.15)] sm:px-10">
-          <div
-            className={`transition-all duration-300 ${
-              isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
-            }`}
-          >
-            <div className="flex flex-col items-center text-center">
+          <div style={containerStyle} className="transition-all duration-300">
+            <div className="flex min-h-[200px] flex-col items-center justify-center text-center sm:min-h-[220px]">
               <div className="flex items-center gap-2">
-                {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={18} className={i < currentTestimonial.rating ? "text-[#f59e0b]" : "text-black/20"} fill={i < currentTestimonial.rating ? "currentColor" : "none"} />)}
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={18}
+                    className={i < currentTestimonial.rating ? "text-[#f59e0b]" : "text-black/20"}
+                    fill={i < currentTestimonial.rating ? "currentColor" : "none"}
+                  />
+                ))}
               </div>
               <p className="mt-4 max-w-2xl text-lg font-semibold leading-8 text-black/70 sm:text-xl">
                 "{currentTestimonial.text}"
@@ -848,7 +873,7 @@ function TestimonialsSection({ testimonials }) {
             </div>
           </div>
 
-          <div className="relative mx-auto mt-8 h-[270px] max-w-5xl [perspective:1200px] sm:h-[360px]">
+          <div className="relative mx-auto mt-8 h-[270px] max-w-5xl overflow-hidden [perspective:1200px] sm:h-[360px] sm:overflow-visible">
             {testimonials.slice(0, 10).map((item, index) => {
               const total = Math.min(testimonials.length, 10);
               let offset = index - current;
@@ -856,8 +881,25 @@ function TestimonialsSection({ testimonials }) {
               if (offset < -total / 2) offset += total;
               const active = index === current;
               return (
-                <button key={`${item.name}-${index}`} type="button" onClick={() => setCurrent(index)} className="absolute left-1/2 top-1/2 overflow-hidden rounded-[1.8rem] border-4 border-white shadow-2xl transition-all duration-500" style={{ width: active ? 180 : 125, height: active ? 250 : 190, zIndex: active ? 30 : 15 - Math.abs(offset), transform: `translate(-50%,-50%) translateX(${offset * 92}px) translateY(${Math.abs(offset) * 18}px) rotateY(${offset * -10}deg) scale(${active ? 1 : .88})`, background: ["#ef9dcc", "#6c9ce4", "#9b70d2", "#f1c64e", "#9dce9d"][index % 5] }} aria-label={`Show ${item.name}'s testimonial`}>
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+                <button
+                  key={`${item.name}-${index}`}
+                  type="button"
+                  onClick={() => setCurrent(index)}
+                  className="absolute left-1/2 top-1/2 overflow-hidden rounded-[1.8rem] border-4 border-white shadow-2xl transition-all duration-500"
+                  style={{
+                    width: active ? (isMobile ? 128 : 180) : (isMobile ? 86 : 125),
+                    height: active ? (isMobile ? 182 : 250) : (isMobile ? 132 : 190),
+                    zIndex: active ? 30 : 15 - Math.abs(offset),
+                    transform: `translate(-50%,-50%) translateX(${offset * (isMobile ? 44 : 92)}px) translateY(${Math.abs(offset) * (isMobile ? 12 : 18)}px) rotateY(${offset * -10}deg) scale(${active ? 1 : 0.88})`,
+                    background: ["#ef9dcc", "#6c9ce4", "#9b70d2", "#f1c64e", "#9dce9d"][index % 5],
+                  }}
+                  aria-label={`Show ${item.name}'s testimonial`}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                  />
                 </button>
               );
             })}
@@ -902,6 +944,23 @@ function TestimonialsSection({ testimonials }) {
   );
 }
 
+function HeroStats({ siteContent = {}, className = "" }) {
+  return (
+    <div className={`grid max-w-xl grid-cols-3 border-t border-[#dbc7b7]/65 pt-7 ${className}`}>
+      {[
+        [siteContent.statVerifiedMembers || "300+", siteContent.statVerifiedMembersLabel || "Verified members"],
+        [siteContent.statPlansCreated || "1,456", siteContent.statPlansCreatedLabel || "Plans created"],
+        [siteContent.statAverageRating || "4.8", siteContent.statAverageRatingLabel || "Average rating"],
+      ].map(([value, label]) => (
+        <div key={label} className="pr-3">
+          <p className="text-2xl font-black sm:text-3xl">{value}</p>
+          <p className="mt-1 text-[11px] font-bold leading-4 text-black/40 sm:text-xs">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HeroVisual() {
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
@@ -936,23 +995,23 @@ function HeroVisual() {
         </div>
       </div>
 
-<div className="absolute bottom-0 left-1/2 z-30 w-[min(92%,340px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0">
+<div className="absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3.5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0 sm:p-5">
         <div className="flex items-start gap-3">
-          <img src={profiles[0].image} alt={profiles[0].name} className="h-16 w-16 shrink-0 rounded-full object-cover border-4 border-[#e08c4c]" />
+          <img src={profiles[0].image} alt={profiles[0].name} className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-base font-black">{profiles[0].name}</h3>
+              <h3 className="text-sm font-black sm:text-base">{profiles[0].name?.split(" ")[0]}</h3>
               <BadgeCheck size={15} className="shrink-0 text-[#e08c4c]" />
             </div>
           </div>
         </div>
-        <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Upcoming plan</p>
-        <div className="mt-2 flex items-end justify-between gap-4">
+        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-black/30 sm:mt-4">Upcoming plan</p>
+        <div className="mt-1.5 flex items-end justify-between gap-4 sm:mt-2">
           <div>
-            <p className="font-black">Coffee · 2 hours</p>
+            <p className="text-sm font-black sm:text-base">Coffee · 2 hours</p>
             <p className="mt-1 text-xs font-bold text-black/38">Saturday, 5:30 PM</p>
           </div>
-          <p className="text-lg font-black text-[#e08c4c]">₹800</p>
+          <p className="text-base font-black text-[#e08c4c] sm:text-lg">₹800</p>
         </div>
       </div>
 
@@ -1092,6 +1151,7 @@ function PublicServiceExploreSection({
   onFilter,
   onReset,
 }) {
+  const [showFilters, setShowFilters] = useState(false);
   const servicePills = [
     ["City tour", "City walk"],
     ["Events", "Event partner"],
@@ -1100,7 +1160,6 @@ function PublicServiceExploreSection({
     ["Dinner", "Dinner plan"],
     ["Shopping", "Shopping companion"],
     ["Sports", "Cricket companion"],
-    ["Study partner", "Study buddy"],
   ];
 
   return (
@@ -1129,18 +1188,27 @@ function PublicServiceExploreSection({
         </div>
 
         <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="h-max rounded-2xl border border-black/10 bg-white p-6 lg:sticky lg:top-28">
-            <div className="flex items-center justify-between">
+          <aside className="h-max rounded-none border border-black/10 bg-white p-6 lg:sticky lg:top-28">
+            <button
+              type="button"
+              onClick={() => setShowFilters((value) => !value)}
+              className="flex w-full items-center justify-between lg:pointer-events-none"
+              aria-expanded={showFilters}
+            >
               <h3 className="text-2xl font-black text-black">Filter</h3>
-            </div>
-            <div className="mt-8 grid gap-6">
+              <ChevronDown
+                size={22}
+                className={`text-black transition lg:hidden ${showFilters ? "rotate-180" : ""}`}
+              />
+            </button>
+            <div className={`mt-8 gap-6 lg:grid ${showFilters ? "grid" : "hidden"}`}>
               <label>
                 <span className="text-sm font-black text-black">{content.filterUsernameLabel || "Find username"}</span>
                 <input
                   value={filters.keyword}
                   onChange={(event) => onFilter("keyword", event.target.value)}
                   placeholder="Enter username"
-                  className="mt-3 h-14 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
+                  className="mt-3 h-14 w-full rounded-none border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
                 />
               </label>
               <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} placeholder="eg. Gurgaon" options={cities} onChange={(value) => onFilter("city", value)} />
@@ -1158,13 +1226,13 @@ function PublicServiceExploreSection({
                 <button
                   type="button"
                   onClick={onReset}
-                  className="rounded-full border border-black/15 bg-white px-3 py-2.5 text-xs font-black"
+                  className="rounded-none border border-black/15 bg-white px-3 py-2.5 text-xs font-black"
                 >
                   Reset
                 </button>
                 <button
                   type="button"
-                  className="rounded-full bg-black px-3 py-2.5 text-xs font-black text-white"
+                  className="rounded-none bg-black px-3 py-2.5 text-xs font-black text-white"
                 >
                   Apply
                 </button>
@@ -1181,13 +1249,13 @@ function PublicServiceExploreSection({
             </p>
 
             {loading ? (
-              <div className="mt-7 grid gap-x-5 gap-y-9 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-9 xl:grid-cols-4">
                 {Array.from({ length: 6 }, (_, index) => (
                   <div key={index} className="h-[390px] animate-pulse rounded-2xl bg-[#f3f3f3]" />
                 ))}
               </div>
             ) : providers.length ? (
-              <div className="mt-7 grid gap-x-5 gap-y-9 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-9 xl:grid-cols-4">
                 {providers.map((provider, index) => (
                   <SmallIndianProviderCard key={provider.id} provider={provider} index={index} content={content} />
                 ))}
@@ -1318,19 +1386,34 @@ function FilterRadioGroup({ title, value, options, onChange }) {
   );
 }
 
+function SafetyCard({ icon: Icon, title, text, index = 0 }) {
+  return (
+    <article
+      className="group animate-rise rounded-lg border border-black/10 bg-white p-5 shadow-[0_14px_40px_rgba(73,48,30,0.06)] transition duration-300 hover:-translate-y-2 hover:border-[#e6a572]/60 hover:shadow-[0_22px_55px_rgba(73,48,30,0.12)]"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <span className="grid h-10 w-10 place-items-center rounded-md bg-[#fff0df] text-[#c97031] transition group-hover:bg-[#171b30] group-hover:text-white">
+        <Icon size={18} />
+      </span>
+      <h3 className="mt-4 text-base font-black">{title}</h3>
+      <p className="mt-1.5 text-sm font-semibold leading-6 text-black/50">{text}</p>
+    </article>
+  );
+}
+
 function SafetyOrbit({ profiles: rows }) {
   const orbitProfiles = (rows?.length ? rows : profiles).slice(0, 6);
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff7fb_52%,transparent_70%)]">
-      <div className="absolute inset-[9%] rounded-full border border-[#e8a8bb]/60" />
-      <div className="absolute inset-[25%] rounded-full border border-[#9dafe8]/55" />
-      <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e96d98] shadow-xl"><Heart size={34} fill="currentColor" /></div>
+    <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff5ea_52%,transparent_70%)]">
+      <div className="absolute inset-[9%] rounded-full border border-[#e6a572]/60" />
+      <div className="absolute inset-[25%] rounded-full border border-[#f4ad75]/55" />
+      <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e08c4c] shadow-xl"><ShieldCheck size={34} /></div>
       {orbitProfiles.map((profile, index) => (
         <div key={profile.id || profile.name} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
           <img src={profile.image} alt={profile.name} className="absolute left-1/2 top-0 h-14 w-14 -translate-x-1/2 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
         </div>
       ))}
-      {[12, 42, 74].map((left, index) => <Heart key={left} size={18 + index * 4} fill="currentColor" className="orbit-heart absolute bottom-[12%] text-[#f06d9b]" style={{ left: `${left}%`, animationDelay: `-${index * 1.2}s` }} />)}
+      {[12, 42, 74].map((left, index) => <Heart key={left} size={18 + index * 4} fill="currentColor" className="orbit-heart absolute bottom-[12%] text-[#e08c4c]" style={{ left: `${left}%`, animationDelay: `-${index * 1.2}s` }} />)}
     </div>
   );
 }
@@ -1482,7 +1565,7 @@ function PublicProviderDrawer({
           </div>
 
           {loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
               {Array.from({ length: 4 }, (_, index) => (
                 <div
                   key={index}
@@ -1491,7 +1574,7 @@ function PublicProviderDrawer({
               ))}
             </div>
           ) : providers.length ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
               {providers.map((provider) => (
                 <ProviderCard
                   key={provider.id}
@@ -1526,7 +1609,7 @@ function DrawerFilter({ label, value, options, onChange, placeholder }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-[54px] w-full appearance-none rounded-md border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d]"
+        className="h-[54px] w-full appearance-none rounded-none border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d]"
       >
         {options.map((option) => (
           <option key={option} value={option} className={option === "All" ? "text-black/40" : ""}>

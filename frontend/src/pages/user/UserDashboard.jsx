@@ -147,7 +147,7 @@ export default function UserDashboard() {
           />
           <Statistics total={total} completed={completed} pending={pending} />
 
-          <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <div className="rounded-none border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black">Providers to Explore</h2>
@@ -157,10 +157,10 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {providersLoading ? (
                 [1, 2, 3, 4].map((item) => (
-                  <div key={item} className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-white">
+                  <div key={item} className="overflow-hidden rounded-none border border-[#e2e8f0] bg-white">
                     <div className="h-[86px] animate-pulse bg-[#eef4ff]" />
                     <div className="space-y-2 p-3">
                       <div className="h-3 w-2/3 animate-pulse rounded bg-[#eef4ff]" />
@@ -180,7 +180,7 @@ export default function UserDashboard() {
                   />
                 ))
               ) : (
-                <div className="col-span-full grid h-full place-items-center rounded-lg border border-dashed border-[#dce5f2] bg-[#f8fbff] text-center">
+                <div className="col-span-full grid h-full place-items-center rounded-none border border-dashed border-[#dce5f2] bg-[#f8fbff] text-center">
                   <div>
                     <p className="text-sm font-black text-[#17213a]">No provider profiles yet</p>
                     <p className="mt-1 text-xs font-bold text-[#75839a]">
@@ -192,7 +192,7 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div className="hidden min-h-0 overflow-hidden rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <div className="hidden min-h-0 overflow-hidden rounded-none border border-black/10 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Recent Bookings</h2>
               <Link to="/app/user/bookings" className="text-xs font-black text-[#d67f3d]">
@@ -269,7 +269,7 @@ export default function UserDashboard() {
 function WelcomeBanner({ user }) {
   const firstName = user?.fullName?.split(" ")[0] || "Buddy";
   return (
-    <div className="relative min-h-[210px] overflow-hidden rounded-lg border border-[#eddac7] bg-[#fffaf3] p-8 text-black shadow-sm">
+    <div className="relative min-h-[160px] overflow-hidden rounded-none border border-[#eddac7] bg-[#fffaf3] p-8 text-black shadow-sm">
       <div className="relative z-10 max-w-[76%]">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-3xl font-black text-black sm:text-5xl">Welcome back, {firstName}!</p>
@@ -283,7 +283,7 @@ function WelcomeBanner({ user }) {
         <div className="mt-7 flex flex-wrap gap-3">
           {["Safe & Verified", "Public Meetups", "Platonic Only", "Community First"].map(
             (item) => (
-              <span key={item} className="rounded-md bg-[#ffeedd] px-5 py-3 text-xs font-black text-black shadow-sm">
+              <span key={item} className="rounded-none bg-[#ffeedd] px-5 py-3 text-xs font-black text-black shadow-sm">
                 {item}
               </span>
             )
@@ -309,7 +309,7 @@ function UserMetricStrip({ totalSpent, savedProviders }) {
   return (
     <div className="grid gap-5 md:grid-cols-2">
       {cards.map(([Icon, value, label, action, tone]) => (
-        <article key={label} className="min-h-[150px] rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+        <article key={label} className="min-h-[150px] rounded-none border border-black/10 bg-white p-6 shadow-sm">
           <div className="flex min-w-0 items-center gap-4">
             <span className={`grid h-14 w-14 place-items-center rounded-xl ${tone}`}>
               <Icon size={24} />
@@ -336,7 +336,7 @@ function OverviewCard({ totalSpent, rating, dailyLimit, todayBookings, verified 
   ];
 
   return (
-    <div className="rounded-lg border border-[#dce5f2] bg-white p-5 shadow-sm">
+    <div className="rounded-none border border-[#dce5f2] bg-white p-5 shadow-sm">
       <h2 className="text-xl font-black">My Overview</h2>
       <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
         {items.map(([Icon, value, label, tone]) => (
@@ -361,7 +361,7 @@ function WeeklyChart({ values }) {
   const bestIndex = values.indexOf(max);
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return (
-    <div className="relative min-h-0 overflow-hidden rounded-[1.8rem] border border-[#ead8c8] bg-white p-6 shadow-[0_18px_55px_rgba(84,53,31,.09)]">
+    <div className="relative min-h-0 overflow-hidden rounded-none border border-[#ead8c8] bg-white p-6 shadow-[0_18px_55px_rgba(84,53,31,.09)]">
       <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#ffe4ca] blur-3xl" />
       <div className="flex items-center justify-between">
         <div className="relative">
@@ -373,16 +373,16 @@ function WeeklyChart({ values }) {
           View all →
         </Link>
       </div>
-      <div className="relative mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-[#fff4e9] p-3"><p className="text-2xl font-black">{total}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#9b7354]">Total completed</p></div>
-        <div className="rounded-2xl bg-[#f2f0ff] p-3"><p className="text-2xl font-black">{total ? days[bestIndex] : "—"}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#756d9d]">Most active day</p></div>
-      </div>
-      <div className="relative mt-5 flex h-36 items-end gap-3 rounded-2xl bg-[#fffaf5] px-3 pb-4 pt-4">
+        <div className="relative mt-5 grid grid-cols-2 gap-3">
+         <div className="rounded-none bg-[#fff4e9] p-3"><p className="text-2xl font-black">{total}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#9b7354]">Total completed</p></div>
+         <div className="rounded-none bg-[#f2f0ff] p-3"><p className="text-2xl font-black">{total ? days[bestIndex] : "—"}</p><p className="text-[10px] font-black uppercase tracking-wider text-[#756d9d]">Most active day</p></div>
+       </div>
+       <div className="relative mt-5 flex h-36 items-end gap-3 rounded-none bg-[#fffaf5] px-3 pb-4 pt-4">
         {values.map((value, index) => (
           <div key={index} className="group flex h-full flex-1 flex-col justify-end text-center">
             <span className="mb-1 text-[10px] font-black text-[#df843f] opacity-0 transition group-hover:opacity-100">{value}</span>
             <div
-              className="mx-auto w-full max-w-9 rounded-t-xl bg-gradient-to-t from-black to-[#3d3540] shadow-[0_8px_18px_rgba(0,0,0,.16)] transition duration-300 group-hover:-translate-y-1 group-hover:from-[#dd7e38] group-hover:to-[#f4ad75]"
+               className="mx-auto w-full max-w-9 rounded-t-none bg-gradient-to-t from-black to-[#3d3540] shadow-[0_8px_18px_rgba(0,0,0,.16)] transition duration-300 group-hover:-translate-y-1 group-hover:from-[#dd7e38] group-hover:to-[#f4ad75]"
               style={{ height: value ? `${Math.max((value / max) * 70, 14)}%` : "4%" }}
               title={`${value} bookings`}
             />
@@ -398,7 +398,7 @@ function WeeklyChart({ values }) {
 
 function Statistics({ total, completed, pending }) {
   return (
-    <div className="rounded-lg border border-[#dce5f2] bg-white p-5 shadow-sm">
+    <div className="rounded-none border border-[#dce5f2] bg-white p-5 shadow-sm">
       <h2 className="text-xl font-black">Statistics</h2>
       <div className="mt-5 grid grid-cols-3 gap-4">
         {[
@@ -450,7 +450,7 @@ function readStorage(key, fallback) {
 function SafetyChecklist() {
   const items = ["Profile is verified", "Use public meeting places", "Share plans with a friend", "Respect boundaries"];
   return (
-    <section className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+    <section className="rounded-none border border-black/10 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black">Safety Checklist</h2>
         <span className="text-sm font-black text-[#16815f]">All good!</span>
@@ -470,7 +470,7 @@ function SafetyChecklist() {
 
 function SuggestedProviders({ providers }) {
   return (
-    <section className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
+    <section className="rounded-none border border-black/10 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-black">Suggested Providers</h2>
         <Link to="/#community" className="text-sm font-black text-[#e08c4c]">View all</Link>
