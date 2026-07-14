@@ -26,6 +26,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
+    if (!status || status >= 500) {
+      const message = error?.response?.data?.message ||
+        (!status ? "Cannot reach the server. Check your connection and try again." : "The server could not complete this request.");
+      window.dispatchEvent(new CustomEvent("buddybook:toast", {
+        detail: { id: Date.now(), message, type: "error" },
+      }));
+    }
     if (status === 423 && error?.response?.data?.accountDisabled) {
       try {
         const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");

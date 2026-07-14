@@ -31,9 +31,9 @@ export default function Activities() {
                 Popular activities
               </div>
 
-              <div className="activity-marquee-perspective relative overflow-hidden rounded-[2rem] bg-[#fffaf3]/78 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_24px_70px_rgba(93,70,50,0.12)] [transform-style:preserve-3d] before:pointer-events-none before:absolute before:inset-2 before:rounded-[1.6rem] before:bg-[linear-gradient(135deg,rgba(255,255,255,0.82),transparent_45%,rgba(255,116,95,0.10))] before:content-['']">
-                <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 bg-gradient-to-r from-[#fffaf3] to-transparent sm:w-32" />
-                <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 bg-gradient-to-l from-[#fffaf3] to-transparent sm:w-32" />
+              <div className="activity-marquee-perspective relative overflow-x-auto overflow-y-hidden rounded-[2rem] bg-[#fffaf3]/78 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_24px_70px_rgba(93,70,50,0.12)] [transform-style:preserve-3d] before:pointer-events-none before:absolute before:inset-2 before:rounded-[1.6rem] before:bg-[linear-gradient(135deg,rgba(255,255,255,0.82),transparent_45%,rgba(255,116,95,0.10))] before:content-['']">
+                <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-[#fffaf3] to-transparent sm:w-32" />
+                <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-[#fffaf3] to-transparent sm:w-32" />
 
                 <div className="activity-marquee-3d relative z-10 flex w-max gap-4 px-6 py-2">
                   {marqueeActivities.map((activity, index) => (
@@ -102,33 +102,20 @@ export default function Activities() {
                   ))}
                 </div>
 
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#ff745f] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(255,116,95,0.22)] transition hover:-translate-y-0.5 hover:bg-[#e95f4c]"
-                  >
-                    Explore all activities
-                    <ArrowRight size={16} />
-                  </Link>
-
-                  <Link
-                    to="/how-it-works"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white/76 px-6 py-3 text-sm font-black text-[#6f6158] transition hover:-translate-y-0.5 hover:bg-[#fffaf3] hover:text-[#2b211b]"
-                  >
-                    How it works
-                  </Link>
+                 <div className="mt-8 flex flex-wrap gap-3">
+                  
                 </div>
               </div>
 
-              <div className="relative flex items-center justify-center">
-                <div className="pointer-events-none absolute -right-6 top-8 h-52 w-52 rounded-full bg-[#ff745f]/10 blur-3xl" />
-                <div className="pointer-events-none absolute -left-6 bottom-8 h-52 w-52 rounded-full bg-white/90 blur-3xl" />
+              <div className="relative flex items-center justify-center overflow-visible">
+                <div className="pointer-events-none absolute -right-6 top-8 h-52 w-52 rounded-full bg-[#ff745f]/15 blur-3xl" />
+                <div className="pointer-events-none absolute -left-6 bottom-8 h-52 w-52 rounded-full bg-[#ffcf33]/20 blur-3xl" />
 
-                <div className="activity-showcase-3d relative w-full max-w-xl rounded-[2rem] bg-[#fffaf3]/86 p-4 shadow-[0_35px_90px_rgba(93,70,50,0.18)] backdrop-blur-xl transition duration-500 hover:-translate-y-2 hover:shadow-[0_45px_110px_rgba(255,116,95,0.18)]">
-                  <div className="rounded-[1.55rem] bg-white/78 p-4 shadow-inner shadow-white/50">
+                <div className="activity-showcase-3d relative w-full max-w-xl rounded-[2rem] bg-gradient-to-br from-[#fff5ee] to-[#fffaf3] p-4 shadow-[0_35px_90px_rgba(93,70,50,0.18)] ring-1 ring-[#ffcf33]/60 transition duration-500 hover:-translate-y-2 hover:shadow-[0_45px_110px_rgba(255,116,95,0.18)]">
+                  <div className="rounded-[1.55rem] bg-white p-4 shadow-inner shadow-[#ffcf33]/40">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#b58a78]">
+                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#b8644d]">
                           Activity board
                         </p>
 
@@ -137,7 +124,7 @@ export default function Activities() {
                         </h3>
                       </div>
 
-                      <div className="rounded-full bg-[#fff0e8] px-4 py-2 text-xs font-black text-[#d86f55]">
+                      <div className="rounded-full bg-[#ff745f] px-4 py-2 text-xs font-black text-white shadow-lg shadow-[#ff745f]/30">
                         Verified
                       </div>
                     </div>
@@ -146,10 +133,10 @@ export default function Activities() {
                       {activities.slice(0, 5).map((activity, index) => (
                         <div
                           key={activity.name}
-                          className="group flex items-center justify-between gap-3 rounded-2xl bg-[#f5efe7]/82 p-3 transition hover:translate-x-1 hover:bg-white hover:shadow-[0_16px_36px_rgba(93,70,50,0.12)]"
+                          className="group flex items-center justify-between gap-3 rounded-2xl bg-[#fff5ee] p-3 transition hover:translate-x-1 hover:bg-white hover:shadow-[0_16px_36px_rgba(255,116,95,0.18)]"
                         >
                           <div className="flex min-w-0 items-center gap-3">
-                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-xl text-[#b8644d] shadow-[inset_0_0_0_1px_rgba(255,116,95,0.12),0_10px_20px_rgba(93,70,50,0.10)] transition group-hover:bg-[#fff0e8]">
+                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-xl text-[#b8644d] shadow-[inset_0_0_0_1px_rgba(255,116,95,0.25),0_10px_20px_rgba(93,70,50,0.10)] transition group-hover:bg-[#fff0e8]">
                               {activity.icon}
                             </div>
 
@@ -165,9 +152,9 @@ export default function Activities() {
                             </div>
                           </div>
 
-                          <Link
-                            to="/register"
-                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#d86f55] transition hover:bg-[#ff745f] hover:text-white"
+                           <Link
+                            to="/#providers"
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#d86f55] transition hover:bg-[#ff745f] hover:text-white shadow-sm"
                           >
                             Book
                             <ArrowRight size={12} />
@@ -177,11 +164,11 @@ export default function Activities() {
                     </div>
                   </div>
 
-                  <div className="absolute -bottom-5 left-7 rounded-2xl bg-[#fffaf3] px-5 py-3 text-sm font-black text-[#b8644d] shadow-[0_18px_40px_rgba(93,70,50,0.18)]">
+                  <div className="absolute -bottom-5 left-7 rounded-2xl bg-[#ff745f] px-5 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(93,70,50,0.18)]">
                     10+ meetup plans
                   </div>
 
-                  <div className="absolute -right-3 top-3 rounded-2xl bg-[#fffaf3] px-4 py-2.5 text-xs font-black text-[#d86f55] shadow-[0_14px_32px_rgba(93,70,50,0.14)]">
+                  <div className="absolute -right-3 top-3 rounded-2xl bg-[#171b30] px-4 py-2.5 text-xs font-black text-[#ffcf33] shadow-[0_14px_32px_rgba(93,70,50,0.14)]">
                     Safe companionship
                   </div>
                 </div>

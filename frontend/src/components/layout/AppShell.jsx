@@ -96,7 +96,46 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col">
-          <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
+          <header className="lg:hidden">
+            <div className="fixed left-3 right-3 top-3 z-[9998] overflow-hidden rounded-full border-2 border-black bg-white/90 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+              <div className="flex h-14 items-center justify-between gap-3 px-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
+                    aria-label="Go to home page"
+                  >
+                    <Home size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
+                    aria-label={`Open ${type} workspace menu`}
+                  >
+                    <Menu size={18} />
+                  </button>
+                </div>
+                <h1 className="text-sm font-black tracking-tight text-black sm:text-base">
+                  {type === "provider" && pageName === "dashboard"
+                    ? "Provider Overview"
+                    : `${pageName.replace(/-/g, " ")}`}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <NotificationBell />
+                  <img
+                    src={getAvatar(storedUser)}
+                    alt={storedUser?.fullName || "Account"}
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="h-[72px] shrink-0" />
+          </header>
+
+          <header className="hidden h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8 lg:flex">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"

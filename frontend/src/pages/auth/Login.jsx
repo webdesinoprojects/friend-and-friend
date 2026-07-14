@@ -333,7 +333,7 @@ export default function Login() {
                         onChange={(e) =>
                           setForm((prev) => ({ ...prev, phone: e.target.value }))
                         }
-                        placeholder="+91 98765 43210"
+                        placeholder="+91 9999999999"
                         className="w-full bg-transparent text-sm font-semibold text-black outline-none placeholder:text-black/25"
                       />
                     </div>

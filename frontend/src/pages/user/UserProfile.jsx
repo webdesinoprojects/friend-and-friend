@@ -17,6 +17,7 @@ import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { hasAuthToken } from "../../utils/authSession";
 import { getReceivedReviews } from "../../utils/userFlowStorage";
+import { listMyReviews } from "../../api/reports";
 
 const fallbackAvatar =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop";
@@ -27,7 +28,8 @@ export default function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [photoSaving, setPhotoSaving] = useState(false);
   const [form, setForm] = useState(() => userToForm(readUser()));
-  const reviews = getReceivedReviews("USER");
+  const localReviews = getReceivedReviews("USER");
+  const [backendReviews, setBackendReviews] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +54,29 @@ export default function UserProfile() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    listMyReviews()
+      .then((rows) => {
+        if (!mounted) return;
+        const filtered = Array.isArray(rows)
+          ? rows.filter(
+              (review) =>
+                review.targetRole === "USER" &&
+                (review.targetId === user?.id || review.targetName === user?.fullName)
+            )
+          : [];
+        setBackendReviews(filtered);
+      })
+      .catch(() => {
+        if (mounted) setBackendReviews([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, user?.fullName]);
+
   const profile = user?.userProfile || {};
   const interests = useMemo(
     () =>
@@ -62,8 +87,9 @@ export default function UserProfile() {
     [profile.interests, profile.preferredActivities]
   );
   const avatar = user?.profileImage || user?.avatar || profile.avatar || fallbackAvatar;
-  const averageRating = reviews.length
-    ? (reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length).toFixed(1)
+  const allReviews = backendReviews.length ? backendReviews : localReviews;
+  const averageRating = allReviews.length
+    ? (allReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / allReviews.length).toFixed(1)
     : "New";
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));

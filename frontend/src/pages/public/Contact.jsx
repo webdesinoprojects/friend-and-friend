@@ -18,7 +18,7 @@ import PublicFooter from "../../components/layout/PublicFooter";
 import api from "../../api/api";
 
 const CONTACT_EMAIL = "yashraj.webdesino@gmail.com";
-const CONTACT_PHONE = "+91 98765 43210";
+const CONTACT_PHONE = "+91 9999999999";
 const CONTACT_LOCATION = "India";
 
 const contactInfo = [

@@ -672,8 +672,8 @@ export default function Register() {
         </div>
 
         {/* RIGHT SIDE FIXED CARD, INNER CONTENT SCROLLS */}
-        <section className="flex h-screen items-center justify-center overflow-hidden bg-[#fbfaf7] px-4 py-4 md:px-6">
-          <div className="flex h-full w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)]">
+        <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-4 md:h-screen md:px-6">
+          <div className="flex min-h-0 w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)] md:h-full">
             {/* CARD HEADER FIXED */}
             <div className="shrink-0 border-b border-black/10 p-5 md:p-7">
               <div className="flex items-start justify-between gap-4">
@@ -688,7 +688,7 @@ export default function Register() {
                   </h1>
 
                   <p className="mt-2 text-sm font-semibold text-black/55">
-                    Step {currentStep} of {steps.length} Â· {activeStep?.title}
+                    Step {currentStep} of {steps.length} · {activeStep?.title}
                   </p>
                 </div>
 
@@ -1142,7 +1142,7 @@ export default function Register() {
                             label="Emergency contact"
                             value={form.emergencyContact}
                             onChange={(v) => updateField("emergencyContact", v)}
-                            placeholder="+91 98765 43210"
+                            placeholder="+91 9999999999"
                           />
                         </div>
                       </div>

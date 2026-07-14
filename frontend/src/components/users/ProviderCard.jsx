@@ -19,7 +19,7 @@ export default function ProviderCard({
     return images.length
       ? images.filter(Boolean)
       : [provider.image || provider.avatar].filter(Boolean);
-  }, [provider.id, provider.image, provider.avatar]);
+  }, [provider.images, provider.image, provider.avatar]);
   const [carouselImages, setCarouselImages] = useState(initialImages);
 
   useEffect(() => {
@@ -183,7 +183,7 @@ function HomeProviderCard({
     </>
   );
 
-  const className = "group block text-black";
+  const className = "group block overflow-hidden rounded-2xl bg-white text-black shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md";
 
   return link ? (
     <Link to={link} className={className}>

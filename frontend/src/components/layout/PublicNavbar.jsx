@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   Settings,
-  ShieldCheck,
   Star,
   User,
   Wallet,
@@ -54,49 +53,55 @@ export default function PublicNavbar() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [user, setUser] = useState(() => readStoredUser());
-
-  const closeMenu = () => setIsOpen(false);
+  const [backendRating, setBackendRating] = useState(null);
 
   useEffect(() => {
     let mounted = true;
     if (!hasAuthToken()) {
-      setUser(readStoredUser());
       return () => {
         mounted = false;
       };
     }
 
-    api
-      .get("/auth/me")
-      .then(({ data }) => {
+    const loadUser = async () => {
+      try {
+        const { data } = await api.get('/auth/me');
         const nextUser = data?.user || data?.data?.user || data?.data;
         if (!mounted || !(nextUser?.id || nextUser?._id)) return;
+
         setUser(nextUser);
-        localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
-      })
-      .catch((error) => {
+        localStorage.setItem('buddybook_auth_user', JSON.stringify(nextUser));
+        if (Number.isFinite(Number(nextUser?.averageRating))) {
+          setBackendRating(Number(nextUser.averageRating).toFixed(2));
+        }
+      } catch (error) {
         const status = error?.response?.status;
         if (status === 401 || status === 403) {
-          localStorage.removeItem("buddybook_token");
-          localStorage.removeItem("buddybook_auth_user");
+          localStorage.removeItem('buddybook_token');
+          localStorage.removeItem('buddybook_auth_user');
         }
         setUser(null);
-      });
+        setBackendRating(null);
+      }
 
-    const syncUser = () => {
-      setUser(readStoredUser());
+      const syncUser = () => {
+        setUser(readStoredUser());
+        setBackendRating(null);
+      };
+
+      window.addEventListener('storage', syncUser);
+      window.addEventListener('buddybook:auth-changed', syncUser);
+      window.addEventListener('buddybook:profile-updated', syncUser);
+
+      return () => {
+        mounted = false;
+        window.removeEventListener('storage', syncUser);
+        window.removeEventListener('buddybook:auth-changed', syncUser);
+        window.removeEventListener('buddybook:profile-updated', syncUser);
+      };
     };
 
-    window.addEventListener("storage", syncUser);
-    window.addEventListener("buddybook:auth-changed", syncUser);
-    window.addEventListener("buddybook:profile-updated", syncUser);
-
-    return () => {
-      mounted = false;
-      window.removeEventListener("storage", syncUser);
-      window.removeEventListener("buddybook:auth-changed", syncUser);
-      window.removeEventListener("buddybook:profile-updated", syncUser);
-    };
+    loadUser();
   }, []);
 
   useEffect(() => {
@@ -108,7 +113,7 @@ export default function PublicNavbar() {
 
   const isProvider = user?.role === "PROVIDER";
   const workspaceItems = isProvider ? providerWorkspace : userWorkspace;
-  const rating = useMemo(() => getAccountRating(user), [user]);
+  const rating = useMemo(() => getAccountRating(user, backendRating), [user, backendRating]);
   const avatar = getAvatar(user);
 
   const openAccount = () => {
@@ -116,6 +121,8 @@ export default function PublicNavbar() {
     setLogoutConfirm(false);
     closeMenu();
   };
+
+  const closeMenu = () => setIsOpen(false);
 
   const handleLogout = () => {
     localStorage.removeItem("buddybook_auth_user");
@@ -403,7 +410,9 @@ function getAvatar(user) {
   );
 }
 
-function getAccountRating(user) {
+function getAccountRating(user, backendRating) {
+  if (Number.isFinite(Number(backendRating))) return backendRating;
+
   const localAverage = getLocalAccountRating(user);
   if (localAverage) return localAverage;
 

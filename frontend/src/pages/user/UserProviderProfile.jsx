@@ -30,6 +30,9 @@ import {
   rememberProvider,
   toggleWatchlist,
 } from "../../utils/userFlowStorage";
+import { listMyReviews } from "../../api/reports";
+
+const PROVIDER_PROFILE_CACHE_KEY = "buddybook_user_provider_profile_cache";
 
 export default function UserProviderProfile() {
   const { providerId } = useParams();
@@ -43,6 +46,8 @@ export default function UserProviderProfile() {
     getWatchlist().some((item) => item.id === providerId)
   );
   const [loading, setLoading] = useState(!cachedProvider);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -57,40 +62,83 @@ export default function UserProviderProfile() {
         .catch(() => {});
     }
 
-    if (cachedProvider) {
-      setProvider(cachedProvider);
-      setGalleryImages(getProviderImageUrls(cachedProvider));
-      setLoading(false);
-    }
-
-    getProvider(providerId)
-      .then((row) => {
+    const loadProvider = async () => {
+      try {
+        const row = await getProvider(providerId);
         if (!mounted || !row) return;
         setProvider(row);
-        const nextImages = getProviderImageUrls(row);
-        if (nextImages.length) setGalleryImages(nextImages);
-      })
-      .catch(() => {
-        if (mounted && !cachedProvider) setProvider(null);
-      })
-      .finally(() => {
+        setGalleryImages(getProviderImageUrls(row));
+        try {
+          sessionStorage.setItem(
+            `${PROVIDER_PROFILE_CACHE_KEY}_${providerId}`,
+            JSON.stringify(row)
+          );
+        } catch {}
+      } catch {
+        if (mounted && !cachedProvider) {
+          const cached = readProviderProfileCache(providerId);
+          if (cached) {
+            setProvider(cached);
+            setGalleryImages(getProviderImageUrls(cached));
+          } else {
+            setProvider(null);
+          }
+        }
+      } finally {
         if (mounted) setLoading(false);
-      });
+      }
+    };
 
-    getProviderImages(providerId)
-      .then((images) => {
-        if (!mounted) return;
-        const urls = images
-          .map((image) => image?.url || image?.thumbnailUrl || image)
-          .filter(Boolean);
-        if (urls.length) setGalleryImages(urls);
-      })
-      .catch(() => {});
+    loadProvider();
 
     return () => {
       mounted = false;
     };
   }, [providerId, cachedProvider]);
+
+  useEffect(() => {
+    let mounted = true;
+    setReviewsLoading(true);
+    listMyReviews()
+      .then((rows) => {
+        if (!mounted) return;
+        const filtered = Array.isArray(rows)
+          ? rows.filter(
+              (review) =>
+                review.targetRole === "PROVIDER" &&
+                (review.targetId === providerId ||
+                  review.providerId === providerId ||
+                  review.targetName === provider?.name)
+            )
+          : [];
+        setReviews(filtered);
+      })
+      .catch(() => {
+        if (mounted) setReviews([]);
+      })
+      .finally(() => {
+        if (mounted) setReviewsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [providerId, provider?.name]);
+
+  const averageRating = useMemo(() => {
+    if (reviews.length) {
+      return (
+        reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) /
+        reviews.length
+      ).toFixed(1);
+    }
+    return Number(provider?.rating || 0).toFixed(1);
+  }, [reviews, provider?.rating]);
+
+  const reviewCount = useMemo(() => {
+    if (reviews.length) return reviews.length;
+    return Number(provider?.reviewCount || provider?.reviews || 0);
+  }, [reviews, provider?.reviewCount, provider?.reviews]);
 
   const handleSave = () => {
     if (!provider) return;
@@ -210,7 +258,7 @@ export default function UserProviderProfile() {
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-2">
-              <Stat icon={Star} value={Number(provider.rating || 0).toFixed(1)} label={`${provider.reviews || 0} reviews`} />
+              <Stat icon={Star} value={averageRating} label={`${reviewCount} reviews`} />
               <Stat icon={ShieldCheck} value="KYC" label="Checked" />
               <Stat icon={Users} value="Public" label="Meetups" />
             </div>
@@ -241,6 +289,45 @@ export default function UserProviderProfile() {
               <Detail icon={Ruler} label="Height" value={provider.height || "Not specified"} />
             </div>
 
+            {reviews.length > 0 && (
+              <InfoBlock title="Reviews">
+                <div className="grid gap-3">
+                  {reviews.slice(0, 5).map((review) => (
+                    <div
+                      key={review.id}
+                      className="rounded-[1rem] border border-black/10 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="grid h-8 w-8 place-items-center rounded-full bg-[#ffeedd] text-xs font-black text-[#e08c4c]">
+                            {(review.reviewerName || "U")[0]?.toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-black">
+                              {review.reviewerName || "BuddyBOOK user"}
+                            </p>
+                            <p className="text-[10px] font-bold text-black/45">
+                              {new Date(review.createdAt || "").toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#ffeedd] px-2 py-1 text-xs font-black text-[#e08c4c]">
+                          <Star size={12} fill="currentColor" /> {review.rating}/5
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-bold leading-6 text-black/62">
+                        {review.description || "No written review added."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </InfoBlock>
+            )}
+
             <div className="sticky bottom-0 -mx-5 mt-7 grid gap-3 border-t border-black/10 bg-[#fffaf3]/95 p-5 backdrop-blur sm:static sm:mx-0 sm:grid-cols-2 sm:border-0 sm:bg-transparent sm:p-0 sm:pt-7">
               <Link
                 to={user ? `/app/user/provider/${provider.id}/book` : "/login"}
@@ -258,6 +345,15 @@ export default function UserProviderProfile() {
       </section>
     </UserAppLayout>
   );
+}
+
+function readProviderProfileCache(id) {
+  try {
+    const raw = sessionStorage.getItem(`${PROVIDER_PROFILE_CACHE_KEY}_${id}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 function Stat({ icon: Icon, value, label }) {

@@ -5,11 +5,13 @@ import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
 import { getMyProviderProfile } from "../../api/providers";
 import { getReceivedReviews } from "../../utils/userFlowStorage";
+import { listMyReviews } from "../../api/reports";
 
 export default function ProviderProfile() {
   const [user, setUser] = useState(() => readUser());
   const [provider, setProvider] = useState(null);
-  const reviews = getReceivedReviews("PROVIDER");
+  const localReviews = getReceivedReviews("PROVIDER");
+  const [backendReviews, setBackendReviews] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -25,11 +27,35 @@ export default function ProviderProfile() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    listMyReviews()
+      .then((rows) => {
+        if (!mounted) return;
+        const filtered = Array.isArray(rows)
+          ? rows.filter(
+              (review) =>
+                review.targetRole === "PROVIDER" &&
+                (review.targetId === provider?.id || review.targetId === provider?.userId || review.targetName === provider?.user?.fullName || review.targetName === provider?.headline)
+            )
+          : [];
+        setBackendReviews(filtered);
+      })
+      .catch(() => {
+        if (mounted) setBackendReviews([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [provider?.id, provider?.userId, provider?.user?.fullName, provider?.headline]);
+
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
   const avatar = getImageSrc(images[0]) || user?.profileImage || "";
-  const rating = reviews.length
-    ? (reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length).toFixed(1)
-    : "New";
+  const allReviews = backendReviews.length ? backendReviews : localReviews;
+  const rating = allReviews.length
+    ? (allReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / allReviews.length).toFixed(1)
+    : provider?.rating ? Number(provider.rating).toFixed(1) : "New";
   const activities = useMemo(
     () => String(provider?.activities || provider?.hobbies || "").split(",").map((item) => item.trim()).filter(Boolean),
     [provider?.activities, provider?.hobbies]
@@ -86,10 +112,10 @@ export default function ProviderProfile() {
               <p className="text-sm font-bold leading-7 text-[#5d4a3c]">{provider?.bio || "Write a warm bio from the provider profile builder."}</p>
             </Panel>
 
-            {reviews.length > 0 && (
+            {allReviews.length > 0 && (
               <Panel title="Reviews" icon={Star}>
                 <div className="space-y-4">
-                  {reviews.map((review) => (
+                  {allReviews.map((review) => (
                     <div key={review.id} className="border-b pb-4 last:border-b-0 last:pb-0">
                       <div className="flex items-start gap-3">
                         {review.reviewerImage ? (

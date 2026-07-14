@@ -6,6 +6,27 @@ const {
 } = require('../utils/imagekit');
 const { isAccountDisabled } = require('../utils/accountLifecycle');
 
+async function calculateProviderRating(userId) {
+  const reports = await prisma.reviewReport.findMany({
+    where: {
+      targetRole: 'PROVIDER',
+      reportedUserId: userId,
+      rating: { not: null },
+      reason: '__BUDDYBOOK_REVIEW__',
+      adminAction: null,
+    },
+    select: { rating: true },
+  });
+
+  if (!reports.length) return { rating: 0, reviewCount: 0 };
+
+  const sum = reports.reduce((acc, report) => acc + Number(report.rating || 0), 0);
+  return {
+    rating: Number((sum / reports.length).toFixed(2)),
+    reviewCount: reports.length,
+  };
+}
+
 const includeUser = { user: true };
 const providerListCache = new Map();
 const PROVIDER_LIST_CACHE_MS = 60 * 1000;
@@ -401,9 +422,11 @@ const getMyProvider = async (req, res) => {
       include: includeUser,
     });
 
+    const rating = await calculateProviderRating(req.user.id);
+
     return res.json({
       success: true,
-      data: sanitizeProviderImages(provider),
+      data: { ...sanitizeProviderImages(provider), rating: rating.rating, reviewCount: rating.reviewCount },
       stats: buildStats(provider),
     });
   } catch (err) {
@@ -438,10 +461,12 @@ const upsertMyProvider = async (req, res) => {
       });
     }
 
+    const rating = await calculateProviderRating(req.user.id);
+
     return res.json({
       success: true,
       message: 'Provider profile saved.',
-      data: sanitizeProviderImages(provider),
+      data: { ...sanitizeProviderImages(provider), rating: rating.rating, reviewCount: rating.reviewCount },
       stats: buildStats(provider),
     });
   } catch (err) {

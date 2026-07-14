@@ -131,7 +131,7 @@ exports.listMyReviews = async (req, res) => {
 };
 
 function serializeStoredReview(row) {
-  return { ...(row.reviewSnapshot || {}), id: row.reviewId, bookingId: row.bookingId, reviewerId: row.reporterId, reviewerRole: row.reporterRole, reviewerName: row.reporterName, targetRole: row.targetRole, targetName: row.reportedName, rating: row.rating, description: row.reviewText, createdAt: row.createdAt };
+  return { ...(row.reviewSnapshot || {}), id: row.reviewId, bookingId: row.bookingId, reviewerId: row.reporterId, reviewerRole: row.reporterRole, reviewerName: row.reviewerName, targetRole: row.targetRole, targetId: row.reportedUserId, targetName: row.reportedName, rating: row.rating, description: row.reviewText, createdAt: row.createdAt };
 }
 
 exports.listReports = async (req, res) => {

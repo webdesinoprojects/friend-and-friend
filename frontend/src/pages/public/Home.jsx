@@ -34,41 +34,6 @@ import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 import ProviderCard from "../../components/users/ProviderCard";
 
-const profiles = [
-  {
-    name: "Ananya Sharma",
-    city: "New Delhi",
-    activity: "Coffee & conversation",
-    rating: "4.9",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=85",
-  },
-  {
-    name: "Rohan Mehta",
-    city: "Mumbai",
-    activity: "Movies & city walks",
-    rating: "4.8",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=85",
-  },
-  {
-    name: "Meera Iyer",
-    city: "Bengaluru",
-    activity: "Food & local events",
-    rating: "4.9",
-    image:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=85",
-  },
-  {
-    name: "Kabir Singh",
-    city: "Jaipur",
-    activity: "Live music & local food",
-    rating: "4.8",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=85",
-  },
-];
-
 const activities = [
   { name: "Coffee", icon: Coffee, tone: "bg-[#fff0cf]" },
   { name: "Movies", icon: Ticket, tone: "bg-[#ffe0e0]" },
@@ -438,7 +403,7 @@ export default function Home() {
               <HeroStats siteContent={siteContent} className="mt-10 hidden lg:grid" />
             </div>
 
-            <HeroVisual />
+            <HeroVisual publicProviders={publicProviders} />
 
             <HeroStats siteContent={siteContent} className="mt-6 lg:hidden" />
           </div>
@@ -962,7 +927,11 @@ function HeroStats({ siteContent = {}, className = "" }) {
   );
 }
 
-function HeroVisual() {
+function HeroVisual({ publicProviders = [] }) {
+  const heroProfile = publicProviders[0] || { name: "Verified Buddy", image: "" };
+  const heroName = heroProfile.name?.split(" ")[0] || "Buddy";
+  const heroImage = heroProfile.image || heroProfile.avatar || heroProfile.profileImage || "";
+
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
       <div className="absolute inset-x-[4%] bottom-24 top-4 overflow-hidden rounded-t-[45%] rounded-b-lg sm:inset-x-[10%] sm:bottom-16 lg:inset-x-[8%]">
@@ -998,10 +967,16 @@ function HeroVisual() {
 
 <div className="absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3.5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0 sm:p-5">
         <div className="flex items-start gap-3">
-          <img src={profiles[0].image} alt={profiles[0].name} className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
+          {heroImage ? (
+            <img src={heroImage} alt={heroName} className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
+          ) : (
+            <div className="h-11 w-11 shrink-0 rounded-full bg-[#ffeedd] grid place-items-center text-lg font-black text-black border-4 border-[#e08c4c] sm:h-16 sm:w-16">
+              {heroName[0]}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-black sm:text-base">{profiles[0].name?.split(" ")[0]}</h3>
+              <h3 className="text-sm font-black sm:text-base">{heroName}</h3>
               <BadgeCheck size={15} className="shrink-0 text-[#e08c4c]" />
             </div>
           </div>
@@ -1371,7 +1346,7 @@ function PublicServiceProviderCard({ provider, index }) {
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <img src={image || profiles[0].image} alt="" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
+              <img src={image || provider.avatar || "/favicon.svg"} alt="" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
               <p className="truncate text-sm font-black">{provider.name} ({provider.age || 24})</p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-1.5 text-[10px] font-black shadow-sm">
@@ -1421,14 +1396,23 @@ function SafetyCard({ icon: Icon, title, text, index = 0 }) {
 }
 
 function SafetyOrbit({ profiles: rows }) {
-  const orbitProfiles = (rows?.length ? rows : profiles).slice(0, 6);
+  const orbitProfiles = (rows || []).slice(0, 6);
+  if (!orbitProfiles.length) {
+    return (
+      <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff5ea_52%,transparent_70%)]">
+        <div className="absolute inset-[9%] rounded-full border border-[#e6a572]/60" />
+        <div className="absolute inset-[25%] rounded-full border border-[#f4ad75]/55" />
+        <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e08c4c] shadow-xl"><ShieldCheck size={34} /></div>
+      </div>
+    );
+  }
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff5ea_52%,transparent_70%)]">
       <div className="absolute inset-[9%] rounded-full border border-[#e6a572]/60" />
       <div className="absolute inset-[25%] rounded-full border border-[#f4ad75]/55" />
       <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e08c4c] shadow-xl"><ShieldCheck size={34} /></div>
       {orbitProfiles.map((profile, index) => (
-        <div key={profile.id || profile.name} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
+        <div key={profile.id || profile.name || index} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
           <img src={profile.image} alt={profile.name} className="absolute left-1/2 top-0 h-14 w-14 -translate-x-1/2 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
         </div>
       ))}

@@ -210,16 +210,6 @@ export default function UserBookings() {
                             <MapPin size={15} />
                             Meetup location
                           </Link>
-                          {status === "COMPLETED" && !userReview && (
-                            <button
-                              type="button"
-                              onClick={() => setShowReviewForm(true)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
-                            >
-                              <Star size={15} />
-                              Add review
-                            </button>
-                          )}
                           {status !== "COMPLETED" && (
                             <button
                               type="button"
@@ -269,12 +259,12 @@ export default function UserBookings() {
   );
 }
 
-function CancelBookingDialog({ booking, onClose, onConfirm }) {
+function CancelBookingDialog({ onClose, onConfirm }) {
   const [reason, setReason] = useState("");
 
   return (
     <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/45 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
         <h2 className="text-2xl font-black text-black">Cancel booking</h2>
         <p className="mt-3 rounded-2xl bg-[#fffaf3] p-4 text-sm font-bold leading-6 text-[#6b5d52]">
           If you cancel within 6 hours of the meeting time, 10% cancellation charges may be deducted. Your chat with the provider will be closed after cancellation.
@@ -288,7 +278,7 @@ function CancelBookingDialog({ booking, onClose, onConfirm }) {
             className="mt-2 min-h-[120px] w-full rounded-2xl border border-[#eddac7] bg-[#fffaf3] p-4 text-sm font-bold outline-none focus:border-black"
           />
         </label>
-        <div className="mt-5 flex justify-end gap-3">
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="rounded-2xl border border-black/10 px-5 py-3 text-sm font-black">
             Keep booking
           </button>

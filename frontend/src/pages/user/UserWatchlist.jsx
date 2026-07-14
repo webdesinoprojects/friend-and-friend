@@ -38,11 +38,11 @@ export default function UserWatchlist() {
           <span className="rounded-md bg-[#fff4e6] px-4 py-2 text-sm font-black text-[#92400e]">{items.length} saved</span>
         </div>
 
-        <div className="custom-scrollbar mt-5 h-[calc(100%-72px)] overflow-y-auto">
+        <div className="custom-scrollbar mt-5 h-[calc(100%-72px)] overflow-x-auto overscroll-x-contain pb-4">
           {items.length ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="flex gap-4">
               {items.map((provider, index) => (
-                <div key={provider.id} className="relative">
+                <div key={provider.id} className="relative w-[82vw] max-w-[290px] shrink-0 snap-center sm:w-auto sm:max-w-none">
                   <button
                     type="button"
                     onClick={(event) => {
@@ -56,7 +56,7 @@ export default function UserWatchlist() {
                   >
                     <Heart size={19} fill="currentColor" />
                   </button>
-                  <ProviderCard provider={provider} index={index} link={`/app/user/provider/${provider.id}`} />
+                  <ProviderCard provider={provider} index={index} home link={`/app/user/provider/${provider.id}`} />
                 </div>
               ))}
             </div>

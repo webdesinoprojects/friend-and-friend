@@ -94,7 +94,42 @@ export default function UserAppLayout({
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col">
-          <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
+          <header className="lg:hidden">
+            <div className="fixed left-3 right-3 top-3 z-[9998] overflow-hidden rounded-full border-2 border-black bg-white/90 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+              <div className="flex h-14 items-center justify-between gap-3 px-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
+                    aria-label="Go to home page"
+                  >
+                    <Home size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
+                    aria-label="Open user workspace menu"
+                  >
+                    <Menu size={18} />
+                  </button>
+                </div>
+                <h1 className="text-sm font-black tracking-tight text-black sm:text-base">
+                  {pageName === "dashboard" ? "User Overview" : pageName}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <NotificationBell />
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-[#ffe8bd] text-sm font-black text-[#ad5a18]">
+                    {getInitials(activeUser?.fullName)}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[72px] shrink-0" />
+          </header>
+
+          <header className="hidden h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8 lg:flex">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"

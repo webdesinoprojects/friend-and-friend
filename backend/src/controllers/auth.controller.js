@@ -1,10 +1,28 @@
 const bcrypt = require("bcryptjs");
 const { OAuth2Client } = require("google-auth-library");
 const prisma = require("../config/prisma");
-const generateOtp = require("../utils/generateOtp");
-const generateToken = require("../utils/generateToken");
 const { normalizeStoredImage, uploadProviderImage, uploadKycDocument: storeKycDocument } = require("../utils/imagekit");
 const { publicAccountState } = require("../utils/accountLifecycle");
+const generateOtp = require("../utils/generateOtp");
+const generateToken = require("../utils/generateToken");
+
+async function calculateUserRating(userId, role) {
+  const reviews = await prisma.reviewReport.findMany({
+    where: {
+      reason: '__BUDDYBOOK_REVIEW__',
+      adminAction: null,
+      targetRole: role,
+      reportedUserId: userId,
+      rating: { not: null },
+    },
+    select: { rating: true },
+  });
+
+  if (!reviews.length) return null;
+
+  const sum = reviews.reduce((acc, review) => acc + Number(review.rating || 0), 0);
+  return Number((sum / reviews.length).toFixed(2));
+}
 
 function addMinutes(minutes) {
   return new Date(Date.now() + minutes * 60 * 1000);
@@ -655,6 +673,8 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
       },
     });
 
+    const averageRating = await calculateUserRating(user.id, user.role);
+
     return res.json({
       success: true,
       message: "Login successful.",
@@ -668,18 +688,19 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
         role: user.role,
         city: user.city,
         state: user.state,
-        gender: user.gender,
         mobileVerified: user.mobileVerified,
         emailVerified: user.emailVerified,
         kycStatus: user.kycStatus,
         faceStatus: user.faceStatus,
         userProfile: user.userProfile,
         providerProfile: user.providerProfile,
+        averageRating,
         ...publicAccountState(user),
       },
     });
   } catch (error) {
     console.error("LOGIN_ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Login failed.",
@@ -802,9 +823,10 @@ exports.googleRegisterProfile = async (req, res) => {
 };
 
 exports.me = async (req, res) => {
+  const rating = await calculateUserRating(req.user.id, req.user.role);
   return res.json({
     success: true,
-    user: { ...req.user, ...publicAccountState(req.user) },
+    user: { ...req.user, ...publicAccountState(req.user), averageRating: rating },
   });
 };
 
@@ -949,18 +971,20 @@ const loginWithMobileOtp = async (req, res) => {
 
     const { referenceSelfie, ...safeUser } = user;
 
+    const averageRating = await calculateUserRating(user.id, user.role);
+
     return res.status(200).json({
       success: true,
-      message: "Login successful.",
+      message: "Mobile OTP login successful.",
       token,
-      user: { ...safeUser, ...publicAccountState(user) },
+      user: { ...safeUser, ...publicAccountState(user), averageRating },
     });
   } catch (error) {
     console.error("LOGIN_MOBILE_OTP_ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Login failed.",
+      message: "Mobile OTP login failed.",
       error: error.message,
     });
   }
