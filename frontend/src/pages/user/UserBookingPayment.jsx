@@ -63,7 +63,7 @@ export default function UserBookingPayment() {
     }
 
     if (hasAuthToken()) {
-      api.get("/auth/me", { timeout: 2500 }).then(({ data }) => {
+      api.get("/auth/me", { timeout: 2500, suppressGlobalError: true }).then(({ data }) => {
         const nextUser = data?.user || data?.data?.user || data?.data;
         if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
       }).catch(() => {});
@@ -300,7 +300,6 @@ function hasInvalidBookingParams(params, provider) {
 function readUser() {
   try { return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null"); } catch { return null; }
 }
-
 
 
 

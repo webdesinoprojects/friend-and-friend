@@ -26,7 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    if (!status || status >= 500) {
+    if ((!status || status >= 500) && !error?.config?.suppressGlobalError) {
       const message = error?.response?.data?.message ||
         (!status ? "Cannot reach the server. Check your connection and try again." : "The server could not complete this request.");
       window.dispatchEvent(new CustomEvent("buddybook:toast", {
