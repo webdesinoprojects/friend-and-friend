@@ -4,6 +4,7 @@ const {
   uploadProviderImage,
   uploadProviderBase64Image,
 } = require('../utils/imagekit');
+const { isAccountDisabled } = require('../utils/accountLifecycle');
 
 const includeUser = { user: true };
 const providerListCache = new Map();
@@ -22,6 +23,8 @@ const cardUserSelect = {
   emailVerified: true,
   kycStatus: true,
   faceStatus: true,
+  isBlocked: true,
+  disabledUntil: true,
 };
 const cardProviderSelect = {
   id: true,
@@ -123,7 +126,54 @@ async function fetchProviderList({ where, take, imageMode }) {
     take,
   });
 
-  return providers.map((provider) => withImageMode(provider, imageMode));
+  const cleaned = providers.filter(
+    (provider) => !provider.user?.isBlocked && !isAccountDisabled(provider.user)
+  );
+
+  const ratingMap = await loadProviderRatings(
+    cleaned.map((provider) => provider.user?.id).filter(Boolean)
+  );
+
+  return cleaned.map((provider) => {
+    const stats = ratingMap[provider.user?.id];
+    const withRating = stats
+      ? { ...provider, rating: stats.rating, reviewCount: stats.reviewCount }
+      : provider;
+    return withImageMode(withRating, imageMode);
+  });
+}
+
+async function loadProviderRatings(userIds) {
+  const ratingMap = {};
+  if (!userIds.length) return ratingMap;
+
+  const reports = await prisma.reviewReport.findMany({
+    where: {
+      targetRole: 'PROVIDER',
+      reportedUserId: { in: userIds },
+      rating: { not: null },
+      reason: '__BUDDYBOOK_REVIEW__',
+      adminAction: null,
+    },
+    select: { reportedUserId: true, rating: true },
+  });
+
+  const sums = {};
+  reports.forEach((report) => {
+    const id = report.reportedUserId;
+    if (!sums[id]) sums[id] = { total: 0, count: 0 };
+    sums[id].total += Number(report.rating) || 0;
+    sums[id].count += 1;
+  });
+
+  Object.keys(sums).forEach((id) => {
+    ratingMap[id] = {
+      rating: sums[id].count ? sums[id].total / sums[id].count : 0,
+      reviewCount: sums[id].count,
+    };
+  });
+
+  return ratingMap;
 }
 
 function normalizeText(value) {
@@ -261,24 +311,7 @@ const listProviders = async (req, res) => {
     if (approvalFlag !== undefined) where.approved = String(approvalFlag) === 'true';
 
     const take = limit ? Number(limit) : undefined;
-    const cacheKey = getCacheKey({ where, take, imageMode });
-    const cached = imageMode === 'none' ? getCachedList(cacheKey) : null;
-
-    if (cached?.fresh) {
-      return res.json({ success: true, data: cached.data, cached: true });
-    }
-
-    if (cached?.data?.length) {
-      fetchProviderList({ where, take, imageMode })
-        .then((data) => setCachedList(cacheKey, data))
-        .catch((error) => console.error('provider list refresh error', error));
-
-      return res.json({ success: true, data: cached.data, cached: true, stale: true });
-    }
-
     const data = await fetchProviderList({ where, take, imageMode });
-    if (imageMode === 'none') setCachedList(cacheKey, data);
-
     return res.json({ success: true, data });
   } catch (err) {
     console.error('listProviders error', err);
@@ -293,7 +326,9 @@ const getProvider = async (req, res) => {
       where: { id },
       select: cardProviderSelect,
     });
-    if (!provider) return res.status(404).json({ success: false, message: 'Not found' });
+    if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) {
+      return res.status(404).json({ success: false, message: 'Provider profile is not available.' });
+    }
     return res.json({ success: true, data: sanitizeProviderImages(provider) });
   } catch (err) {
     console.error('getProvider error', err);
@@ -340,11 +375,11 @@ const getProviderImages = async (req, res) => {
     const { id } = req.params;
     const provider = await prisma.providerProfile.findUnique({
       where: { id },
-      select: { id: true, profileImages: true },
+      select: { id: true, profileImages: true, user: { select: { isBlocked: true, disabledUntil: true } } },
     });
 
-    if (!provider) {
-      return res.status(404).json({ success: false, message: 'Not found' });
+    if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) {
+      return res.status(404).json({ success: false, message: 'Provider profile is not available.' });
     }
 
     const images = normalizeProfileImages(provider.profileImages);
@@ -455,4 +490,5 @@ module.exports = {
   upsertMyProvider,
   updateProvider,
   deleteProvider,
+  clearProviderListCache,
 };

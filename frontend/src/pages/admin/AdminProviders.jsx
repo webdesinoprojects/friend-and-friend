@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { formatRs } from "../../utils/format";
 
 export default function AdminProviders() {
   const [providers, setProviders] = useState([]);
@@ -87,11 +88,11 @@ export default function AdminProviders() {
                 {filtered.length ? (
                   filtered.map((provider) => (
                     <tr key={provider.id} className="transition hover:bg-black/5">
-                      <td className="px-5 py-4 font-black text-black">{provider.fullName}</td>
+                      <td className="px-5 py-4 font-black text-black">{provider.fullName}{provider.accountDeleted ? <span className="mt-1 block text-[10px] uppercase tracking-wider text-rose-600">Deleted {formatDate(provider.deletedAt)}</span> : null}</td>
                       <td className="font-semibold text-black/65">{provider.email || "Not added"}</td>
                       <td className="font-semibold text-black/65">{provider.phone || "Not added"}</td>
                       <td className="font-semibold text-black/65">{provider.headline || "Not set"}</td>
-                      <td className="font-semibold text-black/65">₹{provider.price || "Not set"}/hr</td>
+                      <td className="font-semibold text-black/65">{provider.price ? `${formatRs(provider.price)}/hr` : "Not set"}</td>
                       <td className="font-semibold text-black/65">{provider.city || "Not set"}</td>
                       <td className="font-black text-black">{provider.aadhaarLast4 ? `**** ${provider.aadhaarLast4}` : "-"}</td>
                       <td>
@@ -103,16 +104,16 @@ export default function AdminProviders() {
                       </td>
                       <td>
                         <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black ${
-                          provider.approved ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/65"
+                          provider.accountDeleted ? "bg-rose-50 text-rose-700" : provider.accountDisabled ? "bg-amber-50 text-amber-700" : provider.approved ? "bg-emerald-50 text-emerald-700" : "bg-black/5 text-black/65"
                         }`}>
-                          {provider.approved ? "Approved" : "Pending"}
+                          {provider.accountDeleted ? "Account deleted" : provider.accountDisabled ? "Temporarily disabled" : provider.approved ? "Approved" : "Pending"}
                         </span>
                       </td>
                       <td>
-                        <StatusPill status={provider.kycStatus?.toLowerCase() || "pending"} />
+                        {provider.accountDeleted ? <span className="text-black/30">—</span> : <StatusPill status={provider.kycStatus?.toLowerCase() || "pending"} />}
                       </td>
                       <td>
-                        <button
+                        {provider.accountDeleted ? <span className="inline-flex rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-700">Deleted</span> : <button
                           type="button"
                           onClick={() => toggleBlock(provider)}
                           className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-black transition ${
@@ -122,7 +123,7 @@ export default function AdminProviders() {
                           }`}
                         >
                           {provider.isBlocked ? "Unblock" : "Block"}
-                        </button>
+                        </button>}
                       </td>
                     </tr>
                   ))
@@ -157,6 +158,11 @@ function ImagePreview({ src, onClose }) {
 function getAdminHeaders() {
   const token = localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token");
   return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function StatusPill({ status }) {

@@ -238,6 +238,8 @@ const getAdminUsers = async (req, res) => {
         emailVerified: true,
         isBlocked: true,
         blockReason: true,
+        disabledAt: true,
+        disabledUntil: true,
         createdAt: true,
         providerProfile: {
           select: { headline: true, profession: true, approved: true, hourlyPrice: true },
@@ -256,8 +258,13 @@ const getAdminUsers = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const deletedAccounts = await prisma.accountDeletionAudit.findMany({
+      where: { role: "USER" },
+      orderBy: { deletedAt: "desc" },
+    });
     const formatted = users.map((user) => ({
       ...user,
+      accountDisabled: Boolean(user.disabledUntil && new Date(user.disabledUntil) > new Date()),
       firstBooking: null,
       lastBooking: null,
       totalBookings: 0,
@@ -272,7 +279,16 @@ const getAdminUsers = async (req, res) => {
       },
     }));
 
-    return res.json({ success: true, data: formatted });
+    const deletedRows = deletedAccounts.map((item) => ({
+      id: `deleted-${item.id}`,
+      originalUserId: item.originalUserId,
+      fullName: "Deleted account",
+      role: item.role,
+      accountDeleted: true,
+      deletedAt: item.deletedAt,
+      bookingSummary: { totalBookings: 0, totalEarning: null, totalSpending: null },
+    }));
+    return res.json({ success: true, data: [...deletedRows, ...formatted] });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch users." });
   }
@@ -302,6 +318,8 @@ const getAdminUserById = async (req, res) => {
         emailVerified: true,
         isBlocked: true,
         blockReason: true,
+        disabledAt: true,
+        disabledUntil: true,
         createdAt: true,
         updatedAt: true,
         providerProfile: {
@@ -393,6 +411,8 @@ const getAdminProviders = async (req, res) => {
         profileImage: true,
         isBlocked: true,
         blockReason: true,
+        disabledAt: true,
+        disabledUntil: true,
         providerProfile: {
           select: { headline: true, profession: true, approved: true, hourlyPrice: true, activities: true },
         },
@@ -400,15 +420,31 @@ const getAdminProviders = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const deletedAccounts = await prisma.accountDeletionAudit.findMany({
+      where: { role: "PROVIDER" },
+      orderBy: { deletedAt: "desc" },
+    });
     return res.json({
       success: true,
-      data: providers.map((provider) => ({
+      data: [
+        ...deletedAccounts.map((item) => ({
+          id: `deleted-${item.id}`,
+          originalUserId: item.originalUserId,
+          fullName: "Deleted account",
+          role: item.role,
+          accountDeleted: true,
+          deletedAt: item.deletedAt,
+          approved: false,
+        })),
+        ...providers.map((provider) => ({
         ...provider,
+        accountDisabled: Boolean(provider.disabledUntil && new Date(provider.disabledUntil) > new Date()),
         headline: provider.providerProfile?.headline || provider.providerProfile?.profession || "",
         price: provider.providerProfile?.hourlyPrice || "",
         approved: Boolean(provider.providerProfile?.approved),
         activities: provider.providerProfile?.activities || "",
-      })),
+        })),
+      ],
     });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch providers." });

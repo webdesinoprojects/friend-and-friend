@@ -3,7 +3,8 @@ const { OAuth2Client } = require("google-auth-library");
 const prisma = require("../config/prisma");
 const generateOtp = require("../utils/generateOtp");
 const generateToken = require("../utils/generateToken");
-const { normalizeStoredImage, uploadProviderImage } = require("../utils/imagekit");
+const { normalizeStoredImage, uploadProviderImage, uploadKycDocument: storeKycDocument } = require("../utils/imagekit");
+const { publicAccountState } = require("../utils/accountLifecycle");
 
 function addMinutes(minutes) {
   return new Date(Date.now() + minutes * 60 * 1000);
@@ -38,6 +39,7 @@ function getPublicUser(user) {
     faceStatus: user.faceStatus,
     userProfile: user.userProfile,
     providerProfile: user.providerProfile,
+    ...publicAccountState(user),
   };
 }
 
@@ -272,6 +274,17 @@ exports.uploadProfileImage = async (req, res) => {
   }
 };
 
+exports.uploadKycDocument = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "Identity document is required." });
+    const document = await storeKycDocument(req.file);
+    return res.json({ success: true, document });
+  } catch (error) {
+    console.error("UPLOAD_KYC_DOCUMENT_ERROR:", error);
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Identity document upload failed." });
+  }
+};
+
 const register = async (req, res) => {
   try {
     const {
@@ -289,6 +302,7 @@ const register = async (req, res) => {
       documentType,
       documentNumber,
       documentNumberLast4,
+      documentUrl,
       kycConsent,
       referenceSelfie,
       profileImage,
@@ -399,10 +413,10 @@ const register = async (req, res) => {
     const resolvedDocumentLast4 =
       documentNumberLast4 || (fullDocumentNumber ? fullDocumentNumber.slice(-4) : null);
 
-    if (!documentType || (!fullDocumentNumber && !resolvedDocumentLast4) || !kycConsent) {
+    if (!documentType || (!fullDocumentNumber && !resolvedDocumentLast4) || !documentUrl || !kycConsent) {
       return res.status(400).json({
         success: false,
-        message: "KYC document type, document number and consent are required.",
+        message: "KYC document type, number, uploaded identity proof and consent are required.",
       });
     }
 
@@ -442,6 +456,7 @@ const register = async (req, res) => {
             documentType: documentType || null,
             documentNumber: fullDocumentNumber || null,
             documentNumberLast4: resolvedDocumentLast4 || null,
+            documentUrl,
             consentAccepted: Boolean(kycConsent),
             status: "PENDING",
           },
@@ -551,6 +566,9 @@ const user = await prisma.user.findUnique({
     emailVerified: true,
     kycStatus: true,
     faceStatus: true,
+    isBlocked: true,
+    disabledAt: true,
+    disabledUntil: true,
     userProfile: true,
     providerProfile: true,
     createdAt: true,
@@ -657,6 +675,7 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
         faceStatus: user.faceStatus,
         userProfile: user.userProfile,
         providerProfile: user.providerProfile,
+        ...publicAccountState(user),
       },
     });
   } catch (error) {
@@ -701,6 +720,8 @@ exports.googleLogin = async (req, res) => {
         providerProfile: true,
         createdAt: true,
         isBlocked: true,
+        disabledAt: true,
+        disabledUntil: true,
       },
     });
 
@@ -783,7 +804,7 @@ exports.googleRegisterProfile = async (req, res) => {
 exports.me = async (req, res) => {
   return res.json({
     success: true,
-    user: req.user,
+    user: { ...req.user, ...publicAccountState(req.user) },
   });
 };
 
@@ -886,6 +907,8 @@ const loginWithMobileOtp = async (req, res) => {
         faceStatus: true,
         referenceSelfie: true,
         isBlocked: true,
+        disabledAt: true,
+        disabledUntil: true,
         userProfile: true,
         providerProfile: true,
       },
@@ -930,7 +953,7 @@ const loginWithMobileOtp = async (req, res) => {
       success: true,
       message: "Login successful.",
       token,
-      user: safeUser,
+      user: { ...safeUser, ...publicAccountState(user) },
     });
   } catch (error) {
     console.error("LOGIN_MOBILE_OTP_ERROR:", error);
@@ -1003,6 +1026,7 @@ module.exports = {
   googleLogin: exports.googleLogin,
   googleRegisterProfile: exports.googleRegisterProfile,
   uploadProfileImage: exports.uploadProfileImage,
+  uploadKycDocument: exports.uploadKycDocument,
   me: exports.me,
   updateMe: exports.updateMe,
   logout: exports.logout,

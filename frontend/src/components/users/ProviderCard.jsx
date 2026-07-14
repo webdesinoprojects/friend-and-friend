@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Heart, Star } from "lucide-react";
 import { getProviderImages } from "../../api/providers";
 import ProviderImageCarousel from "./ProviderImageCarousel";
+import { formatRs } from "../../utils/format";
 
 export default function ProviderCard({
   provider,
@@ -11,6 +12,7 @@ export default function ProviderCard({
   link,
   compact = false,
   small = false,
+  home = false,
 }) {
   const initialImages = useMemo(() => {
     const images = Array.isArray(provider.images) ? provider.images : [];
@@ -52,6 +54,22 @@ export default function ProviderCard({
     : "Public meetup";
   const completedBookings = Number(provider.completedBookings || provider.bookingsCompleted || provider.reviews || 0);
   const bookingBadge = `${Math.max(2, (completedBookings % 4) + 2)}x booked Recently`;
+  const ratingValue = Number(provider.rating || 0);
+
+  if (home) {
+    return (
+      <HomeProviderCard
+        provider={provider}
+        link={link}
+        primaryActivity={primaryActivity}
+        completedBookings={completedBookings}
+        bookingBadge={bookingBadge}
+        ratingValue={ratingValue}
+        carouselImages={carouselImages}
+      />
+    );
+  }
+
   const cardContent = (
     <>
       <div className={`relative overflow-hidden rounded-[1.35rem] bg-[#f2f2f2] ${compact ? "h-[150px]" : small ? "h-[230px]" : "h-[320px]"}`}>
@@ -85,12 +103,12 @@ export default function ProviderCard({
         </p>
         <div className="mt-5 flex items-end justify-between gap-4">
           <div>
-            <p className={`font-black text-black ${compact ? "text-lg" : "text-2xl"}`}>Rs {provider.price}/hr</p>
+            <p className={`font-black text-black ${compact ? "text-lg" : "text-2xl"}`}>{formatRs(provider.price)}/hr</p>
             <p className="mt-1 text-sm font-black text-black/38">{completedBookings || 0} bookings completed</p>
           </div>
           <p className="flex items-center gap-2 text-2xl font-black text-black">
             <Star size={26} fill="currentColor" />
-            {Number(provider.rating || 0).toFixed(1)}
+            {ratingValue ? ratingValue.toFixed(1) : "New"}
           </p>
         </div>
       </div>
@@ -98,6 +116,74 @@ export default function ProviderCard({
   );
 
   const className = `group block overflow-hidden rounded-[1.35rem] bg-white text-black transition duration-300 hover:-translate-y-1 ${small ? "" : "shadow-[0_20px_55px_rgba(80,50,28,0.08)]"}`;
+
+  return link ? (
+    <Link to={link} className={className}>
+      {cardContent}
+    </Link>
+  ) : (
+    <article className={className}>{cardContent}</article>
+  );
+}
+
+function HomeProviderCard({
+  provider,
+  link,
+  primaryActivity,
+  completedBookings,
+  bookingBadge,
+  ratingValue,
+  carouselImages,
+}) {
+  const image = carouselImages[0] || provider.image || provider.avatar || provider.images?.[0] || "";
+
+  const cardContent = (
+    <>
+      <div className="relative aspect-[0.82] overflow-hidden rounded-2xl bg-[#eeeeee]">
+        {image ? (
+          <img
+            src={image}
+            alt={provider.name}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-4xl font-black">
+            {provider.name?.[0] || "B"}
+          </div>
+        )}
+        <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
+          {bookingBadge}
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <h3 className="text-lg font-black text-black">
+          {provider.name || "Verified Buddy"}
+        </h3>
+        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 text-black">
+          {provider.bio ||
+            provider.headline ||
+            provider.profession ||
+            `${primaryActivity} with safe public meetups.`}
+        </p>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-base font-black text-black">{formatRs(provider.price)}/hr</p>
+            <p className="mt-1 text-xs font-bold text-black/40">
+              {completedBookings || 0} bookings completed
+            </p>
+          </div>
+          <p className="flex items-center gap-1 text-base font-black text-black">
+            <Star size={18} fill="currentColor" />
+            {ratingValue ? ratingValue.toFixed(1) : "New"}
+          </p>
+        </div>
+      </div>
+    </>
+  );
+
+  const className = "group block text-black";
 
   return link ? (
     <Link to={link} className={className}>

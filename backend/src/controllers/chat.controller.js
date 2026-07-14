@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const realtime = require("../utils/realtime");
 const { uploadChatVoice, deleteImageKitFile } = require("../utils/imagekit");
+const { isAccountDisabled } = require("../utils/accountLifecycle");
 
 const TEXT_LIMIT = 2000;
 const MESSAGE_PAGE_SIZE = 50;
@@ -77,6 +78,8 @@ function groupConversationThreads(threads, viewerId) {
       const booking = active.booking || {};
       const provider = booking.provider || {};
       const user = booking.user || {};
+      const userUnavailable = user.isBlocked || isAccountDisabled(user);
+      const providerUnavailable = provider.user?.isBlocked || isAccountDisabled(provider.user);
       const allMessages = rows
         .flatMap((row) => (row.messages || []).map(serializeMessage))
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -89,12 +92,13 @@ function groupConversationThreads(threads, viewerId) {
         bookingId: active.bookingId,
         bookingCode: booking.code,
         userId: active.userId,
-        userName: user.fullName || "BuddyBOOK user",
-        userImage: user.profileImage || "",
+        userName: userUnavailable ? "Account unavailable" : user.fullName || "BuddyBOOK user",
+        userImage: userUnavailable ? "" : user.profileImage || "",
         providerId: active.providerId,
         providerUserId: active.providerUserId,
-        providerName: provider.user?.fullName || "BuddyBOOK provider",
-        providerImage: imageFromProvider(provider),
+        providerName: providerUnavailable ? "Account unavailable" : provider.user?.fullName || "BuddyBOOK provider",
+        providerImage: providerUnavailable ? "" : imageFromProvider(provider),
+        peerUnavailable: viewerId === active.userId ? providerUnavailable : userUnavailable,
         service: booking.service,
         status: booking.status,
         closed: active.closed || String(booking.status || "").toUpperCase() === "CANCELLED",
@@ -116,6 +120,15 @@ function groupConversationThreads(threads, viewerId) {
 async function getAccessibleThread(threadId, userId) {
   const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
   return canAccessThread(thread, userId) ? thread : null;
+}
+
+async function isPeerUnavailable(thread, userId) {
+  const peerId = peerIdFor(thread, userId);
+  const peer = await prisma.user.findUnique({
+    where: { id: peerId },
+    select: { isBlocked: true, disabledUntil: true },
+  });
+  return !peer || peer.isBlocked || isAccountDisabled(peer);
 }
 
 async function getConversationThreads(thread, select = { id: true }) {
@@ -199,26 +212,7 @@ async function createMessage(thread, sender, payload) {
 
 exports.listMyChats = async (req, res) => {
   try {
-    const missingThreads = await prisma.booking.findMany({
-      where: {
-        OR: [{ userId: req.user.id }, { providerUserId: req.user.id }],
-        chatThread: null,
-      },
-      select: { id: true, userId: true, providerId: true, providerUserId: true },
-    });
-    if (missingThreads.length) {
-      await prisma.chatThread.createMany({
-        data: missingThreads.map((booking) => ({
-          bookingId: booking.id,
-          userId: booking.userId,
-          providerId: booking.providerId,
-          providerUserId: booking.providerUserId,
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    const threads = await prisma.chatThread.findMany({
+    const loadThreads = () => prisma.chatThread.findMany({
       where: {
         OR: [
           { userId: req.user.id, hiddenForUser: false },
@@ -227,11 +221,32 @@ exports.listMyChats = async (req, res) => {
       },
       orderBy: { updatedAt: "desc" },
       include: {
-        booking: { include: { user: true, provider: { include: { user: true } } } },
+        booking: {
+          include: {
+            user: { select: { id: true, fullName: true, profileImage: true, isBlocked: true, disabledUntil: true } },
+            provider: { include: { user: { select: { id: true, fullName: true, profileImage: true, isBlocked: true, disabledUntil: true } } } },
+          },
+        },
         messages: { orderBy: { createdAt: "desc" }, take: MESSAGE_PAGE_SIZE },
         _count: { select: { messages: true } },
       },
     });
+    let threads = await loadThreads();
+    // Older bookings may predate automatic thread creation. Repair only when
+    // the user has no threads so the normal chat path stays one fast query.
+    if (!threads.length) {
+      const missingThreads = await prisma.booking.findMany({
+        where: { OR: [{ userId: req.user.id }, { providerUserId: req.user.id }], chatThread: null },
+        select: { id: true, userId: true, providerId: true, providerUserId: true },
+      });
+      if (missingThreads.length) {
+        await prisma.chatThread.createMany({
+          data: missingThreads.map((booking) => ({ bookingId: booking.id, userId: booking.userId, providerId: booking.providerId, providerUserId: booking.providerUserId })),
+          skipDuplicates: true,
+        });
+        threads = await loadThreads();
+      }
+    }
     for (const thread of threads) thread.messages.reverse();
     return res.json({ success: true, data: groupConversationThreads(threads, req.user.id) });
   } catch (error) {
@@ -269,6 +284,7 @@ exports.sendMessage = async (req, res) => {
     const thread = await getAccessibleThread(req.params.threadId, req.user.id);
     if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
     if (thread.closed) return res.status(400).json({ success: false, message: "This booking chat is closed." });
+    if (await isPeerUnavailable(thread, req.user.id)) return res.status(409).json({ success: false, message: "This account is currently unavailable." });
 
     const type = String(req.body?.type || "TEXT").toUpperCase();
     if (!SENDABLE_TYPES.has(type)) {
@@ -301,6 +317,7 @@ exports.sendVoiceMessage = async (req, res) => {
     const thread = await getAccessibleThread(req.params.threadId, req.user.id);
     if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
     if (thread.closed) return res.status(400).json({ success: false, message: "This booking chat is closed." });
+    if (await isPeerUnavailable(thread, req.user.id)) return res.status(409).json({ success: false, message: "This account is currently unavailable." });
     const durationSeconds = Math.round(Number(req.body?.durationSeconds));
     if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > VOICE_DURATION_MAX) {
       return res.status(400).json({ success: false, message: `Voice recordings must be between 1 and ${VOICE_DURATION_MAX} seconds.` });

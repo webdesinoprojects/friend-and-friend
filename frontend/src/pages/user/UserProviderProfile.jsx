@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
+import { formatRs } from "../../utils/format";
 import {
   getCachedProvider,
   getProvider,
@@ -203,7 +204,7 @@ export default function UserProviderProfile() {
                 </p>
                 <p className="mt-1 flex items-center text-2xl font-black">
                   <IndianRupee size={20} />
-                  {provider.price || 0}/hr
+                  {formatRs(provider.price || 0)}/hr
                 </p>
               </div>
             </div>

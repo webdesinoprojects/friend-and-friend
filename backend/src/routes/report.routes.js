@@ -5,6 +5,8 @@ const reportController = require("../controllers/report.controller");
 const router = express.Router();
 
 router.use(protect);
-router.post("/reviews", reportController.createReviewReport);
+router.get("/reviews", reportController.listMyReviews);
+router.post("/reviews", reportController.createReview);
+router.post("/reviews/report", reportController.createReviewReport);
 
 module.exports = router;

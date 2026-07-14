@@ -17,6 +17,7 @@ import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
+import { formatRs, formatRupees } from "../../utils/format";
 
 export default function UserDashboard() {
   const [search, setSearch] = useState("");
@@ -157,11 +158,11 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {providersLoading ? (
                 [1, 2, 3, 4].map((item) => (
-                  <div key={item} className="overflow-hidden rounded-none border border-[#e2e8f0] bg-white">
-                    <div className="h-[86px] animate-pulse bg-[#eef4ff]" />
+                  <div key={item} className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
+                    <div className="aspect-[0.82] animate-pulse bg-[#eef4ff]" />
                     <div className="space-y-2 p-3">
                       <div className="h-3 w-2/3 animate-pulse rounded bg-[#eef4ff]" />
                       <div className="h-2 w-1/2 animate-pulse rounded bg-[#eef4ff]" />
@@ -175,7 +176,7 @@ export default function UserDashboard() {
                     key={provider.id}
                     provider={provider}
                     index={index}
-                    small
+                    home
                     link={`/app/user/provider/${provider.id}`}
                   />
                 ))
@@ -233,7 +234,7 @@ export default function UserDashboard() {
                     </p>
                   </div>
                   <StatusBadge status={booking.status} />
-                  <p className="text-right text-sm font-black">₹{booking.amount}</p>
+                  <p className="text-right text-sm font-black">{formatRupees(booking.amount)}</p>
                 </Link>
               )) : (
                 <div className="grid min-h-[145px] place-items-center text-center">
@@ -302,24 +303,25 @@ function WelcomeBanner({ user }) {
 
 function UserMetricStrip({ totalSpent, savedProviders }) {
   const cards = [
-    [Wallet, `Rs ${totalSpent.toLocaleString("en-IN")}`, "Total Spending", "View details", "bg-[#fff1e6] text-[#d67f3d]"],
-    [Heart, savedProviders, "Saved Providers", "View all", "bg-[#fff1e6] text-[#d84e58]"],
+    [Wallet, formatRs(totalSpent), "Total Spending", "View details", "/app/user/wallet", "bg-[#fff1e6] text-[#d67f3d]"],
+    [Heart, savedProviders, "Saved Providers", "View all", "/app/user/watchlist", "bg-[#fff1e6] text-[#d84e58]"],
   ];
 
   return (
-    <div className="grid gap-5 md:grid-cols-2">
-      {cards.map(([Icon, value, label, action, tone]) => (
-        <article key={label} className="min-h-[150px] rounded-none border border-black/10 bg-white p-6 shadow-sm">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className={`grid h-14 w-14 place-items-center rounded-xl ${tone}`}>
-              <Icon size={24} />
+    <div className="grid grid-cols-2 gap-3 md:gap-5">
+      {cards.map(([Icon, value, label, action, to, tone]) => (
+        <article key={label} className="flex min-h-[104px] flex-col rounded-none border border-black/10 bg-white p-4 shadow-sm md:min-h-[150px] md:p-6">
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
+            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl md:h-14 md:w-14 ${tone}`}>
+              <Icon size={20} className="md:hidden" />
+              <Icon size={24} className="hidden md:block" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-2xl font-black">{value}</p>
-              <p className="mt-1 text-sm font-semibold leading-5 text-[#667085]">{label}</p>
+              <p className="truncate text-lg font-black md:text-2xl">{value}</p>
+              <p className="mt-0.5 text-xs font-semibold leading-4 text-[#667085] md:mt-1 md:text-sm">{label}</p>
             </div>
           </div>
-          <button className="mt-5 block text-sm font-black text-[#e08c4c]">{action}</button>
+          <Link to={to} className="ml-auto mt-auto block pt-3 text-right text-xs font-black text-[#e08c4c] md:text-sm">{action}</Link>
         </article>
       ))}
     </div>
@@ -329,7 +331,7 @@ function UserMetricStrip({ totalSpent, savedProviders }) {
 function OverviewCard({ totalSpent, rating, dailyLimit, todayBookings, verified }) {
   const limitOver = todayBookings >= dailyLimit;
   const items = [
-    [Wallet, `₹${totalSpent.toLocaleString("en-IN")}`, "Total Spending", "text-[#d67f3d] bg-[#fff4e6]"],
+    [Wallet, formatRupees(totalSpent), "Total Spending", "text-[#d67f3d] bg-[#fff4e6]"],
     [Star, rating || "New", "Member Rating", "text-[#d67f3d] bg-[#fff4e6]"],
     [CalendarCheck, limitOver ? "Limit over" : `${todayBookings}/${dailyLimit}`, "Daily Booking Limit", limitOver ? "text-white bg-[#d84e58]" : "text-black bg-[#ffeedd]"],
     [ShieldCheck, verified ? "Verified" : "Pending", "Verification Status", "text-black bg-[#ffeedd]"],

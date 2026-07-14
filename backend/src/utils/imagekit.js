@@ -3,6 +3,9 @@ const ImageKit = require("imagekit");
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const IMAGEKIT_PROVIDER_FOLDER = "/buddybook/providers";
+const IMAGEKIT_KYC_FOLDER = "/buddybook/kyc";
+const MAX_KYC_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_KYC_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 const IMAGEKIT_CHAT_VOICE_FOLDER = "/buddybook/chat/voice";
 const MAX_VOICE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_VOICE_MIME_TYPES = new Set([
@@ -78,6 +81,28 @@ async function uploadProviderImage(file, index = 0) {
     width: uploaded.width,
     height: uploaded.height,
   };
+}
+
+async function uploadKycDocument(file) {
+  if (!file || !ALLOWED_KYC_MIME_TYPES.has(file.mimetype)) {
+    const error = new Error("A JPG, PNG, WebP or PDF identity document is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!file.size || file.size > MAX_KYC_DOCUMENT_BYTES) {
+    const error = new Error("Identity document must be 5 MB or smaller.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const imagekit = getImageKitClient();
+  const extension = file.mimetype === "application/pdf" ? "pdf" : file.mimetype.split("/")[1].replace("jpeg", "jpg");
+  const uploaded = await imagekit.upload({
+    file: file.buffer,
+    fileName: `identity-${Date.now()}.${extension}`,
+    folder: IMAGEKIT_KYC_FOLDER,
+    useUniqueFileName: true,
+  });
+  return { url: uploaded.url, fileId: uploaded.fileId, mimeType: file.mimetype };
 }
 
 function validateVoice(file) {
@@ -190,6 +215,9 @@ function normalizeStoredImage(image) {
 module.exports = {
   MAX_IMAGE_BYTES,
   ALLOWED_MIME_TYPES,
+  MAX_KYC_DOCUMENT_BYTES,
+  ALLOWED_KYC_MIME_TYPES,
+  uploadKycDocument,
   uploadProviderImage,
   uploadProviderBase64Image,
   fileFromBase64Image,

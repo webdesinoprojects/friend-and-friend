@@ -39,6 +39,8 @@ model User {
   profileImage    String?
   isBlocked       Boolean            @default(false)
   blockReason     String?
+  disabledAt      DateTime?
+  disabledUntil   DateTime?
   aadhaarLast4    String?
 
   createdAt DateTime @default(now())
@@ -53,6 +55,17 @@ model User {
   providerBookings Booking[]      @relation("BookingProviderUser")
   sentMessages     ChatMessage[]  @relation("MessageSender")
   reviewReports    ReviewReport[]
+
+  @@index([disabledUntil])
+}
+
+model AccountDeletionAudit {
+  id             String   @id @default(cuid())
+  originalUserId String   @unique
+  role           UserRole
+  deletedAt      DateTime @default(now())
+
+  @@index([role, deletedAt])
 }
 
 model OtpToken {

@@ -12,6 +12,7 @@ import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
 import { getProvider, getProviderImages } from "../../api/providers";
+import { formatRs } from "../../utils/format";
 import {
   getReviews,
   isInWatchlist,
@@ -204,7 +205,7 @@ function PublicProviderDetail({ provider, saved, onSave }) {  const images = pro
                 </span>
               ))}
             </div>
-            <p className="mt-4 text-base font-black">Rs {price}/hr - Schedule a meeting</p>
+            <p className="mt-4 text-base font-black">{formatRs(price)}/hr - Schedule a meeting</p>
           </div>
           <div className="relative h-[240px] overflow-hidden rounded-xl">
             <ProviderImageCarousel images={images} alt={provider.name} />

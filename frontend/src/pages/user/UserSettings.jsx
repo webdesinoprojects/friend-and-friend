@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   CreditCard,
-  Download,
   Eye,
   Globe2,
   Headphones,
@@ -11,55 +8,30 @@ import {
   LogOut,
   MapPin,
   ShieldCheck,
-  Trash2,
   UserX,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import AccountLifecyclePanel from "../../components/account/AccountLifecyclePanel";
 
 const options = [
   ["Login security", "Password, sessions and device activity", Lock],
-  ["Notification preferences", "Booking, review and payment alerts", Bell],
   ["Privacy controls", "Profile visibility and data sharing", Eye],
   ["Location sharing", "Meetup location and safety sharing", MapPin],
   ["Payment methods", "Cards, UPI and refund preferences", CreditCard],
   ["KYC and safety", "Verification records and safety agreement", ShieldCheck],
   ["Language and region", "App language, city and timezone", Globe2],
   ["Blocked accounts", "People you do not want to meet again", UserX],
-  ["Download my data", "Export account, booking and review records", Download],
   ["Help and support", "Report an issue or contact BuddyBOOK", Headphones],
 ];
 
 export default function UserSettings() {
   const navigate = useNavigate();
-  const [deleteText, setDeleteText] = useState("");
-  const [disabledUntil, setDisabledUntil] = useState(() => localStorage.getItem("buddybook_offline_24h") || "");
-  const accountPaused = Boolean(disabledUntil);
 
   const logout = () => {
     localStorage.removeItem("buddybook_auth_user");
     localStorage.removeItem("buddybook_token");
     localStorage.removeItem("token");
     navigate("/login");
-  };
-
-  const deleteAccount = () => {
-    if (deleteText !== "DELETE") return;
-    [
-      "buddybook_auth_user",
-      "buddybook_token",
-      "token",
-      "buddybook_bookings",
-      "buddybook_payments",
-      "buddybook_reviews",
-      "buddybook_watchlist",
-    ].forEach((key) => localStorage.removeItem(key));
-    navigate("/");
-  };
-
-  const toggleDisabled = () => {
-    const next = accountPaused ? "" : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    localStorage.setItem("buddybook_offline_24h", next);
-    setDisabledUntil(next);
   };
 
   return (
@@ -103,51 +75,7 @@ export default function UserSettings() {
             </button>
           </section>
 
-          <section className="rounded-2xl border border-[#f0b8a8] bg-white p-5">
-            <h3 className="text-lg font-black text-black">Delete account permanently</h3>
-            <p className="mt-1 text-sm font-semibold text-[#6b5d52]">
-              Choose a temporary offline mode or permanently remove local account data.
-            </p>
-            <div className="mt-4 grid gap-3 rounded-2xl bg-[#fffaf3] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <span>
-                  <span className="block text-sm font-black text-black">Disable account for 24 hours</span>
-                  <span className="mt-1 block text-xs font-semibold text-[#6b5d52]">You will appear offline and can return after the 24-hour pause.</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleDisabled}
-                  className={`relative h-8 w-14 rounded-full transition ${accountPaused ? "bg-[#d84e58]" : "bg-[#d9bfaa]"}`}
-                  aria-pressed={accountPaused}
-                >
-                  <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${accountPaused ? "left-7" : "left-1"}`} />
-                </button>
-              </div>
-              {accountPaused ? (
-                <div className="rounded-2xl border border-[#d84e58]/30 bg-[#d84e58] p-4 text-white shadow-sm">
-                  <p className="text-sm font-black">Your account has been deactivated for 24 hrs.</p>
-                  <p className="mt-1 text-xs font-bold text-white/85">Come back later.</p>
-                </div>
-              ) : null}
-              <p className="text-xs font-bold leading-5 text-rose-700">
-                Permanent deletion means you must register again from the beginning.
-              </p>
-            </div>
-            <input
-              value={deleteText}
-              onChange={(event) => setDeleteText(event.target.value)}
-              placeholder="Type DELETE"
-              className="mt-4 h-12 w-full rounded-xl border border-[#eddac7] bg-[#fffaf3] px-4 text-sm font-black outline-none focus:border-black"
-            />
-            <button
-              type="button"
-              onClick={deleteAccount}
-              disabled={deleteText !== "DELETE"}
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#d84e58] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <Trash2 size={16} /> Delete forever
-            </button>
-          </section>
+          <div className="grid gap-4"><AccountLifecyclePanel /></div>
         </div>
       </section>
     </UserAppLayout>

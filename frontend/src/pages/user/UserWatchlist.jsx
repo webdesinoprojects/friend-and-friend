@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import ProviderCard from "../../components/users/ProviderCard";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { listProviders } from "../../api/providers";
 import {
   getWatchlist,
   subscribeToUserData,
@@ -13,7 +14,21 @@ export default function UserWatchlist() {
   const [items, setItems] = useState(getWatchlist);
   const [user] = useState(() => readUser());
 
-  useEffect(() => subscribeToUserData(() => setItems(getWatchlist())), []);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = async () => {
+      const activeProviders = await listProviders();
+      if (!mounted) return;
+      const activeIds = new Set(activeProviders.map((provider) => provider.id));
+      setItems(getWatchlist().filter((provider) => activeIds.has(provider.id)));
+    };
+    refresh();
+    const unsubscribe = subscribeToUserData(refresh);
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
+  }, []);
 
   return (
     <UserAppLayout title="Watch List" user={user}>

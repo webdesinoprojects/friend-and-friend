@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import api from "../../api/api";
@@ -423,7 +423,7 @@ export default function Register() {
     }
 
     if (currentStep === 2) {
-      if (!form.documentType || !form.documentNumber || !form.kycConsent) {
+      if (!form.documentType || !form.documentNumber || !form.kycFile || !form.kycConsent) {
         notify("Please complete KYC details and accept consent.");
         return false;
       }
@@ -499,6 +499,11 @@ export default function Register() {
 
       const profileAnswersText = buildProfileAnswers(activeAnswers);
       const documentLast4 = form.documentNumber.slice(-4);
+      const documentForm = new FormData();
+      documentForm.append("document", form.kycFile);
+      const documentResponse = await api.post("/auth/upload-kyc-document", documentForm, { timeout: 60000 });
+      const documentUrl = documentResponse.data?.document?.url;
+      if (!documentUrl) throw new Error("Identity document upload did not return a file URL.");
 
       const payload = {
         fullName: form.fullName,
@@ -510,12 +515,11 @@ export default function Register() {
         city: form.city,
         state: form.state,
         role: form.role,
-        profileImage: form.profileImage,
-
         aadhaarLast4: documentLast4,
         documentType: form.documentType,
         documentNumber: form.documentNumber,
         documentNumberLast4: documentLast4,
+        documentUrl,
         kycConsent: form.kycConsent,
         referenceSelfie: selfie,
         profileImage: form.profileImage?.url || null,
@@ -967,17 +971,28 @@ export default function Register() {
 
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-bold text-black">
-                          Upload document photo
+                          Upload identity proof with your photo <span className="text-rose-600">*</span>
                         </label>
 
                         <input
                           type="file"
                           accept="image/*,.pdf"
-                          onChange={(e) =>
-                            updateField("kycFile", e.target.files?.[0] || null)
-                          }
+                          required
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+                            if (file && (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024)) {
+                              e.target.value = "";
+                              updateField("kycFile", null);
+                              notify("Upload a JPG, PNG, WebP or PDF up to 5 MB.", "error");
+                              return;
+                            }
+                            updateField("kycFile", file);
+                          }}
                           className="w-full rounded-none border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black outline-none file:mr-4 file:rounded-none file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-black file:text-white"
                         />
+                        <p className="mt-2 text-xs font-semibold text-black/45">Required. The uploaded ID proof must clearly show your photograph. JPG, PNG, WebP or PDF, up to 5 MB.</p>
+                        {form.kycFile ? <p className="mt-2 truncate text-xs font-black text-emerald-700">Selected: {form.kycFile.name}</p> : null}
                       </div>
 
                       <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-none border border-black/10 bg-white p-4">

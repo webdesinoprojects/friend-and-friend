@@ -11,7 +11,10 @@ import {
   XCircle,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { formatRupees } from "../../utils/format";
 import { cancelBookingApi, completeBookingApi, listBookings } from "../../api/bookings";
+import { createReview } from "../../api/reports";
+import { notify } from "../../components/common/Feedback";
 import {
   addReview,
   cancelBooking,
@@ -190,7 +193,7 @@ export default function UserBookings() {
                       <Detail label="Date" value={booking.date || "To be confirmed"} />
                       <Detail label="Time" value={booking.time || "To be confirmed"} />
                       <Detail label="Duration" value={booking.duration || "1 hour"} />
-                      <Detail label="Amount" value={`₹${Number(booking.amount || 0).toLocaleString("en-IN")}`} />
+                      <Detail label="Amount" value={formatRupees(Number(booking.amount || 0))} />
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -306,11 +309,16 @@ function CancelBookingDialog({ booking, onClose, onConfirm }) {
 function ReviewForm({ booking, onSubmitted }) {
   const [rating, setRating] = useState(5);
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
-    if (!description.trim()) return;
+  const submit = async () => {
+    if (!description.trim() || submitting) return;
+    setSubmitting(true);
     const user = getStoredUser();
-    addReview({
+    try {
+      const saved = await createReview({ bookingId: booking.id, rating, description: description.trim() });
+      addReview({
+      ...saved,
       bookingId: booking.id,
       reviewerRole: "USER",
       targetRole: "PROVIDER",
@@ -324,8 +332,13 @@ function ReviewForm({ booking, onSubmitted }) {
       rating,
       description,
       service: booking.service || booking.activity,
-    });
-    onSubmitted();
+      });
+      onSubmitted();
+    } catch (error) {
+      notify(error?.response?.data?.message || "Could not submit review.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -347,10 +360,10 @@ function ReviewForm({ booking, onSubmitted }) {
       <button
         type="button"
         onClick={submit}
-        disabled={!description.trim()}
+        disabled={!description.trim() || submitting}
         className="mt-3 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Submit review
+        {submitting ? "Submitting..." : "Submit review"}
       </button>
     </div>
   );
@@ -393,4 +406,3 @@ function Detail({ label, value }) {
     </div>
   );
 }
-

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import AppShell from "../../components/layout/AppShell";
+import { formatRs } from "../../utils/format";
 import {
   getMyProviderProfile,
   saveMyProviderProfile,
@@ -492,7 +493,7 @@ export default function ProviderCreate() {
                     <span>{form.age ? `${form.age} years old` : "Age"}</span>
                     <span className="inline-flex items-center gap-2"><MapPin size={15} /> {form.availableCity || user?.city || "City"}</span>
                     <span className="inline-flex items-center gap-2"><Languages size={15} /> {form.languages || "Languages"}</span>
-                    <span className="inline-flex items-center gap-2"><IndianRupee size={15} /> {form.hourlyPrice || "0"}/hr</span>
+                    <span className="inline-flex items-center gap-2"><IndianRupee size={15} /> {formatRs(form.hourlyPrice || 0)}/hr</span>
                   </div>
                 </div>
               </div>

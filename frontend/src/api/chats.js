@@ -5,7 +5,7 @@ function unwrap(response) {
 }
 
 export async function listChats() {
-  const response = await api.get("/chats", { timeout: 10000 });
+  const response = await api.get("/chats", { timeout: 30000 });
   const data = unwrap(response);
   return Array.isArray(data) ? data : [];
 }
@@ -13,6 +13,7 @@ export async function listChats() {
 export async function listChatMessages(threadId, { before, limit = 50 } = {}) {
   const response = await api.get(`/chats/${threadId}/messages`, {
     params: { ...(before ? { before } : {}), limit },
+    timeout: 30000,
   });
   return {
     messages: Array.isArray(response.data?.data) ? response.data.data : [],
@@ -21,7 +22,7 @@ export async function listChatMessages(threadId, { before, limit = 50 } = {}) {
 }
 
 export async function sendChatMessage(threadId, payload) {
-  return unwrap(await api.post(`/chats/${threadId}/messages`, payload));
+  return unwrap(await api.post(`/chats/${threadId}/messages`, payload, { timeout: 30000 }));
 }
 
 export async function uploadVoiceMessage(threadId, blob, durationSeconds) {
@@ -29,7 +30,7 @@ export async function uploadVoiceMessage(threadId, blob, durationSeconds) {
   const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
   form.append("voice", blob, `voice-${Date.now()}.${extension}`);
   form.append("durationSeconds", String(Math.max(1, Math.round(durationSeconds))));
-  return unwrap(await api.post(`/chats/${threadId}/voice`, form));
+  return unwrap(await api.post(`/chats/${threadId}/voice`, form, { timeout: 60000 }));
 }
 
 export async function updateLiveLocation(threadId, messageId, coordinates) {

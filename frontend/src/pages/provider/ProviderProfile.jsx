@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { BadgeCheck, Briefcase, Edit3, IndianRupee, Languages, MapPin, ShieldCheck, Star } from "lucide-react";
 import AppShell from "../../components/layout/AppShell";
+import { formatRs } from "../../utils/format";
 import { getMyProviderProfile } from "../../api/providers";
 import { getReceivedReviews } from "../../utils/userFlowStorage";
 
@@ -54,7 +55,7 @@ export default function ProviderProfile() {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <Tile icon={Star} label="Rating" value={rating} />
               <Tile icon={ShieldCheck} label="Status" value={provider?.approved ? "Live" : "Setup"} />
-              <Tile icon={IndianRupee} label="Hourly" value={`Rs ${provider?.hourlyPrice || 0}`} />
+              <Tile icon={IndianRupee} label="Hourly" value={formatRs(provider?.hourlyPrice || 0)} />
               <Tile icon={BadgeCheck} label="Photos" value={`${images.length}/4`} />
             </div>
           </aside>

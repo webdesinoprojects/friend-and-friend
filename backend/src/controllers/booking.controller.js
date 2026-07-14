@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const crypto = require("crypto");
+const { isAccountDisabled } = require("../utils/accountLifecycle");
 
 function toInt(value, fallback = 0) {
   const parsed = Number(value);
@@ -16,15 +17,19 @@ function getImageUrl(provider) {
 
 function serializeBooking(booking) {
   const provider = booking.provider;
+  const userUnavailable = booking.user?.isBlocked || isAccountDisabled(booking.user);
+  const providerUnavailable = provider?.user?.isBlocked || isAccountDisabled(provider?.user);
   return {
     id: booking.id,
     code: booking.code,
     userId: booking.userId,
-    userName: booking.user?.fullName || "BuddyBOOK user",
+    userName: userUnavailable ? "Account unavailable" : booking.user?.fullName || "BuddyBOOK user",
     providerId: booking.providerId,
     providerUserId: booking.providerUserId,
-    providerName: provider?.user?.fullName || "BuddyBOOK provider",
-    providerImage: getImageUrl(provider),
+    providerName: providerUnavailable ? "Account unavailable" : provider?.user?.fullName || "BuddyBOOK provider",
+    providerImage: providerUnavailable ? "" : getImageUrl(provider),
+    userUnavailable,
+    providerUnavailable,
     service: booking.service,
     activity: booking.service,
     date: booking.date,
@@ -176,10 +181,10 @@ exports.createBooking = async (req, res) => {
       include: { user: true },
     });
 
-    if (!provider) {
+    if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) {
       return res.status(404).json({
         success: false,
-        message: "Provider profile not found. Demo providers cannot create real chats.",
+        message: "This provider profile is currently unavailable.",
       });
     }
 

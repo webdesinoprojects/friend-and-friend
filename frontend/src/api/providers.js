@@ -3,11 +3,12 @@ import { normalizeProvider } from '../data/providerCatalog';
 
 const PROVIDER_CACHE_KEY = 'buddybook_explore_providers_cache';
 const MY_PROVIDER_CACHE_KEY = 'buddybook_my_provider_profile_cache';
-let backgroundRefresh = null;
 const providerImageCache = new Map();
 
 export function getCachedProviders() {
-  return readProviderCache();
+  // Discovery must be server-authoritative so disabled/deleted profiles never
+  // reappear from stale browser storage.
+  return [];
 }
 
 export function getCachedProvider(id) {
@@ -18,7 +19,10 @@ export async function listProviders(params = {}) {
   try {
     const res = await api.get('/providers', {
       params: { imageMode: 'first', ...params },
-      timeout: 1200,
+      // Provider rows include image metadata and can take a few seconds on a
+      // cold database connection.  Do not turn a healthy, slower response
+      // into an empty provider list.
+      timeout: 15000,
     });
     const rows = Array.isArray(res.data?.data)
       ? res.data.data
@@ -29,8 +33,7 @@ export async function listProviders(params = {}) {
     writeProviderCache(normalized);
     return normalized;
   } catch {
-    refreshProviderCache(params);
-    return getCachedProviders();
+    return [];
   }
 }
 
@@ -88,19 +91,16 @@ export async function uploadProviderImages(files) {
 }
 
 export async function getProvider(id) {
-  const cached = getCachedProviders().find((provider) => provider.id === id);
+  const res = await api.get(`/providers/${id}`, { timeout: 3000 });
+  const provider = normalizeProvider(res.data?.data || res.data?.provider || res.data);
+  rememberProvider(provider);
+  return provider;
+}
 
-  try {
-    const res = await api.get(`/providers/${id}`, {
-      timeout: 3000,
-    });
-    const provider = normalizeProvider(res.data?.data || res.data?.provider || res.data);
-    rememberProvider(provider);
-    return provider;
-  } catch (error) {
-    if (cached) return cached;
-    throw error;
-  }
+export function clearProviderCaches() {
+  localStorage.removeItem(PROVIDER_CACHE_KEY);
+  sessionStorage.removeItem(MY_PROVIDER_CACHE_KEY);
+  providerImageCache.clear();
 }
 
 export async function getProviderImages(id) {
@@ -142,7 +142,9 @@ function readMyProviderCache() {
 function writeMyProviderCache(value) {
   try {
     sessionStorage.setItem(MY_PROVIDER_CACHE_KEY, JSON.stringify(value || null));
-  } catch {}
+  } catch {
+    // Session storage can be unavailable in privacy-restricted browsers.
+  }
 }
 
 function writeProviderCache(rows) {
@@ -163,35 +165,6 @@ function rememberProvider(provider) {
   const next = new Map(current.map((item) => [item.id, item]));
   next.set(provider.id, stripImagesForCache(provider));
   writeProviderCache(Array.from(next.values()));
-}
-
-function refreshProviderCache(params = {}) {
-  if (backgroundRefresh) return backgroundRefresh;
-
-  backgroundRefresh = api
-    .get('/providers', {
-      params: { imageMode: 'first', ...params },
-      timeout: 20000,
-    })
-    .then((res) => {
-      const rows = Array.isArray(res.data?.data)
-        ? res.data.data
-        : Array.isArray(res.data)
-        ? res.data
-        : [];
-      const normalized = rows.map((item, index) => normalizeProvider(item, index));
-      writeProviderCache(normalized);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('buddybook:providers-cache-updated'));
-      }
-      return normalized;
-    })
-    .catch(() => getCachedProviders())
-    .finally(() => {
-      backgroundRefresh = null;
-    });
-
-  return backgroundRefresh;
 }
 
 function isRealProvider(provider) {

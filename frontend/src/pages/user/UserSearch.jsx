@@ -8,15 +8,13 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
-import { getCachedProviders, listProviders } from "../../api/providers";
+import { listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import ProviderCard from "../../components/users/ProviderCard";
 import {
   getWatchlist,
   toggleWatchlist,
 } from "../../utils/userFlowStorage";
-
-const PROVIDER_CACHE_KEY = "buddybook_explore_providers_cache";
 
 const initialFilters = {
   keyword: "",
@@ -31,9 +29,7 @@ const initialFilters = {
 export default function UserSearch() {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState(() => readUser());
-  const [providers, setProviders] = useState(() =>
-    mergeProviders(getCachedProviders(), readProviderCache())
-  );
+  const [providers, setProviders] = useState([]);
   const [watchlist, setWatchlist] = useState(getWatchlist);
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,
@@ -42,10 +38,13 @@ export default function UserSearch() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      keyword: searchParams.get("q") || current.keyword || "",
-    }));
+    const timer = window.setTimeout(() => {
+      setFilters((current) => ({
+        ...current,
+        keyword: searchParams.get("q") || current.keyword || "",
+      }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [searchParams]);
 
   useEffect(() => {
@@ -54,11 +53,7 @@ export default function UserSearch() {
     const saveProviders = (rows) => {
       if (!mounted || !Array.isArray(rows)) return;
 
-      setProviders((current) => {
-        const next = mergeProviders(current, rows);
-        writeProviderCache(next);
-        return next;
-      });
+      setProviders(rows);
     };
 
     const refreshUser = async () => {
@@ -84,8 +79,6 @@ export default function UserSearch() {
         // Keep cached providers visible if the backend request fails.
       }
     };
-    const refreshProvidersFromCache = () => saveProviders(getCachedProviders());
-
     const refreshEverything = () => {
       refreshUser();
       refreshProviders();
@@ -102,7 +95,6 @@ export default function UserSearch() {
     window.addEventListener("focus", refreshProviders);
     document.addEventListener("visibilitychange", refreshOnVisible);
     window.addEventListener("buddybook:providers-changed", refreshProviders);
-    window.addEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
     window.addEventListener("buddybook:data-changed", refreshProviders);
 
     return () => {
@@ -110,7 +102,6 @@ export default function UserSearch() {
       window.removeEventListener("focus", refreshProviders);
       document.removeEventListener("visibilitychange", refreshOnVisible);
       window.removeEventListener("buddybook:providers-changed", refreshProviders);
-      window.removeEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
       window.removeEventListener("buddybook:data-changed", refreshProviders);
     };
   }, []);
@@ -346,67 +337,6 @@ function readUser() {
   }
 }
 
-function readProviderCache() {
-  try {
-    const rows = JSON.parse(localStorage.getItem(PROVIDER_CACHE_KEY) || "[]");
-    if (!Array.isArray(rows)) return getCachedProviders();
-    const cleaned = rows.filter(isRealProvider).map(stripImagesForCache);
-
-    if (cleaned.length !== rows.length || rows.some(hasCachedImages)) {
-      writeProviderCache(cleaned);
-    }
-
-    return cleaned;
-  } catch {
-    return getCachedProviders();
-  }
-}
-
 function sameText(left, right) {
   return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
-}
-
-function writeProviderCache(rows) {
-  try {
-    localStorage.setItem(
-      PROVIDER_CACHE_KEY,
-      JSON.stringify((Array.isArray(rows) ? rows : []).map(stripImagesForCache))
-    );
-  } catch {
-    // Ignore storage quota/private mode failures.
-  }
-}
-
-function mergeProviders(current, incoming) {
-  const map = new Map();
-
-  [...current, ...incoming].forEach((provider) => {
-    if (!isRealProvider(provider)) return;
-    map.set(provider.id, provider);
-  });
-
-  return Array.from(map.values());
-}
-
-function isRealProvider(provider) {
-  return provider?.id && !String(provider.id).startsWith("demo-");
-}
-
-function hasCachedImages(provider) {
-  return (
-    String(provider?.image || "").startsWith("data:image/") ||
-    (Array.isArray(provider?.images) &&
-      provider.images.some((image) => String(image || "").startsWith("data:image/")))
-  );
-}
-
-function stripImagesForCache(provider) {
-  if (!provider) return provider;
-  return {
-    ...provider,
-    image: String(provider.image || "").startsWith("data:image/") ? "" : provider.image,
-    images: Array.isArray(provider.images)
-      ? provider.images.filter((image) => !String(image || "").startsWith("data:image/"))
-      : [],
-  };
 }

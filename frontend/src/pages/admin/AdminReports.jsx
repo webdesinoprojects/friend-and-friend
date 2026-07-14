@@ -75,6 +75,9 @@ export default function AdminReports() {
                 <button type="button" onClick={() => act(report, "DELETE_REVIEW")} className="rounded-xl bg-black px-4 py-2.5 text-xs font-black text-white">
                   Delete review
                 </button>
+                <button type="button" onClick={() => act(report, "BLOCK_REPORTED_ACCOUNT")} className="rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white">
+                  Block review writer
+                </button>
                 <button type="button" onClick={() => act(report, "DECREASE_REVIEWER_RATING")} className="rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black">
                   Decrease writer rating
                 </button>

@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { formatRupees } from "../../utils/format";
 import {
   getBookings,
   getPayments,
@@ -173,7 +174,7 @@ export default function UserPayments() {
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Amount</p>
                       <p className="flex items-center gap-1 text-base font-black text-black">
-                        ₹{Number(transaction.amount || 0).toLocaleString("en-IN")}
+                         {formatRupees(Number(transaction.amount || 0))}
                       </p>
                     </div>
 
@@ -209,7 +210,7 @@ function MoneyStat({ icon: Icon, label, value, tone, count }) {
       </span>
       <div>
         <p className="text-xl font-black text-black">
-          {count ? value : `₹${Number(value).toLocaleString("en-IN")}`}
+          {count ? value : formatRupees(Number(value))}
         </p>
         <p className="text-xs font-bold text-slate-500">{label}</p>
       </div>

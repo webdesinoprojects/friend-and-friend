@@ -1,6 +1,8 @@
 import {
   CalendarCheck,
+  Home,
   LayoutDashboard,
+  Menu,
   MessageCircle,
   Search,
   Settings,
@@ -8,6 +10,7 @@ import {
   Star,
   User,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { useMemo, useState } from "react";
@@ -41,6 +44,7 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
   const pageName = pathParts[pathParts.length - 1] || "dashboard";
   const links = type === "provider" ? providerLinks : userLinks;
   const storedUser = readStoredUser();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
   const inputValue = searchValue || localSearch;
   const searchMatches = useMemo(() => {
@@ -93,7 +97,24 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
 
         <main className="flex min-h-0 min-w-0 flex-col">
           <header className="flex h-[92px] shrink-0 items-center justify-between border-b border-black/10 bg-white px-4 sm:px-8">
-            <div>
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:bg-[#fff7ed] lg:hidden"
+                aria-label="Go to home page"
+              >
+                <Home size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black shadow-sm transition hover:bg-[#fff7ed] lg:hidden"
+                aria-label={`Open ${type} workspace menu`}
+              >
+                <Menu size={18} />
+              </button>
+              <div className="min-w-0">
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
                 {type === "provider" && pageName === "dashboard"
                   ? "Provider Overview"
@@ -104,6 +125,7 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
                   ? "Track your profile, bookings, earnings and next actions."
                   : "Manage your safe workspace and bookings."}
               </p>
+              </div>
             </div>
 
             <div className="relative hidden h-14 min-w-[260px] max-w-[440px] flex-1 items-center gap-3 rounded-xl border border-black/10 bg-white px-4 shadow-sm xl:flex">
@@ -151,6 +173,53 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
               </div>
             </div>
           </header>
+
+          {drawerOpen ? (
+            <div className="fixed inset-0 z-[10000] bg-black/35 backdrop-blur-sm" onClick={() => setDrawerOpen(false)}>
+              <aside
+                className="h-full w-[min(86vw,330px)] bg-white p-5 shadow-[20px_0_70px_rgba(0,0,0,0.2)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b7563]">
+                      {type === "provider" ? "Provider Workspace" : "User Workspace"}
+                    </p>
+                    <h2 className="mt-1 text-2xl font-black capitalize">{pageName.replace(/-/g, " ")}</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(false)}
+                    className="grid h-10 w-10 place-items-center rounded-full bg-black text-[#fffaf3]"
+                    aria-label={`Close ${type} workspace menu`}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-6 rounded-2xl bg-[#fffaf3] p-4">
+                  <p className="text-lg font-black">{storedUser?.fullName || (type === "provider" ? "Provider" : "BuddyBOOK User")}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-[#6b5d52]">
+                    {storedUser?.email || storedUser?.phone || "Profile details"}
+                  </p>
+                </div>
+
+                <nav className="mt-6 grid gap-2">
+                  {links.map(({ label, to, icon: Icon }) => (
+                    <Link
+                      key={label}
+                      to={to}
+                      onClick={() => setDrawerOpen(false)}
+                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black text-black transition hover:bg-[#ffeedd]"
+                    >
+                      <Icon size={18} />
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+              </aside>
+            </div>
+          ) : null}
 
           <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-8">
             {children}

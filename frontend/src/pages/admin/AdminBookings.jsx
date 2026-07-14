@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
+import { formatRs } from "../../utils/format";
 import api from "../../api/api";
 
 export default function AdminBookings() {
@@ -79,7 +80,7 @@ function BookingsTable({ rows }) {
               <td className="font-semibold text-black/65">{booking.userName || "User"}</td>
               <td className="font-semibold text-black/65">{booking.providerName || "Provider"}</td>
               <td className="font-semibold text-black/65">{booking.activity || booking.service || "Meetup"}</td>
-              <td className="font-black text-black">Rs {Number(booking.amount || 0).toLocaleString("en-IN")}</td>
+              <td className="font-black text-black">{formatRs(Number(booking.amount || 0))}</td>
               <td className="font-semibold text-black/65">{formatDateTime(booking.date, booking.time)}</td>
               <td><StatusPill status={booking.paymentStatus || "PAID"} /></td>
               <td><StatusPill status={booking.status || "CONFIRMED"} /></td>

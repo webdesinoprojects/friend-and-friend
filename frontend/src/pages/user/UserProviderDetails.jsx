@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, CalendarCheck, Heart, MapPin, Star } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
+import { formatRupees } from "../../utils/format";
 import { buddyProfiles } from "../../data/userDashboardData";
 
 export default function UserProviderDetails() {
@@ -79,7 +80,7 @@ export default function UserProviderDetails() {
               <div className="mb-4 flex items-center justify-between rounded-[1.5rem] bg-[#eef4ff] p-5">
                 <div>
                   <p className="text-3xl font-black text-[#11153b]">
-                    ₹{profile.price}
+                    {formatRupees(profile.price)}
                     <span className="text-sm font-bold text-slate-500"> /hr</span>
                   </p>
                   <p className="mt-1 text-xs font-bold text-black/45">

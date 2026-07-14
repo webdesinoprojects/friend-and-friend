@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Eye, X } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { formatRs } from "../../utils/format";
 
 export default function AdminUsers() {
   const navigate = useNavigate();
@@ -96,7 +97,7 @@ export default function AdminUsers() {
                 {filtered.length ? (
                   filtered.map((user) => (
                     <tr key={user.id} className="transition hover:bg-black/5">
-                      <td className="px-5 py-4 font-black text-black">{user.fullName}</td>
+                      <td className="px-5 py-4 font-black text-black">{user.fullName}{user.accountDeleted ? <span className="mt-1 block text-[10px] uppercase tracking-wider text-rose-600">Deleted {formatDate(user.deletedAt)}</span> : null}</td>
                       <td className="font-semibold text-black/65">{user.email || "Not added"}</td>
                       <td className="font-semibold text-black/65">{user.phone}</td>
                       <td className="font-semibold text-black/65">{user.phone || "Not added"}</td>
@@ -124,18 +125,22 @@ export default function AdminUsers() {
                       <td className="font-semibold text-black/65">{formatMoney(user.totalSpending ?? user.bookingSummary?.totalSpending)}</td>
                       <td>
                         <span className="inline-flex items-center gap-1.5">
-                          {user.faceStatus === "VERIFIED" ? (
+                          {user.accountDeleted ? (
+                            <span className="h-2 w-2 rounded-full bg-rose-600" />
+                          ) : user.accountDisabled ? (
+                            <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          ) : user.faceStatus === "VERIFIED" ? (
                             <span className="h-2 w-2 rounded-full bg-emerald-500" />
                           ) : (
                             <span className="h-2 w-2 rounded-full bg-black/20" />
                           )}
                           <span className="text-xs font-bold uppercase tracking-[0.12em] text-black/55">
-                            {user.faceStatus === "VERIFIED" ? "Verified" : "Unverified"}
+                            {user.accountDeleted ? "Account deleted" : user.accountDisabled ? "Temporarily disabled" : user.faceStatus === "VERIFIED" ? "Verified" : "Unverified"}
                           </span>
                         </span>
                       </td>
                       <td>
-                        <button
+                        {user.accountDeleted ? <span className="inline-flex rounded-full bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-700">Deleted</span> : <button
                           type="button"
                           onClick={() => toggleBlock(user)}
                           className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-black transition ${
@@ -145,17 +150,17 @@ export default function AdminUsers() {
                           }`}
                         >
                           {user.isBlocked ? "Unblock" : "Block"}
-                        </button>
+                        </button>}
                       </td>
                       <td className="pr-4">
-                        <button
+                        {!user.accountDeleted ? <button
                           type="button"
                           onClick={() => navigate(`/admin/users/${user.id}`)}
                           className="grid h-9 w-9 place-items-center rounded-full bg-black text-white transition hover:scale-105"
                           aria-label={`Open ${user.fullName} profile`}
                         >
                           <ChevronRight size={17} />
-                        </button>
+                        </button> : <span className="text-xs font-bold text-black/30">Removed</span>}
                       </td>
                     </tr>
                   ))
@@ -189,7 +194,7 @@ function ImagePreview({ src, onClose }) {
 
 function formatMoney(value) {
   if (value === null || value === undefined) return "-";
-  return `Rs ${Number(value || 0).toLocaleString("en-IN")}`;
+  return formatRs(value);
 }
 
 function formatDate(value) {

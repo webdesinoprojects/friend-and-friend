@@ -32,8 +32,11 @@ import {
 } from "lucide-react";
 
 import AppShell from "../../components/layout/AppShell";
+import { formatRs } from "../../utils/format";
 import { getMyProviderProfile } from "../../api/providers";
 import { completeBookingApi, listBookings } from "../../api/bookings";
+import { createReview } from "../../api/reports";
+import { notify } from "../../components/common/Feedback";
 import {
   addReview,
   getBookings,
@@ -242,7 +245,7 @@ export function ProviderBookings() {
                         <Detail label="Date" value={booking.date || "To be confirmed"} />
                         <Detail label="Time" value={booking.time || "To be confirmed"} />
                         <Detail label="Duration" value={booking.duration || `${booking.durationHours || 1} hour`} />
-                        <Detail label="Amount" value={`Rs ${Number(booking.amount || 0).toLocaleString("en-IN")}`} />
+                        <Detail label="Amount" value={formatRs(Number(booking.amount || 0))} />
                       </div>
 
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -309,10 +312,15 @@ export function ProviderBookings() {
 function ProviderReviewForm({ booking, onSubmitted }) {
   const [rating, setRating] = useState(5);
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
-    if (!description.trim()) return;
-    addReview({
+  const submit = async () => {
+    if (!description.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const saved = await createReview({ bookingId: booking.id, rating, description: description.trim() });
+      addReview({
+      ...saved,
       bookingId: booking.id,
       reviewerRole: "PROVIDER",
       targetRole: "USER",
@@ -320,8 +328,13 @@ function ProviderReviewForm({ booking, onSubmitted }) {
       rating,
       description,
       service: booking.service || booking.activity,
-    });
-    onSubmitted();
+      });
+      onSubmitted();
+    } catch (error) {
+      notify(error?.response?.data?.message || "Could not submit review.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -340,8 +353,8 @@ function ProviderReviewForm({ booking, onSubmitted }) {
         placeholder="Write a short, professional note about the user's conduct."
         className="mt-3 min-h-[92px] w-full rounded-xl border border-[#eddac7] bg-white p-3 text-sm font-bold outline-none focus:border-black"
       />
-      <button type="button" onClick={submit} disabled={!description.trim()} className="mt-3 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-50">
-        Submit review
+      <button type="button" onClick={submit} disabled={!description.trim() || submitting} className="mt-3 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3] disabled:cursor-not-allowed disabled:opacity-50">
+        {submitting ? "Submitting..." : "Submit review"}
       </button>
     </div>
   );
@@ -354,9 +367,9 @@ export function ProviderEarnings() {
     <ProviderPageShell title="Earnings" subtitle="Track expected revenue and payout health.">
       <div className="grid gap-5">
         <div className="grid gap-4 md:grid-cols-4">
-          <Kpi icon={Wallet} label="Total revenue" value={`Rs ${Number(stats.totalRevenue || 0).toLocaleString("en-IN")}`} />
-          <Kpi icon={IndianRupee} label="Pending payout" value="Rs 2,800" />
-          <Kpi icon={TrendingUp} label="Avg booking" value="Rs 720" />
+          <Kpi icon={Wallet} label="Total revenue" value={formatRs(Number(stats.totalRevenue || 0))} />
+          <Kpi icon={IndianRupee} label="Pending payout" value={formatRs(2800)} />
+          <Kpi icon={TrendingUp} label="Avg booking" value={formatRs(720)} />
           <Kpi icon={CheckCircle2} label="Completed" value={stats.totalBookings || 0} />
         </div>
 

@@ -1,21 +1,16 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
+const { activateIfExpired, isAccountDisabled, publicAccountState } = require("../utils/accountLifecycle");
 
-async function protect(req, res, next) {
+async function authenticate(req, res, next, { allowDisabled = false } = {}) {
   try {
     const authHeader = req.headers.authorization || (req.query?.token ? `Bearer ${req.query.token}` : "");
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Token missing. Please login again.",
-      });
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, message: "Token missing. Please login again." });
     }
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await prisma.user.findUnique({
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    let user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: {
         id: true,
@@ -31,26 +26,43 @@ async function protect(req, res, next) {
         emailVerified: true,
         kycStatus: true,
         faceStatus: true,
+        isBlocked: true,
+        blockReason: true,
+        disabledAt: true,
+        disabledUntil: true,
         providerProfile: true,
         userProfile: true,
       },
     });
 
     if (!user) {
-      return res.status(401).json({
+      return res.status(401).json({ success: false, accountDeleted: true, message: "This account no longer exists." });
+    }
+    user = await activateIfExpired(user);
+    if (user.isBlocked) {
+      return res.status(403).json({ success: false, message: "This account has been blocked by an administrator." });
+    }
+    if (!allowDisabled && isAccountDisabled(user)) {
+      return res.status(423).json({
         success: false,
-        message: "User not found. Please login again.",
+        message: "Your account is temporarily disabled. Reactivate it from Settings to continue.",
+        ...publicAccountState(user),
       });
     }
 
     req.user = user;
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token.",
-    });
+    return next();
+  } catch {
+    return res.status(401).json({ success: false, message: "Invalid or expired token." });
   }
 }
+
+function protect(req, res, next) {
+  return authenticate(req, res, next);
+}
+
+protect.allowDisabled = function allowDisabled(req, res, next) {
+  return authenticate(req, res, next, { allowDisabled: true });
+};
 
 module.exports = protect;

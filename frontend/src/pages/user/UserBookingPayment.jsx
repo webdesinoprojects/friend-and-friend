@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
+import { formatRupees } from "../../utils/format";
 import { createBooking as createBackendBooking } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
 import { createPaidBooking } from "../../utils/userFlowStorage";
@@ -165,7 +166,7 @@ export default function UserBookingPayment() {
 
   return (
     <UserAppLayout title="Secure Checkout" user={user}>
-      <section className="custom-scrollbar grid h-full min-w-0 gap-4 rounded-[1.5rem] bg-[#fffaf3] p-3 lg:grid-cols-[0.92fr_1.08fr]">
+      <section className="custom-scrollbar grid h-full min-w-0 gap-4 rounded-[1.5rem] bg-[#fffaf3] p-3 lg:grid-cols-[0.92fr_1.08fr] overflow-x-auto">
         <div className="min-w-0 rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
           <h1 className="text-2xl font-black">Booking Summary</h1>
           <div className="mt-5 flex items-center gap-4 rounded-[1.25rem] bg-[#ffeedd] p-4">
@@ -177,31 +178,31 @@ export default function UserBookingPayment() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid min-w-0 max-w-full gap-3 overflow-hidden sm:grid-cols-2">
             <Field label="Activity">
-              <select value={service} onChange={(event) => setService(event.target.value)} className="field-control w-full min-w-0 max-w-full">
+              <select value={service} onChange={(event) => setService(event.target.value)} className="field-control block w-full min-w-0 max-w-full truncate">
                 {[...new Set([service, ...getProviderActivities(provider)].filter(Boolean))].map((activity) => <option key={activity}>{activity}</option>)}
               </select>
             </Field>
             <Field label="Duration">
-              <select value={duration} onChange={(event) => setDuration(event.target.value)} className="field-control w-full min-w-0 max-w-full">
+              <select value={duration} onChange={(event) => setDuration(event.target.value)} className="field-control block w-full min-w-0 max-w-full truncate">
                 {[1, 2, 3, 4, 5, 6].map((hours) => <option key={hours} value={hours}>{hours} Hour{hours > 1 ? "s" : ""}</option>)}
               </select>
             </Field>
             <Field label="Meetup date" icon={CalendarDays}>
-              <input type="date" min={dateValue(0)} max={dateValue(10)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control w-full min-w-0 max-w-full" />
+              <input type="date" min={dateValue(0)} max={dateValue(10)} value={date} onChange={(event) => setDate(event.target.value)} className="field-control block w-full min-w-0 max-w-full" />
             </Field>
             <Field label="Start time" icon={Clock3}>
-              <select value={time} onChange={(event) => setTime(event.target.value)} className="field-control w-full min-w-0 max-w-full">
+              <select value={time} onChange={(event) => setTime(event.target.value)} className="field-control block w-full min-w-0 max-w-full truncate">
                 {TIME_OPTIONS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
               </select>
             </Field>
           </div>
 
           <div className="mt-5 rounded-[1.25rem] border border-black/10 bg-[#fffaf3] p-4">
-            <div className="flex justify-between text-sm font-bold text-slate-600"><span>Hourly rate</span><span>₹{provider.price}</span></div>
+            <div className="flex justify-between text-sm font-bold text-slate-600"><span>Hourly rate</span><span>{formatRupees(provider.price)}</span></div>
             <div className="mt-2 flex justify-between text-sm font-bold text-slate-600"><span>Duration</span><span>{duration} hour(s)</span></div>
-            <div className="mt-3 flex justify-between border-t border-[#e6ecff] pt-3 text-lg font-black"><span>Total</span><span>₹{amount}</span></div>
+            <div className="mt-3 flex justify-between border-t border-[#e6ecff] pt-3 text-lg font-black"><span>Total</span><span>{formatRupees(amount)}</span></div>
           </div>
         </div>
 
@@ -241,19 +242,19 @@ export default function UserBookingPayment() {
             onClick={handlePayment}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-4 text-sm font-black text-[#fffaf3] shadow-[0_12px_28px_rgba(0,0,0,0.18)] disabled:opacity-60"
           >
-            <Lock size={17} /> {processing ? "Processing..." : `Pay ₹${amount} Securely`}
+            <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatRupees(amount)} Securely`}
           </button>
         </div>
       </section>
 
-      <style>{`.field-control{width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:transparent;font-size:.875rem;font-weight:800;outline:none;color:#111}`}</style>
+      <style>{`.field-control{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:transparent;font-size:.875rem;font-weight:800;outline:none;color:#111;overflow:hidden;text-overflow:ellipsis}.field-control option{max-width:calc(100vw - 4rem);overflow:hidden;text-overflow:ellipsis}@media(max-width:639px){.field-control{inline-size:100%;max-inline-size:100%;overflow:visible;text-overflow:clip}select.field-control{-webkit-appearance:none;appearance:none;padding-inline-end:1.25rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .1rem center;background-size:.7rem}input.field-control[type="date"]{-webkit-appearance:none;appearance:none;min-inline-size:0}input.field-control[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}input.field-control[type="date"]::-webkit-calendar-picker-indicator{margin-inline-start:auto;padding:0}}`}</style>
     </UserAppLayout>
   );
 }
 
 function Field({ label, icon: Icon, children }) {
   return (
-    <label className="min-w-0 rounded-[1rem] border border-black/10 bg-[#fffaf3] p-3">
+    <label className="block min-w-0 max-w-full overflow-hidden rounded-[1rem] border border-black/10 bg-[#fffaf3] p-3">
       <span className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">{Icon ? <Icon size={12} /> : null}{label}</span>
       {children}
     </label>

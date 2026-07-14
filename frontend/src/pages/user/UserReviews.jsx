@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarCheck, Flag, MessageCircle, Star, X } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
-import { getReceivedReviews, getReviews } from "../../utils/userFlowStorage";
-import { reportReview } from "../../api/reports";
+import { reportReview, listMyReviews } from "../../api/reports";
 
 export default function UserReviews() {
-  const received = getReceivedReviews("USER");
-  const given = getReviews().filter((review) => review.reviewerRole === "USER");
+  const [reviews, setReviews] = useState([]);
+  useEffect(() => { listMyReviews().then(setReviews).catch(() => setReviews([])); }, []);
+  const received = reviews.filter((review) => review.targetRole === "USER");
+  const given = reviews.filter((review) => review.reviewerRole === "USER");
 
   return (
     <UserAppLayout title="Reviews">
@@ -75,7 +76,7 @@ function ReviewCard({ review, canReport = false }) {
     <article className="rounded-2xl bg-[#fffaf3] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-black">{review.targetName || review.reviewerName || "BuddyBOOK member"}</p>
+          <p className="text-sm font-black text-black">{(canReport ? review.reviewerName : review.targetName) || "BuddyBOOK member"}</p>
           <p className="mt-1 flex items-center gap-1 text-[10px] font-black text-[#8b7563]">
             <CalendarCheck size={12} /> {date}
           </p>

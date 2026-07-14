@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { formatRs } from "../../utils/format";
 
 export default function AdminUserProfile() {
   const { userId } = useParams();
@@ -289,7 +290,7 @@ function ImagePreview({ src, onClose }) {
 
 function formatMoney(value) {
   if (value === null || value === undefined || value === "") return "-";
-  return `Rs ${Number(value || 0).toLocaleString("en-IN")}`;
+  return formatRs(value);
 }
 
 function formatDate(value) {

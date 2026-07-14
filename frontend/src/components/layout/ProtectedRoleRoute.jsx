@@ -1,6 +1,14 @@
-import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function ProtectedRoleRoute({ role, children }) {
+  const location = useLocation();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const sync = () => setNow(Date.now());
+    window.addEventListener("buddybook:auth-changed", sync);
+    return () => window.removeEventListener("buddybook:auth-changed", sync);
+  }, []);
   const token = localStorage.getItem("buddybook_token") || localStorage.getItem("token");
   const user = readUser();
 
@@ -10,6 +18,12 @@ export default function ProtectedRoleRoute({ role, children }) {
 
   const actualRole = String(user.role || "").toUpperCase();
   const expectedRole = String(role || "").toUpperCase();
+  const disabled = Boolean(user.accountDisabled && user.disabledUntil && new Date(user.disabledUntil).getTime() > now);
+  const settingsPath = actualRole === "PROVIDER" ? "/app/provider/settings" : "/app/user/settings";
+
+  if (disabled && location.pathname !== settingsPath) {
+    return <Navigate to={settingsPath} replace />;
+  }
 
   if (actualRole !== expectedRole) {
     if (actualRole === "PROVIDER") {

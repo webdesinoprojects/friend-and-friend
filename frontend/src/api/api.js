@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const apiBaseUrl = import.meta.env.DEV
+  ? import.meta.env.VITE_LOCAL_API_URL || "http://127.0.0.1:5000/api"
+  : import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: apiBaseUrl,
   withCredentials: true,
 });
 
@@ -22,6 +26,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
+    if (status === 423 && error?.response?.data?.accountDisabled) {
+      try {
+        const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+        if (user) {
+          const nextUser = { ...user, ...error.response.data };
+          localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
+          window.dispatchEvent(new Event("buddybook:auth-changed"));
+          const settingsPath = nextUser.role === "PROVIDER" ? "/app/provider/settings" : "/app/user/settings";
+          if (window.location.pathname !== settingsPath) window.location.assign(settingsPath);
+        }
+      } catch {
+        // Keep the original API error if browser storage is unavailable.
+      }
+    }
     if (status === 401) {
       const isAdmin = String(error?.config?.url || "").startsWith("/admin");
       if (isAdmin) {

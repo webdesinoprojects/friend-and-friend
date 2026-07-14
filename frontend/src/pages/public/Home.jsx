@@ -28,6 +28,7 @@ import {
 import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
+import { formatRs, formatRupees } from "../../utils/format";
 import friendsHero from "../../assets/buddybook-friends-hero.webp";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
@@ -1011,7 +1012,7 @@ function HeroVisual() {
             <p className="text-sm font-black sm:text-base">Coffee · 2 hours</p>
             <p className="mt-1 text-xs font-bold text-black/38">Saturday, 5:30 PM</p>
           </div>
-          <p className="text-base font-black text-[#e08c4c] sm:text-lg">₹800</p>
+          <p className="text-base font-black text-[#e08c4c] sm:text-lg">{formatRupees(800)}</p>
         </div>
       </div>
 
@@ -1152,6 +1153,13 @@ function PublicServiceExploreSection({
   onReset,
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const providerRailRef = useRef(null);
+  const scrollProviderRail = (direction) => {
+    providerRailRef.current?.scrollBy({
+      left: direction * Math.min(window.innerWidth * 0.78, 300),
+      behavior: "smooth",
+    });
+  };
   const servicePills = [
     ["City tour", "City walk"],
     ["Events", "Event partner"],
@@ -1240,7 +1248,7 @@ function PublicServiceExploreSection({
             </div>
           </aside>
 
-          <div>
+          <div className="min-w-0">
             <h2 className="text-3xl font-black text-black">
               {title}
             </h2>
@@ -1248,16 +1256,27 @@ function PublicServiceExploreSection({
               {totalProviders} provider profiles available
             </p>
 
+            <div className="mt-5 flex items-center justify-end gap-3 sm:hidden">
+              <button type="button" onClick={() => scrollProviderRail(-1)} className="grid h-12 w-12 -rotate-3 place-items-center rounded-xl border border-black/10 bg-white shadow-[5px_7px_0_#171b30] transition active:translate-x-1 active:translate-y-1 active:shadow-none" aria-label="Previous provider profiles">
+                <ChevronLeft size={22} />
+              </button>
+              <button type="button" onClick={() => scrollProviderRail(1)} className="grid h-12 w-12 rotate-3 place-items-center rounded-xl bg-black text-white shadow-[5px_7px_0_#e08c4c] transition active:translate-x-1 active:translate-y-1 active:shadow-none" aria-label="Next provider profiles">
+                <ChevronRight size={22} />
+              </button>
+            </div>
+
             {loading ? (
-              <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-9 xl:grid-cols-4">
+              <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 sm:mt-7 sm:grid sm:grid-cols-2 sm:gap-x-5 sm:gap-y-9 sm:overflow-visible xl:grid-cols-4">
                 {Array.from({ length: 6 }, (_, index) => (
-                  <div key={index} className="h-[390px] animate-pulse rounded-2xl bg-[#f3f3f3]" />
+                  <div key={index} className="h-[390px] w-[82vw] max-w-[290px] shrink-0 snap-center rounded-2xl bg-[#f3f3f3] sm:w-auto sm:max-w-none" />
                 ))}
               </div>
             ) : providers.length ? (
-              <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-9 xl:grid-cols-4">
+              <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 sm:mt-7 sm:grid sm:grid-cols-2 sm:gap-x-5 sm:gap-y-9 sm:overflow-visible xl:grid-cols-4">
                 {providers.map((provider, index) => (
-                  <SmallIndianProviderCard key={provider.id} provider={provider} index={index} content={content} />
+                  <div key={provider.id} className="w-[82vw] max-w-[290px] shrink-0 snap-center [transform:perspective(900px)_rotateY(-2deg)] sm:w-auto sm:max-w-none sm:transform-none">
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -1343,7 +1362,7 @@ function PublicServiceProviderCard({ provider, index }) {
               <p className="text-lg font-black">
                 🌈 {Number(provider.price || 25).toFixed(2)}/15min- {sold} sold
               </p>
-              <p className="mt-1 text-sm font-bold text-black/40">~₹{Math.round(Number(provider.price || 25) * 74).toLocaleString("en-IN")} (INR)</p>
+              <p className="mt-1 text-sm font-bold text-black/40">{formatRupees(Math.round(Number(provider.price || 25) * 74))} (INR)</p>
             </div>
             <p className="flex items-center gap-1 text-lg font-black">
               <Star size={20} fill="black" className="text-black" />
@@ -1457,7 +1476,7 @@ function SmallIndianProviderCard({ provider, index, content = {} }) {
           <div className="mt-3 flex items-end justify-between gap-3">
             <div>
               <p className="text-lg font-black">
-                Rs {Number(provider.price || 500).toLocaleString("en-IN")}{content.providerCardPriceSuffix || "/hr"}
+                {formatRs(Number(provider.price || 500))}{content.providerCardPriceSuffix || "/hr"}
               </p>
               <p className="mt-1 text-xs font-bold text-black/40">
                 {sold} bookings completed

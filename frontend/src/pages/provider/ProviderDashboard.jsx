@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import AppShell from "../../components/layout/AppShell";
+import { formatRs } from "../../utils/format";
 import { getMyProviderProfile } from "../../api/providers";
 import { listBookings } from "../../api/bookings";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
@@ -164,7 +165,7 @@ export default function ProviderDashboard() {
             <div className="grid gap-4 md:grid-cols-4">
               <Metric icon={Users} label="Profile Views" value={loading ? "..." : liveStats.totalViews} tone="bg-[#ffeedd] text-black" />
               <Metric icon={Briefcase} label="Bookings" value={loading ? "..." : liveStats.totalBookings} tone="bg-[#fffaf3] text-black" />
-              <Metric icon={Wallet} label="Revenue" value={`Rs ${revenue.toLocaleString("en-IN")}`} tone="bg-[#fff4e6] text-[#d67f3d]" />
+              <Metric icon={Wallet} label="Revenue" value={formatRs(revenue)} tone="bg-[#fff4e6] text-[#d67f3d]" />
               <Metric icon={Star} label="Rating" value={liveStats.rating ? `${liveStats.rating} (${liveStats.reviewCount})` : "New"} tone="bg-[#ffeedd] text-black" />
             </div>
 
@@ -290,7 +291,7 @@ function BookingRequestsTable({ bookings = [] }) {
                 <td className="px-3 py-4">{booking.service || booking.activity || "Public meetup"}</td>
                 <td className="px-3 py-4">{formatProviderDate(booking.date || booking.createdAt)}</td>
                 <td className="px-3 py-4"><ProviderStatus status={booking.status} /></td>
-                <td className="px-3 py-4 text-right font-black">Rs {Number(booking.amount || 0).toLocaleString("en-IN")}</td>
+                <td className="px-3 py-4 text-right font-black">{formatRs(Number(booking.amount || 0))}</td>
                 <td className="px-3 py-4 text-right">
                   <Link to="/app/provider/bookings" className="rounded-lg bg-black px-4 py-2 text-xs font-black text-white">
                     View

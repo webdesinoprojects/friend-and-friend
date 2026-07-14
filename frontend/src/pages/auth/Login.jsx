@@ -33,7 +33,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const goToDashboard = () => {
+  const goToDashboard = (user) => {
+    const disabled = Boolean(user?.accountDisabled && user?.disabledUntil && new Date(user.disabledUntil).getTime() > Date.now());
+    if (disabled) {
+      navigate(user.role === "PROVIDER" ? "/app/provider/settings" : "/app/user/settings");
+      return;
+    }
     navigate(redirectTo);
   };
 

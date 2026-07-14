@@ -16,6 +16,7 @@ import {
 
 import api from "../../api/api";
 import AdminShell from "../../components/layout/AdminShell";
+import { formatRupees } from "../../utils/format";
 
 const fallbackSummary = {
   metrics: {
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
         <MetricCard icon={Users} tone="blue" label="Total Users" value={formatNumber(metrics.totalUsers)} trend="Live" note="database" />
         <MetricCard icon={ShieldCheck} tone="green" label="Verified Providers" value={formatNumber(metrics.verifiedProviders)} trend="Live" note="database" />
         <MetricCard icon={CalendarDays} tone="blue" label="Active Bookings" value={formatNumber(metrics.activeBookings)} trend="Live" note="database" />
-        <MetricCard icon={CircleDollarSign} tone="yellow" label="Revenue Today" value={`₹${formatNumber(metrics.revenueToday)}`} trend="Live" note="database" />
+        <MetricCard icon={CircleDollarSign} tone="yellow" label="Revenue Today" value={formatRupees(metrics.revenueToday)} trend="Live" note="database" />
         <MetricCard icon={FileCheck2} tone="orange" label="Pending KYC" value={formatNumber(metrics.pendingKyc)} trend="Live" note="database" />
         <div className="hidden rounded-xl border border-[#dedede] bg-white shadow-sm xl:block" />
       </section>
