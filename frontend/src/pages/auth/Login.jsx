@@ -199,7 +199,7 @@ export default function Login() {
         </aside>
 
         {/* RIGHT LOGIN PANEL */}
-        <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-8 sm:px-6 sm:py-10">
+        <section className="flex min-h-screen items-start justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-8 sm:items-center sm:px-6 sm:py-10">
           <div className="w-full max-w-[480px]">
             <div className="mb-8 lg:hidden">
               <div className="inline-block rounded-none bg-white p-3 shadow-sm">

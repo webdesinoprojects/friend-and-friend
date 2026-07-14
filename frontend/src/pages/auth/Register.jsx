@@ -587,7 +587,7 @@ export default function Register() {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#f5f3ee] text-black">
+    <div className="relative min-h-screen bg-[#f5f3ee] text-black">
       {notice ? (
         <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-none border border-black/10 bg-white p-4 shadow-2xl">
           <p className={`text-sm font-black ${notice.type === "error" ? "text-rose-600" : notice.type === "success" ? "text-emerald-700" : "text-black"}`}>
@@ -604,7 +604,7 @@ export default function Register() {
           </div>
         </div>
       ) : null}
-      <main className="grid h-screen overflow-hidden lg:grid-cols-[0.92fr_84px_1.08fr]">
+      <main className="grid min-h-screen lg:h-screen lg:overflow-hidden lg:grid-cols-[0.92fr_84px_1.08fr]">
         {/* LEFT SIDE FIXED IMAGE */}
         <aside className="relative hidden h-screen overflow-hidden bg-black lg:block">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&auto=format&fit=crop')] bg-cover bg-center opacity-80" />
@@ -672,7 +672,7 @@ export default function Register() {
         </div>
 
         {/* RIGHT SIDE FIXED CARD, INNER CONTENT SCROLLS */}
-        <section className="flex min-h-screen items-center justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-4 md:h-screen md:px-6">
+        <section className="flex min-h-screen items-start justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-4 md:items-center md:h-screen md:px-6">
           <div className="flex min-h-0 w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)] md:h-full">
             {/* CARD HEADER FIXED */}
             <div className="shrink-0 border-b border-black/10 p-5 md:p-7">

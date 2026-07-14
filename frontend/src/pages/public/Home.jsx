@@ -1318,7 +1318,7 @@ function PublicServiceProviderCard({ provider, index }) {
       <article>
         <div className="relative aspect-[0.92] overflow-hidden rounded-2xl bg-[#eeeeee]">
           {image ? (
-            <img src={image} alt={provider.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+            <img src={image} alt={provider.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           ) : (
             <div className="grid h-full place-items-center text-4xl font-black">{provider.name?.[0] || "B"}</div>
           )}
@@ -1435,8 +1435,7 @@ function SmallIndianProviderCard({ provider, index, content = {} }) {
             <img
               src={image}
               alt={provider.name}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-              loading="lazy"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="grid h-full place-items-center text-4xl font-black">

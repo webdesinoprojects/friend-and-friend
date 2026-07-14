@@ -40,7 +40,7 @@ export default function ProviderImageCarousel({
           key={`${src}-${index}`}
           src={src}
           alt={alt}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           className={`absolute inset-0 h-full w-full object-cover transition duration-300 ${
             index === active ? "translate-x-0 opacity-100" : "translate-x-3 opacity-0"
