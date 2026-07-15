@@ -207,9 +207,9 @@ export default function PublicNavbar() {
         </div>
       </header>
 
-      <nav
+      {location.pathname === "/" ? <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-[9998] grid grid-cols-4 overflow-hidden rounded-t-[2rem] border-x-2 border-t-2 border-black bg-[#fffdf9]/95 px-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_55px_rgba(0,0,0,0.18)] backdrop-blur-2xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[9998] grid grid-cols-4 overflow-hidden rounded-t-[1.5rem] border-x-2 border-t-2 border-black bg-[#fffdf9]/95 px-2 pb-[max(0.3rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-12px_36px_rgba(0,0,0,0.16)] backdrop-blur-2xl md:hidden"
       >
         {navItems.map(({ mobileLabel, to, icon: Icon }) => {
           const active = location.pathname === to;
@@ -218,20 +218,20 @@ export default function PublicNavbar() {
               key={to}
               to={to}
               aria-current={active ? "page" : undefined}
-              className={`group flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.35rem] px-1 py-2 text-[10px] font-black transition duration-300 active:scale-95 ${
+              className={`group flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[1.1rem] px-1 py-1 text-[11px] font-black transition duration-300 active:scale-95 ${
                 active
                   ? "bg-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.2)]"
                   : "text-black/65 hover:bg-[#caf0f8] hover:text-black"
               }`}
             >
-              <span className={`grid h-8 w-8 place-items-center rounded-full transition ${active ? "bg-white/15" : "bg-[#f1ece5] group-hover:bg-white/70"}`}>
-                <Icon size={19} strokeWidth={2.5} />
+              <span className={`grid h-7 w-7 place-items-center rounded-full transition ${active ? "bg-white/15" : "bg-[#f1ece5] group-hover:bg-white/70"}`}>
+                <Icon size={17} strokeWidth={2.5} />
               </span>
               <span className="w-full truncate text-center">{mobileLabel}</span>
             </Link>
           );
         })}
-      </nav>
+      </nav> : null}
 
       <AccountDrawer
         open={accountOpen}
