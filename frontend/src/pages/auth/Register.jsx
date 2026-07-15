@@ -218,8 +218,8 @@ export default function Register() {
 
   const sendMobileOtp = async () => {
     try {
-      if (!form.phone) {
-        notify("Enter mobile number first");
+      if (!/^\d{10}$/.test(form.phone)) {
+        notify("Enter a valid 10-digit mobile number first.");
         return;
       }
 
@@ -401,6 +401,11 @@ export default function Register() {
         return false;
       }
 
+      if (!/^\d{10}$/.test(form.phone)) {
+        notify("Mobile number must contain exactly 10 digits.");
+        return false;
+      }
+
       if (!editingApplication && (!form.password || form.password.length < 6)) {
         notify("Please create a password with at least 6 characters.");
         return false;
@@ -425,6 +430,11 @@ export default function Register() {
     if (currentStep === 2) {
       if (!form.documentType || !form.documentNumber || (!form.kycFile && !existingDocumentUrl) || !form.kycConsent) {
         notify("Please complete KYC details and accept consent.");
+        return false;
+      }
+
+      if (form.documentType === "AADHAAR" && !/^\d{12}$/.test(form.documentNumber)) {
+        notify("Aadhaar number must contain exactly 12 digits.");
         return false;
       }
 
@@ -821,8 +831,14 @@ export default function Register() {
                       <Input
                         label="Mobile number"
                         value={form.phone}
-                        onChange={(v) => updateField("phone", v)}
-                        placeholder="Enter your number"
+                        onChange={(v) => {
+                          updateField("phone", v.replace(/\D/g, "").slice(0, 10));
+                          setMobileVerified(false);
+                          setMobileOtpSent(false);
+                        }}
+                        placeholder="Enter 10-digit number"
+                        maxLength={10}
+                        inputMode="numeric"
                       />
 
                       <div className="mt-4 flex flex-wrap gap-3">
@@ -941,9 +957,10 @@ export default function Register() {
                         <Input
                           label={selectedKyc.label}
                           value={form.documentNumber}
-                          onChange={(v) => updateField("documentNumber", v)}
+                          onChange={(v) => updateField("documentNumber", form.documentType === "AADHAAR" ? v.replace(/\D/g, "").slice(0, 12) : v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, selectedKyc.maxLength))}
                           placeholder={selectedKyc.placeholder}
                           maxLength={selectedKyc.maxLength}
+                          inputMode={form.documentType === "AADHAAR" ? "numeric" : "text"}
                         />
                       </div>
 
@@ -1236,7 +1253,7 @@ function SectionHeading({ title, text }) {
   );
 }
 
-function Input({ label, value, onChange, placeholder, type = "text", maxLength }) {
+function Input({ label, value, onChange, placeholder, type = "text", maxLength, inputMode }) {
   return (
     <div>
       <label className="mb-2 block text-sm font-bold text-black">{label}</label>
@@ -1244,6 +1261,7 @@ function Input({ label, value, onChange, placeholder, type = "text", maxLength }
         type={type}
         value={value}
         maxLength={maxLength}
+        inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-none border border-black/10 bg-white px-5 py-4 text-sm font-semibold text-black outline-none transition placeholder:text-black/25 focus:border-black"

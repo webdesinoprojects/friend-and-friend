@@ -125,18 +125,18 @@ async function verifyGoogleCredential(credential) {
 
 exports.sendMobileOtp = async (req, res) => {
   try {
-    const { phone } = req.body;
+    const phone = String(req.body?.phone || "").replace(/\D/g, "");
 
-    if (!phone) {
+    if (!/^\d{10}$/.test(phone)) {
       return res.status(400).json({
         success: false,
-        message: "Phone number is required.",
+        message: "Enter a valid 10-digit mobile number.",
       });
     }
 
     const otp = generateOtp();
 
-    await prisma.otpToken.create({
+    const otpRecord = await prisma.otpToken.create({
       data: {
         phone,
         otp,
@@ -144,12 +144,20 @@ exports.sendMobileOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
-    await deliverMobileOtp(phone, otp);
+    const testMode = String(process.env.OTP_TEST_MODE || "true").toLowerCase() !== "false";
+    if (!testMode) {
+      try {
+        await deliverMobileOtp(phone, otp);
+      } catch (error) {
+        await prisma.otpToken.delete({ where: { id: otpRecord.id } }).catch(() => {});
+        throw error;
+      }
+    }
 
     return res.json({
       success: true,
-      message: "Mobile OTP sent successfully.",
-      ...(process.env.NODE_ENV !== "production" && !process.env.MSG91_AUTH_KEY ? { demoOtp: otp } : {}),
+      message: testMode ? "Demo mobile OTP generated successfully." : "Mobile OTP sent successfully.",
+      ...(testMode ? { demoOtp: otp } : {}),
     });
   } catch (error) {
     console.error("SEND_MOBILE_OTP_ERROR:", error);
@@ -162,9 +170,10 @@ exports.sendMobileOtp = async (req, res) => {
 
 exports.verifyMobileOtp = async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const phone = String(req.body?.phone || "").replace(/\D/g, "");
+    const otp = String(req.body?.otp || "").trim();
 
-    if (!phone || !otp) {
+    if (!/^\d{10}$/.test(phone) || !otp) {
       return res.status(400).json({
         success: false,
         message: "Phone and OTP are required.",
@@ -237,26 +246,24 @@ exports.sendEmailOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
-    let deliveryWarning = null;
-    try {
-      await deliverEmailOtp(email, otp);
-    } catch (error) {
-      console.error("EMAIL_OTP_DELIVERY_ERROR:", error.message);
-      if (process.env.NODE_ENV === "production") {
+    const testMode = String(process.env.OTP_TEST_MODE || "true").toLowerCase() !== "false";
+    if (!testMode) {
+      try {
+        await deliverEmailOtp(email, otp);
+      } catch (error) {
+        console.error("EMAIL_OTP_DELIVERY_ERROR:", error.message);
         await prisma.otpToken.delete({ where: { id: otpRecord.id } }).catch(() => {});
         return res.status(502).json({
           success: false,
           message: "Email delivery is temporarily unavailable. Please try again later.",
         });
       }
-      deliveryWarning = "Resend could not deliver to this address in testing mode. Use the development OTP shown below.";
     }
 
     return res.json({
       success: true,
-      message: deliveryWarning || "Email OTP sent successfully.",
-      ...(process.env.NODE_ENV !== "production" ? { demoOtp: otp } : {}),
-      ...(deliveryWarning ? { deliveryWarning } : {}),
+      message: testMode ? "Demo email OTP generated successfully." : "Email OTP sent successfully.",
+      ...(testMode ? { demoOtp: otp } : {}),
     });
   } catch (error) {
     console.error("SEND_EMAIL_OTP_ERROR:", error);
@@ -397,6 +404,10 @@ const register = async (req, res) => {
         success: false,
         message: "Invalid role selected.",
       });
+    }
+
+    if (!/^\d{10}$/.test(String(phone))) {
+      return res.status(400).json({ success: false, message: "Mobile number must contain exactly 10 digits." });
     }
 
     if (!password || String(password).length < 6) {
@@ -550,6 +561,10 @@ if (!identifier || !password) {
         success: false,
         message: "Email or phone and password are required.",
       });
+    }
+
+    if (documentType === "AADHAAR" && !/^\d{12}$/.test(fullDocumentNumber)) {
+      return res.status(400).json({ success: false, message: "Aadhaar number must contain exactly 12 digits." });
     }
 
 const user = await prisma.user.findUnique({
@@ -1020,6 +1035,8 @@ exports.updateApplication = async (req, res) => {
     if (body.phone && body.phone !== current.phone) return res.status(400).json({ success: false, message: "Verify a changed mobile number before updating the application." });
     if (body.email && body.email !== current.email) return res.status(400).json({ success: false, message: "Verify a changed email before updating the application." });
     const documentNumber = String(body.documentNumber || current.documentNumber || "").trim();
+    const documentType = body.documentType || current.documentType;
+    if (documentType === "AADHAAR" && !/^\d{12}$/.test(documentNumber)) return res.status(400).json({ success: false, message: "Aadhaar number must contain exactly 12 digits." });
     const last4 = documentNumber.slice(-4) || current.documentLast4;
 
     const application = await prisma.registrationApplication.update({
@@ -1031,7 +1048,7 @@ exports.updateApplication = async (req, res) => {
         gender: body.gender || current.gender,
         profileImage: body.profileImage ? normalizeProfileImage(body.profileImage) : current.profileImage,
         referenceSelfie: body.referenceSelfie || current.referenceSelfie,
-        documentType: body.documentType || current.documentType,
+        documentType,
         documentNumber, documentLast4: last4,
         documentUrl: body.documentUrl || current.documentUrl,
         consentAccepted: body.kycConsent !== undefined ? Boolean(body.kycConsent) : current.consentAccepted,
