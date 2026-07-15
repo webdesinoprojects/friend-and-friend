@@ -132,3 +132,31 @@ textarea {
 .activity-showcase-3d:hover {
   transform: perspective(1100px) rotateX(0deg) rotateY(0deg);
 }
+
+/* Shared mobile behavior for every admin data table and form control. */
+.admin-shell .overflow-x-auto {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #c9c3b8 transparent;
+}
+
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea,
+.admin-shell button {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .admin-shell input,
+  .admin-shell select,
+  .admin-shell textarea {
+    font-size: 16px;
+  }
+
+  .admin-shell table th,
+  .admin-shell table td {
+    white-space: nowrap;
+  }
+}

@@ -46,7 +46,7 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#fbfbfa] text-[#101828]">
+    <div className="admin-shell min-h-screen overflow-x-hidden bg-[#fbfbfa] text-[#101828]">
       <aside className="fixed left-0 top-0 hidden h-screen w-[270px] border-r border-[#e8e4dc] bg-white px-4 py-7 lg:flex lg:flex-col">
         <div className="flex items-center gap-3 px-2">
           <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-[#0b2857] text-[#ffc21c]">
@@ -96,15 +96,15 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
       </aside>
 
       <main className="min-h-screen lg:pl-[270px]">
-        <header className="sticky top-0 z-30 border-b border-transparent bg-[#fbfbfa]/92 px-4 py-7 backdrop-blur sm:px-7 lg:px-10">
+        <header className="sticky top-0 z-30 border-b border-[#ece8df] bg-[#fbfbfa]/95 px-4 py-4 backdrop-blur sm:px-7 sm:py-6 lg:px-10 lg:py-7">
           <div className="grid gap-5 xl:grid-cols-[minmax(300px,1fr)_auto] xl:items-start xl:justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-[-0.02em] text-black">{title}</h1>
-              <p className="mt-2 text-base font-medium text-[#4b5563]">{text}</p>
+              <h1 className="text-3xl font-black tracking-[-0.02em] text-black sm:text-4xl">{title}</h1>
+              <p className="mt-1 text-sm font-medium text-[#4b5563] sm:mt-2 sm:text-base">{text}</p>
             </div>
 
-            <div className="flex min-w-0 flex-wrap items-center gap-5 xl:justify-end">
-              <label className="flex h-14 w-full min-w-[260px] max-w-[430px] items-center gap-3 rounded-lg border border-[#d7dce3] bg-white px-4 shadow-sm xl:w-[430px]">
+            <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-5 xl:justify-end">
+              <label className="order-last flex h-12 w-full min-w-0 items-center gap-3 rounded-lg border border-[#d7dce3] bg-white px-4 shadow-sm sm:h-14 xl:order-none xl:w-[430px]">
                 <Search size={19} className="text-[#667085]" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-[#667085]"
@@ -128,7 +128,7 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
                   ) : null}
                 </button>
                 {notificationsOpen ? (
-                  <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-96 rounded-2xl border border-black/10 bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.16)]">
+                  <div className="fixed inset-x-4 top-20 z-50 rounded-2xl border border-black/10 bg-white p-4 shadow-[0_24px_70px_rgba(0,0,0,0.16)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+0.75rem)] sm:w-96">
                     <p className="text-sm font-black uppercase tracking-[0.12em] text-black/45">Notifications</p>
                     <div className="mt-3 grid max-h-96 gap-3 overflow-y-auto">
                       {notifications.length ? notifications.map((item) => (
@@ -150,12 +150,19 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
                   alt="BuddyBOOK"
                   className="h-11 w-11 rounded-2xl object-contain"
                 />
-                <Link to="/admin/settings" className="flex items-center gap-2 text-base font-black">
-                  {admin?.fullName || "Admin"} <ChevronDown size={18} />
+                <Link to="/admin/settings" className="flex items-center gap-2 text-sm font-black sm:text-base">
+                  <span className="max-w-24 truncate sm:max-w-40">{admin?.fullName || "Admin"}</span> <ChevronDown size={18} />
                 </Link>
               </div>
             </div>
           </div>
+
+          <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Admin navigation">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return <NavLink key={item.label} to={item.to} className={({ isActive }) => `flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-black ${isActive ? "bg-[#08285c] text-white" : "border border-[#e4e0d8] bg-white text-[#101828]"}`}><Icon size={16}/>{item.label}</NavLink>;
+            })}
+          </nav>
         </header>
 
         <div className="px-4 pb-8 sm:px-7 lg:px-10">{children}</div>
