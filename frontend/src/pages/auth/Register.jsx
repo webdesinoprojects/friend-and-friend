@@ -99,6 +99,8 @@ export default function Register() {
   const [mobileVerified, setMobileVerified] = useState(false);
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
+  const [aadhaarVerified, setAadhaarVerified] = useState(false);
   const [editingApplication, setEditingApplication] = useState(false);
   const [existingDocumentUrl, setExistingDocumentUrl] = useState("");
   const [selfie, setSelfie] = useState(null);
@@ -128,6 +130,7 @@ export default function Register() {
 
     documentType: "AADHAAR",
     documentNumber: "",
+    aadhaarOtp: "",
     kycFile: null,
     kycConsent: false,
 
@@ -304,6 +307,28 @@ export default function Register() {
     }
   };
 
+  const sendAadhaarOtp = async () => {
+    try {
+      if (!/^\d{12}$/.test(form.documentNumber)) return notify("Enter exactly 12 Aadhaar digits first.");
+      const res = await api.post("/auth/send-aadhaar-otp", { aadhaar: form.documentNumber });
+      setAadhaarOtpSent(true);
+      notify(`Aadhaar demo OTP generated. Use ${res.data.demoOtp}`);
+    } catch (error) {
+      notify(error.response?.data?.message || "Failed to generate Aadhaar demo OTP.");
+    }
+  };
+
+  const verifyAadhaarOtp = async () => {
+    try {
+      if (!form.aadhaarOtp) return notify("Enter the generated Aadhaar demo OTP.");
+      const res = await api.post("/auth/verify-aadhaar-otp", { aadhaar: form.documentNumber, otp: form.aadhaarOtp });
+      setAadhaarVerified(true);
+      notify(res.data.message || "Aadhaar demo OTP verified.");
+    } catch (error) {
+      notify(error.response?.data?.message || "Aadhaar demo OTP verification failed.");
+    }
+  };
+
   const handleProfilePhoto = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -435,6 +460,11 @@ export default function Register() {
 
       if (form.documentType === "AADHAAR" && !/^\d{12}$/.test(form.documentNumber)) {
         notify("Aadhaar number must contain exactly 12 digits.");
+        return false;
+      }
+
+      if (form.documentType === "AADHAAR" && !aadhaarVerified) {
+        notify("Generate and verify the Aadhaar demo OTP.");
         return false;
       }
 
@@ -949,6 +979,9 @@ export default function Register() {
                         onChange={(v) => {
                           updateField("documentType", v);
                           updateField("documentNumber", "");
+                          updateField("aadhaarOtp", "");
+                          setAadhaarOtpSent(false);
+                          setAadhaarVerified(false);
                         }}
                         options={kycTypes}
                       />
@@ -957,12 +990,24 @@ export default function Register() {
                         <Input
                           label={selectedKyc.label}
                           value={form.documentNumber}
-                          onChange={(v) => updateField("documentNumber", form.documentType === "AADHAAR" ? v.replace(/\D/g, "").slice(0, 12) : v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, selectedKyc.maxLength))}
+                          onChange={(v) => {
+                            updateField("documentNumber", form.documentType === "AADHAAR" ? v.replace(/\D/g, "").slice(0, 12) : v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, selectedKyc.maxLength));
+                            setAadhaarOtpSent(false);
+                            setAadhaarVerified(false);
+                          }}
                           placeholder={selectedKyc.placeholder}
                           maxLength={selectedKyc.maxLength}
                           inputMode={form.documentType === "AADHAAR" ? "numeric" : "text"}
                         />
                       </div>
+
+                      {form.documentType === "AADHAAR" ? <div className="mt-4 rounded-none border border-black/10 bg-white p-4">
+                        <div className="flex flex-wrap gap-3">
+                          <button type="button" onClick={sendAadhaarOtp} disabled={aadhaarVerified} className="rounded-none bg-black px-4 py-3 text-xs font-black text-white disabled:opacity-50">Generate Aadhaar demo OTP</button>
+                          {aadhaarOtpSent ? <span className="self-center text-xs font-bold text-emerald-700">Demo OTP generated</span> : null}
+                        </div>
+                        {aadhaarOtpSent ? <div className="mt-3 flex flex-col gap-3 sm:flex-row"><div className="flex-1"><Input label="Aadhaar demo OTP" value={form.aadhaarOtp} onChange={(v)=>updateField("aadhaarOtp",v.replace(/\D/g,"").slice(0,4))} placeholder="Enter 4-digit OTP" maxLength={4} inputMode="numeric"/></div><button type="button" onClick={verifyAadhaarOtp} disabled={aadhaarVerified} className="min-h-12 self-end rounded-none bg-emerald-600 px-5 text-sm font-black text-white disabled:opacity-50">{aadhaarVerified ? "Verified" : "Verify OTP"}</button></div> : null}
+                      </div> : null}
 
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-bold text-black">

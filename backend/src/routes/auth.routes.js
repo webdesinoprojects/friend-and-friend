@@ -6,6 +6,8 @@ const {
   verifyMobileOtp,
   sendEmailOtp,
   verifyEmailOtp,
+  sendAadhaarOtp,
+  verifyAadhaarOtp,
   sendLoginMobileOtp,
   loginWithMobileOtp,
   register,
@@ -68,6 +70,8 @@ router.post("/verify-mobile-otp", verifyMobileOtp);
 
 router.post("/send-email-otp", sendEmailOtp);
 router.post("/verify-email-otp", verifyEmailOtp);
+router.post("/send-aadhaar-otp", sendAadhaarOtp);
+router.post("/verify-aadhaar-otp", verifyAadhaarOtp);
 router.post("/upload-profile-image", handleProfileImageUpload, uploadProfileImage);
 router.post("/upload-kyc-document", handleKycDocumentUpload, uploadKycDocument);
 

@@ -354,6 +354,34 @@ exports.uploadProfileImage = async (req, res) => {
   }
 };
 
+exports.sendAadhaarOtp = async (req, res) => {
+  try {
+    const aadhaar = String(req.body?.aadhaar || "").replace(/\D/g, "");
+    if (!/^\d{12}$/.test(aadhaar)) return res.status(400).json({ success: false, message: "Enter a valid 12-digit Aadhaar number." });
+    const otp = generateOtp();
+    await prisma.otpToken.create({ data: { email: `aadhaar:${aadhaar}`, otp, type: "AADHAAR_DEMO", expiresAt: addMinutes(10) } });
+    return res.json({ success: true, message: "Demo Aadhaar OTP generated successfully.", demoOtp: otp });
+  } catch (error) {
+    console.error("SEND_AADHAAR_OTP_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Failed to generate Aadhaar demo OTP." });
+  }
+};
+
+exports.verifyAadhaarOtp = async (req, res) => {
+  try {
+    const aadhaar = String(req.body?.aadhaar || "").replace(/\D/g, "");
+    const otp = String(req.body?.otp || "").trim();
+    if (!/^\d{12}$/.test(aadhaar) || !otp) return res.status(400).json({ success: false, message: "Aadhaar number and OTP are required." });
+    const record = await prisma.otpToken.findFirst({ where: { email: `aadhaar:${aadhaar}`, otp, type: "AADHAAR_DEMO", verified: false, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
+    if (!record) return res.status(400).json({ success: false, message: "Invalid or expired Aadhaar demo OTP." });
+    await prisma.otpToken.update({ where: { id: record.id }, data: { verified: true } });
+    return res.json({ success: true, message: "Aadhaar demo verification completed." });
+  } catch (error) {
+    console.error("VERIFY_AADHAAR_OTP_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Aadhaar demo OTP verification failed." });
+  }
+};
+
 exports.uploadKycDocument = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "Identity document is required." });
@@ -565,6 +593,11 @@ if (!identifier || !password) {
 
     if (documentType === "AADHAAR" && !/^\d{12}$/.test(fullDocumentNumber)) {
       return res.status(400).json({ success: false, message: "Aadhaar number must contain exactly 12 digits." });
+    }
+
+    if (documentType === "AADHAAR") {
+      const aadhaarVerified = await prisma.otpToken.findFirst({ where: { email: `aadhaar:${fullDocumentNumber}`, type: "AADHAAR_DEMO", verified: true }, orderBy: { createdAt: "desc" } });
+      if (!aadhaarVerified) return res.status(400).json({ success: false, message: "Verify the Aadhaar demo OTP before registration." });
     }
 
 const user = await prisma.user.findUnique({
@@ -1121,6 +1154,8 @@ module.exports = {
   verifyMobileOtp: exports.verifyMobileOtp,
   sendEmailOtp: exports.sendEmailOtp,
   verifyEmailOtp: exports.verifyEmailOtp,
+  sendAadhaarOtp: exports.sendAadhaarOtp,
+  verifyAadhaarOtp: exports.verifyAadhaarOtp,
 
   register,
   login: exports.login,
