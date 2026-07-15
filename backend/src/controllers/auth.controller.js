@@ -1,10 +1,49 @@
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const prisma = require("../config/prisma");
 const { normalizeStoredImage, uploadProviderImage, uploadKycDocument: storeKycDocument } = require("../utils/imagekit");
 const { publicAccountState } = require("../utils/accountLifecycle");
 const generateOtp = require("../utils/generateOtp");
 const generateToken = require("../utils/generateToken");
+const { sendApplicationReceived } = require("../utils/email");
+const { sendMobileOtp: deliverMobileOtp, sendEmailOtp: deliverEmailOtp } = require("../utils/otpDelivery");
+
+function generateApplicationToken(user) {
+  return jwt.sign({ id: user.id, purpose: "application-review" }, process.env.JWT_SECRET, { expiresIn: "30d" });
+}
+
+function applicationBlockedResponse(res, user) {
+  return res.status(403).json({
+    success: false,
+    applicationPending: user.kycStatus === "PENDING",
+    applicationRejected: user.kycStatus === "REJECTED",
+    applicationToken: generateApplicationToken(user),
+    status: user.kycStatus,
+    reason: user.rejectionReason || user.kycVerification?.rejectionReason || null,
+    message: user.kycStatus === "REJECTED"
+      ? "Your application was rejected. Review the reason and update your registration details."
+      : "Your application is being reviewed by the admin. We will email you after a decision.",
+  });
+}
+
+function publicApplication(application) {
+  return {
+    id: application.id, fullName: application.fullName, email: application.email, phone: application.phone,
+    dob: application.dob, gender: application.gender, city: application.city, state: application.state,
+    role: application.role, mobileVerified: application.mobileVerified, emailVerified: application.emailVerified,
+    profileImage: application.profileImage, referenceSelfie: application.referenceSelfie,
+    kycStatus: application.status, faceStatus: application.status, rejectionReason: application.rejectionReason,
+    createdAt: application.createdAt, updatedAt: application.updatedAt,
+    userProfile: application.userProfile, providerProfile: application.providerProfile,
+    kycVerification: {
+      documentType: application.documentType, documentNumber: application.documentNumber,
+      documentNumberLast4: application.documentLast4, documentUrl: application.documentUrl,
+      consentAccepted: application.consentAccepted, status: application.status,
+      rejectionReason: application.rejectionReason, createdAt: application.createdAt,
+    },
+  };
+}
 
 async function calculateUserRating(userId, role) {
   const reviews = await prisma.reviewReport.findMany({
@@ -105,11 +144,12 @@ exports.sendMobileOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
+    await deliverMobileOtp(phone, otp);
 
     return res.json({
       success: true,
       message: "Mobile OTP sent successfully.",
-      demoOtp: otp,
+      ...(process.env.NODE_ENV !== "production" && !process.env.MSG91_AUTH_KEY ? { demoOtp: otp } : {}),
     });
   } catch (error) {
     console.error("SEND_MOBILE_OTP_ERROR:", error);
@@ -189,7 +229,7 @@ exports.sendEmailOtp = async (req, res) => {
 
     const otp = generateOtp();
 
-    await prisma.otpToken.create({
+    const otpRecord = await prisma.otpToken.create({
       data: {
         email,
         otp,
@@ -197,17 +237,32 @@ exports.sendEmailOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
+    let deliveryWarning = null;
+    try {
+      await deliverEmailOtp(email, otp);
+    } catch (error) {
+      console.error("EMAIL_OTP_DELIVERY_ERROR:", error.message);
+      if (process.env.NODE_ENV === "production") {
+        await prisma.otpToken.delete({ where: { id: otpRecord.id } }).catch(() => {});
+        return res.status(502).json({
+          success: false,
+          message: "Email delivery is temporarily unavailable. Please try again later.",
+        });
+      }
+      deliveryWarning = "Resend could not deliver to this address in testing mode. Use the development OTP shown below.";
+    }
 
     return res.json({
       success: true,
-      message: "Email OTP sent successfully.",
-      demoOtp: otp,
+      message: deliveryWarning || "Email OTP sent successfully.",
+      ...(process.env.NODE_ENV !== "production" ? { demoOtp: otp } : {}),
+      ...(deliveryWarning ? { deliveryWarning } : {}),
     });
   } catch (error) {
     console.error("SEND_EMAIL_OTP_ERROR:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to send email OTP.",
+      message: process.env.NODE_ENV === "production" ? "Failed to send email OTP." : error.message || "Failed to send email OTP.",
     });
   }
 };
@@ -330,10 +385,10 @@ const register = async (req, res) => {
       googleCredential,
     } = req.body;
 
-    if (!fullName || !phone || !city || !state || !gender || !role) {
+    if (!fullName || !email || !phone || !city || !state || !gender || !role) {
       return res.status(400).json({
         success: false,
-        message: "Full name, phone, city, state, gender and role are required.",
+        message: "Full name, email, phone, city, state, gender and role are required.",
       });
     }
 
@@ -355,7 +410,9 @@ const register = async (req, res) => {
       where: { phone },
     });
 
-    if (existingPhone) {
+    const existingPhoneApplication = await prisma.registrationApplication.findUnique({ where: { phone } });
+
+    if (existingPhone || existingPhoneApplication) {
       return res.status(409).json({
         success: false,
         message: "Phone number already registered.",
@@ -367,7 +424,9 @@ const register = async (req, res) => {
         where: { email },
       });
 
-      if (existingEmail) {
+      const existingEmailApplication = await prisma.registrationApplication.findUnique({ where: { email } });
+
+      if (existingEmail || existingEmailApplication) {
         return res.status(409).json({
           success: false,
           message: "Email already registered.",
@@ -447,102 +506,28 @@ const register = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.create({
+    const application = await prisma.registrationApplication.create({
       data: {
-        fullName,
-        email: email || null,
-        phone,
-        passwordHash,
-        dob: dob || null,
-        gender,
-        city,
-        state,
-        role,
-
-        mobileVerified: true,
-        emailVerified: Boolean(emailOtpVerified || googleProfile),
-
-        kycStatus: "PENDING",
-        faceStatus: "VERIFIED",
-        referenceSelfie,
-        profileImage: normalizeProfileImage(profileImage),
-        aadhaarLast4: aadhaarLast4 || resolvedDocumentLast4 || null,
-
-        kycVerification: {
-          create: {
-            aadhaarLast4: aadhaarLast4 || resolvedDocumentLast4 || null,
-            documentType: documentType || null,
-            documentNumber: fullDocumentNumber || null,
-            documentNumberLast4: resolvedDocumentLast4 || null,
-            documentUrl,
-            consentAccepted: Boolean(kycConsent),
-            status: "PENDING",
-          },
-        },
-
-userProfile:
-  role === "USER"
-    ? {
-        create: {
-          interests: userProfile?.interests || null,
-          preferredActivities: userProfile?.preferredActivities || null,
-          activityPreferences: userProfile?.activityPreferences || null,
-          preferredLanguage: userProfile?.preferredLanguage || null,
-          bio: userProfile?.bio || null,
-          profileQuestions: userProfile?.profileQuestions || [],
-          emergencyContact: userProfile?.emergencyContact || null,
-        },
-      }
-    : undefined,
-
-providerProfile:
-  role === "PROVIDER"
-    ? {
-        create: {
-          headline: providerProfile?.headline || providerProfile?.profession || null,
-          profession: providerProfile?.profession || null,
-          education: providerProfile?.education || null,
-          height: providerProfile?.height || null,
-          hobbies: providerProfile?.hobbies || null,
-          hourlyPrice: providerProfile?.hourlyPrice || null,
-          availableCity: providerProfile?.availableCity || null,
-          languages: providerProfile?.languages || null,
-          availabilityDays: providerProfile?.availabilityDays || null,
-          activities: providerProfile?.activities || providerProfile?.hobbies || null,
-          bio: providerProfile?.bio || null,
-          profileImages: normalizeProviderImages(providerProfile?.profileImages),
-          profileQuestions: providerProfile?.profileQuestions || [],
-          providerSafetyAgreement: Boolean(
-            providerProfile?.providerSafetyAgreement
-          ),
-          approved: true,
-        },
-      }
-    : undefined,
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        profileImage: true,
-        role: true,
-        city: true,
-        state: true,
-        mobileVerified: true,
-        emailVerified: true,
-        kycStatus: true,
-        faceStatus: true,
+        fullName, email, phone, passwordHash, dob: dob || null, gender, city, state, role,
+        mobileVerified: true, emailVerified: Boolean(emailOtpVerified || googleProfile),
+        profileImage: normalizeProfileImage(profileImage), referenceSelfie,
+        documentType, documentNumber: fullDocumentNumber,
+        documentLast4: resolvedDocumentLast4 || null, documentUrl,
+        consentAccepted: Boolean(kycConsent),
+        userProfile: role === "USER" ? (userProfile || {}) : undefined,
+        providerProfile: role === "PROVIDER" ? (providerProfile || {}) : undefined,
+        status: "PENDING",
       },
     });
 
-    const token = generateToken(user);
+    sendApplicationReceived(application).catch((error) => console.error("APPLICATION_EMAIL_ERROR:", error.message));
+    const applicationToken = generateApplicationToken(application);
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful.",
-      token,
-      user,
+      message: "Registration successful. Your application is now under admin review.",
+      applicationToken,
+      user: publicApplication(application),
     });
   } catch (error) {
     console.error("REGISTER_ERROR:", error);
@@ -594,6 +579,10 @@ const user = await prisma.user.findUnique({
 });
 
     if (!user) {
+      const application = await prisma.registrationApplication.findFirst({ where: email ? { email } : { phone } });
+      if (application && await bcrypt.compare(password, application.passwordHash)) {
+        return applicationBlockedResponse(res, { ...application, kycStatus: application.status });
+      }
       await prisma.loginAttempt.create({
         data: {
           email: email || null,
@@ -659,6 +648,11 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
         success: false,
         message: "Invalid email or password.",
       });
+    }
+
+    if (user.kycStatus !== "VERIFIED") {
+      const applicationUser = await prisma.user.findUnique({ where: { id: user.id }, include: { kycVerification: true } });
+      return applicationBlockedResponse(res, applicationUser);
     }
 
     const token = generateToken(user);
@@ -747,6 +741,8 @@ exports.googleLogin = async (req, res) => {
     });
 
     if (!user) {
+      const application = await prisma.registrationApplication.findUnique({ where: { email: googleUser.email } });
+      if (application) return applicationBlockedResponse(res, { ...application, kycStatus: application.status });
       return res.status(404).json({
         success: false,
         needsRegistration: true,
@@ -760,6 +756,11 @@ exports.googleLogin = async (req, res) => {
         success: false,
         message: "You have been blocked by the admin now you are not allowed to use this website again",
       });
+    }
+
+    if (user.kycStatus !== "VERIFIED") {
+      const applicationUser = await prisma.user.findUnique({ where: { id: user.id }, include: { kycVerification: true } });
+      return applicationBlockedResponse(res, applicationUser);
     }
 
     if (!user.emailVerified) {
@@ -937,6 +938,8 @@ const loginWithMobileOtp = async (req, res) => {
     });
 
     if (!user) {
+      const application = await prisma.registrationApplication.findUnique({ where: { phone } });
+      if (application) return applicationBlockedResponse(res, { ...application, kycStatus: application.status });
       return res.status(404).json({
         success: false,
         message: "No account found with this phone number.",
@@ -949,6 +952,8 @@ const loginWithMobileOtp = async (req, res) => {
         message: "You have been blocked by the admin now you are not allowed to use this website again",
       });
     }
+
+    if (user.kycStatus !== "VERIFIED") return applicationBlockedResponse(res, user);
 
     await prisma.otpToken.update({
       where: { id: otpRecord.id },
@@ -990,6 +995,58 @@ const loginWithMobileOtp = async (req, res) => {
   }
 };
 
+exports.getApplication = async (req, res) => {
+  try {
+    const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== "application-review") throw new Error("Wrong token purpose");
+    const application = await prisma.registrationApplication.findUnique({ where: { id: decoded.id } });
+    if (!application) return res.status(404).json({ success: false, message: "Application not found." });
+    return res.json({ success: true, data: publicApplication(application) });
+  } catch {
+    return res.status(401).json({ success: false, message: "Application access expired. Sign in again to view it." });
+  }
+};
+
+exports.updateApplication = async (req, res) => {
+  try {
+    const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== "application-review") throw new Error("Wrong token purpose");
+    const current = await prisma.registrationApplication.findUnique({ where: { id: decoded.id } });
+    if (!current) return res.status(404).json({ success: false, message: "Application not found." });
+
+    const body = req.body || {};
+    if (body.phone && body.phone !== current.phone) return res.status(400).json({ success: false, message: "Verify a changed mobile number before updating the application." });
+    if (body.email && body.email !== current.email) return res.status(400).json({ success: false, message: "Verify a changed email before updating the application." });
+    const documentNumber = String(body.documentNumber || current.documentNumber || "").trim();
+    const last4 = documentNumber.slice(-4) || current.documentLast4;
+
+    const application = await prisma.registrationApplication.update({
+      where: { id: current.id },
+      data: {
+        fullName: String(body.fullName || current.fullName).trim(),
+        city: String(body.city || current.city || "").trim(),
+        state: String(body.state || current.state || "").trim(),
+        gender: body.gender || current.gender,
+        profileImage: body.profileImage ? normalizeProfileImage(body.profileImage) : current.profileImage,
+        referenceSelfie: body.referenceSelfie || current.referenceSelfie,
+        documentType: body.documentType || current.documentType,
+        documentNumber, documentLast4: last4,
+        documentUrl: body.documentUrl || current.documentUrl,
+        consentAccepted: body.kycConsent !== undefined ? Boolean(body.kycConsent) : current.consentAccepted,
+        status: "PENDING", rejectionReason: null, decisionAt: null,
+        userProfile: current.role === "USER" && body.userProfile ? body.userProfile : undefined,
+        providerProfile: current.role === "PROVIDER" && body.providerProfile ? body.providerProfile : undefined,
+      },
+    });
+    return res.json({ success: true, message: "Application updated and submitted for admin review.", data: publicApplication(application) });
+  } catch (error) {
+    console.error("UPDATE_APPLICATION_ERROR:", error);
+    return res.status(401).json({ success: false, message: "Application could not be updated. Sign in again and retry." });
+  }
+};
+
 const sendLoginMobileOtp = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -1005,14 +1062,15 @@ const sendLoginMobileOtp = async (req, res) => {
       where: { phone },
     });
 
-    if (!user) {
+    const application = !user ? await prisma.registrationApplication.findUnique({ where: { phone } }) : null;
+    if (!user && !application) {
       return res.status(404).json({
         success: false,
         message: "No account found with this phone number.",
       });
     }
 
-    const otp = "1234";
+    const otp = generateOtp();
 
     await prisma.otpToken.create({
       data: {
@@ -1023,10 +1081,12 @@ const sendLoginMobileOtp = async (req, res) => {
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
+    await deliverMobileOtp(phone, otp);
 
     return res.status(200).json({
       success: true,
-      message: "Login OTP sent successfully. Use 1234 for demo.",
+      message: "Login OTP sent successfully.",
+      ...(process.env.NODE_ENV !== "production" && !process.env.MSG91_AUTH_KEY ? { demoOtp: otp } : {}),
     });
   } catch (error) {
     console.error("SEND_LOGIN_MOBILE_OTP_ERROR:", error);
@@ -1054,6 +1114,8 @@ module.exports = {
   me: exports.me,
   updateMe: exports.updateMe,
   logout: exports.logout,
+  getApplication: exports.getApplication,
+  updateApplication: exports.updateApplication,
 
   sendLoginMobileOtp,
   loginWithMobileOtp,

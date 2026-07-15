@@ -42,6 +42,14 @@ async function authenticate(req, res, next, { allowDisabled = false } = {}) {
     if (user.isBlocked) {
       return res.status(403).json({ success: false, message: "This account has been blocked by an administrator." });
     }
+    if (user.role !== "ADMIN" && user.kycStatus !== "VERIFIED") {
+      return res.status(403).json({
+        success: false,
+        applicationPending: user.kycStatus === "PENDING",
+        applicationRejected: user.kycStatus === "REJECTED",
+        message: "Your application must be approved by an administrator before you can use BuddyBOOK.",
+      });
+    }
     if (!allowDisabled && isAccountDisabled(user)) {
       return res.status(423).json({
         success: false,

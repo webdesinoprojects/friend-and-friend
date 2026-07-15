@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CalendarCheck,
   ChevronDown,
+  CircleHelp,
+  Compass,
   Heart,
   LayoutDashboard,
   LogOut,
-  Menu,
+  MessageCircle,
   Settings,
+  ShieldCheck,
   Star,
   User,
   Wallet,
@@ -19,10 +22,10 @@ import Logo from "../common/Logo";
 import { hasAuthToken } from "../../utils/authSession";
 
 const navItems = [
-  { label: "How it works", to: "/how-it-works" },
-  { label: "Explore", to: "/activities" },
-  { label: "Safety", to: "/safety" },
-  { label: "Contact", to: "/contact" },
+  { label: "How it works", mobileLabel: "How it works", to: "/how-it-works", icon: CircleHelp },
+  { label: "Explore", mobileLabel: "Explore", to: "/activities", icon: Compass },
+  { label: "Safety", mobileLabel: "Safety", to: "/safety", icon: ShieldCheck },
+  { label: "Contact", mobileLabel: "Contact", to: "/contact", icon: MessageCircle },
 ];
 
 const userWorkspace = [
@@ -49,7 +52,7 @@ const fallbackAvatar =
 
 export default function PublicNavbar() {
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [user, setUser] = useState(() => readStoredUser());
@@ -119,10 +122,7 @@ export default function PublicNavbar() {
   const openAccount = () => {
     setAccountOpen(true);
     setLogoutConfirm(false);
-    closeMenu();
   };
-
-  const closeMenu = () => setIsOpen(false);
 
   const handleLogout = () => {
     localStorage.removeItem("buddybook_auth_user");
@@ -199,38 +199,39 @@ export default function PublicNavbar() {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => setIsOpen((prev) => !prev)}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black bg-white text-black shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#caf0f8] md:hidden"
-                    aria-label="Toggle menu"
-                  >
-                    {isOpen ? <X size={22} /> : <Menu size={22} />}
-                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {isOpen && (
-            <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] rounded-none border-2 border-black bg-white p-4 shadow-2xl md:hidden">
-              <div className="grid gap-3">
-                <nav className="grid gap-2 rounded-none border border-black/10 bg-white p-2 shadow-sm">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.to}
-                      onClick={closeMenu}
-                      className="rounded-none bg-[#e9ecef] px-4 py-3 text-sm font-black text-black transition hover:bg-[#e8e8e4]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </nav>
-              </div>
-            </div>
-          )}
         </div>
       </header>
+
+      <nav
+        aria-label="Mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-[9998] grid grid-cols-4 overflow-hidden rounded-t-[2rem] border-x-2 border-t-2 border-black bg-[#fffdf9]/95 px-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_55px_rgba(0,0,0,0.18)] backdrop-blur-2xl md:hidden"
+      >
+        {navItems.map(({ mobileLabel, to, icon: Icon }) => {
+          const active = location.pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={`group flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.35rem] px-1 py-2 text-[10px] font-black transition duration-300 active:scale-95 ${
+                active
+                  ? "bg-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.2)]"
+                  : "text-black/65 hover:bg-[#caf0f8] hover:text-black"
+              }`}
+            >
+              <span className={`grid h-8 w-8 place-items-center rounded-full transition ${active ? "bg-white/15" : "bg-[#f1ece5] group-hover:bg-white/70"}`}>
+                <Icon size={19} strokeWidth={2.5} />
+              </span>
+              <span className="w-full truncate text-center">{mobileLabel}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       <AccountDrawer
         open={accountOpen}

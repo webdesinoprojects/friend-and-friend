@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const { uploadProviderImage } = require("../utils/imagekit");
+const { sendApplicationDecision } = require("../utils/email");
 
 const contentPath = path.join(__dirname, "../../data/adminContent.json");
 const defaultContent = {
@@ -653,14 +654,19 @@ const unblockUser = async (req, res) => {
 
 const getKycReviews = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      where: { role: { in: ["USER", "PROVIDER"] } },
-      select: { id: true, fullName: true, email: true, phone: true, role: true, profileImage: true, referenceSelfie: true, aadhaarLast4: true, kycStatus: true, faceStatus: true, createdAt: true, kycVerification: true },
-      orderBy: { updatedAt: "desc" },
-    });
+    const applications = await prisma.registrationApplication.findMany({ orderBy: { updatedAt: "desc" } });
     let history = [];
     try { history = await prisma.$queryRawUnsafe('SELECT * FROM "KycReviewHistory" ORDER BY "createdAt" DESC'); } catch {}
-    return res.json({ success: true, data: users.map((user) => ({ ...user, history: history.filter((item) => item.userId === user.id) })) });
+    return res.json({ success: true, data: applications.map((item) => ({
+      id: item.id, fullName: item.fullName, email: item.email, phone: item.phone, dob: item.dob,
+      gender: item.gender, city: item.city, state: item.state, role: item.role,
+      profileImage: item.profileImage, referenceSelfie: item.referenceSelfie,
+      mobileVerified: item.mobileVerified, emailVerified: item.emailVerified,
+      kycStatus: item.status, faceStatus: item.status, createdAt: item.createdAt, updatedAt: item.updatedAt,
+      userProfile: item.userProfile, providerProfile: item.providerProfile,
+      kycVerification: { documentType: item.documentType, documentNumber: item.documentNumber, documentNumberLast4: item.documentLast4, documentUrl: item.documentUrl, consentAccepted: item.consentAccepted, status: item.status, rejectionReason: item.rejectionReason, createdAt: item.createdAt },
+      history: history.filter((entry) => entry.userId === item.id),
+    })) });
   } catch (error) {
     console.error("GET_KYC_REVIEWS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load KYC reviews." });
@@ -670,16 +676,44 @@ const getKycReviews = async (req, res) => {
 const reviewKyc = async (req, res) => {
   try {
     const status = String(req.body?.status || "").toUpperCase();
-    const reason = String(req.body?.reason || "").trim();
+    const suppliedReason = String(req.body?.reason || "").trim();
     if (!["VERIFIED", "REJECTED", "PENDING"].includes(status)) return res.status(400).json({ success: false, message: "Invalid KYC decision." });
-    if (status === "REJECTED" && !reason) return res.status(400).json({ success: false, message: "A rejection reason is required." });
-    const user = await prisma.user.update({ where: { id: req.params.userId }, data: { kycStatus: status, faceStatus: status === "VERIFIED" ? "VERIFIED" : undefined } });
-    await prisma.kycVerification.upsert({ where: { userId: user.id }, create: { userId: user.id, status, rejectionReason: reason || null }, update: { status, rejectionReason: reason || null } });
+    if (status === "REJECTED" && !suppliedReason) return res.status(400).json({ success: false, message: "A rejection reason is required." });
+    const reason = suppliedReason || (status === "VERIFIED" ? "Your submitted identity document, contact details and profile information were successfully reviewed and approved." : "Application returned to review.");
+    const application = await prisma.registrationApplication.findUnique({ where: { id: req.params.userId } });
+    if (!application) return res.status(404).json({ success: false, message: "Registration application not found." });
+
+    let approvedUserId = application.approvedUserId;
+    if (status === "VERIFIED" && !approvedUserId) {
+      const userProfile = application.userProfile || {};
+      const providerProfile = application.providerProfile || {};
+      const user = await prisma.$transaction(async (tx) => {
+        const existing = await tx.user.findFirst({ where: { OR: [{ email: application.email }, { phone: application.phone }] } });
+        if (existing) return existing;
+        return tx.user.create({ data: {
+          fullName: application.fullName, email: application.email, phone: application.phone,
+          passwordHash: application.passwordHash, dob: application.dob, gender: application.gender,
+          city: application.city, state: application.state, role: application.role,
+          mobileVerified: application.mobileVerified, emailVerified: application.emailVerified,
+          kycStatus: "VERIFIED", faceStatus: "VERIFIED", profileImage: application.profileImage,
+          referenceSelfie: application.referenceSelfie, aadhaarLast4: application.documentLast4,
+          kycVerification: { create: { documentType: application.documentType, documentNumber: application.documentNumber, documentNumberLast4: application.documentLast4, documentUrl: application.documentUrl, consentAccepted: application.consentAccepted, status: "VERIFIED" } },
+          userProfile: application.role === "USER" ? { create: { interests: userProfile.interests || null, preferredActivities: userProfile.preferredActivities || null, activityPreferences: userProfile.activityPreferences || null, preferredLanguage: userProfile.preferredLanguage || null, bio: userProfile.bio || null, profileQuestions: userProfile.profileQuestions || [], emergencyContact: userProfile.emergencyContact || null } } : undefined,
+          providerProfile: application.role === "PROVIDER" ? { create: { headline: providerProfile.headline || providerProfile.profession || null, profession: providerProfile.profession || null, education: providerProfile.education || null, height: providerProfile.height || null, hobbies: providerProfile.hobbies || null, hourlyPrice: providerProfile.hourlyPrice || null, availableCity: providerProfile.availableCity || null, languages: providerProfile.languages || null, availabilityDays: providerProfile.availabilityDays || null, availabilitySlots: providerProfile.availabilitySlots || undefined, activities: providerProfile.activities || providerProfile.hobbies || null, bio: providerProfile.bio || null, profileImages: providerProfile.profileImages || [], profileQuestions: providerProfile.profileQuestions || [], providerSafetyAgreement: Boolean(providerProfile.providerSafetyAgreement), approved: true } } : undefined,
+        } });
+      });
+      approvedUserId = user.id;
+    }
+
+    const updated = await prisma.registrationApplication.update({ where: { id: application.id }, data: { status, rejectionReason: status === "REJECTED" ? reason : null, decisionAt: new Date(), approvedUserId } });
     try {
-      await prisma.$executeRawUnsafe('INSERT INTO "KycReviewHistory" ("id","userId","adminId","status","reason","createdAt") VALUES ($1,$2,$3,$4,$5,NOW())', crypto.randomUUID(), user.id, req.admin.id || "admin", status, reason || null);
-      await prisma.$executeRawUnsafe('INSERT INTO "Notification" ("id","userId","type","title","message","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())', crypto.randomUUID(), user.id, "KYC", `Verification ${status.toLowerCase()}`, status === "VERIFIED" ? "Your BuddyBOOK identity verification is approved." : `Your verification needs attention: ${reason}`, "/app/user/profile");
+      await prisma.$executeRawUnsafe('INSERT INTO "KycReviewHistory" ("id","userId","adminId","status","reason","createdAt") VALUES ($1,$2,$3,$4,$5,NOW())', crypto.randomUUID(), application.id, req.admin.id || "admin", status, reason);
     } catch {}
-    return res.json({ success: true, data: { id: user.id, kycStatus: status }, message: `KYC marked ${status.toLowerCase()}.` });
+    let emailDelivered = true;
+    let emailError = null;
+    try { await sendApplicationDecision(updated, status, reason); }
+    catch (error) { emailDelivered = false; emailError = error.message; console.error("KYC_DECISION_EMAIL_ERROR:", error.message); }
+    return res.json({ success: true, emailDelivered, emailError, data: { id: application.id, kycStatus: status, approvedUserId }, message: emailDelivered ? `Application ${status.toLowerCase()} and email sent.` : `Application ${status.toLowerCase()}, but the email could not be sent.` });
   } catch (error) {
     console.error("REVIEW_KYC_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not save the KYC decision." });

@@ -7,10 +7,8 @@ import {
   CircleDollarSign,
   FileCheck2,
   FileText,
-  Megaphone,
   ShieldCheck,
   UserCheck,
-  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -58,9 +56,27 @@ export default function AdminDashboard() {
         <div className="hidden rounded-xl border border-[#dedede] bg-white shadow-sm xl:block" />
       </section>
 
+      <section className="mt-5 rounded-xl border border-[#dedede] bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-black text-black">Quick Actions</h2>
+            <p className="mt-1 text-xs font-semibold text-[#667085]">Open the most important administration areas.</p>
+          </div>
+          <span className="rounded-full bg-[#eaf7ee] px-3 py-1 text-xs font-black text-[#18803a]">Live operations</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <QuickAction icon={ShieldCheck} label="Review KYC" note={`${formatNumber(metrics.pendingKyc)} pending`} to="/admin/kyc" tone="yellow" />
+          <QuickAction icon={Users} label="Manage Users" note={`${formatNumber(metrics.userCount)} accounts`} to="/admin/users" tone="blue" />
+          <QuickAction icon={UserCheck} label="Providers" note={`${formatNumber(metrics.providerCount)} profiles`} to="/admin/providers" tone="green" />
+          <QuickAction icon={CalendarDays} label="Bookings" note={`${formatNumber(metrics.activeBookings)} active`} to="/admin/bookings" tone="orange" />
+          <QuickAction icon={CircleDollarSign} label="Payments" note="Revenue & payouts" to="/admin/payments" tone="blue" />
+          <QuickAction icon={AlertTriangle} label="Safety Reports" note={`${formatNumber(summary.safetyAlerts?.length)} open`} to="/admin/reports" tone="red" />
+        </div>
+      </section>
+
       <section className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,2.1fr)_minmax(310px,0.9fr)]">
-        <div className="grid min-w-0 gap-5">
-          <div className="grid min-w-0 gap-5 2xl:grid-cols-[1.05fr_0.95fr_0.55fr]">
+        <div className="grid min-w-0 content-start gap-5">
+          <div className="grid min-w-0 content-start items-start gap-5 2xl:grid-cols-[1.05fr_0.95fr_0.55fr]">
             <Panel title="Bookings Growth" action="Last 30 days" actionTo="/admin/bookings">
               <LineChart rows={summary.charts?.bookingGrowth || []} />
             </Panel>
@@ -86,14 +102,6 @@ export default function AdminDashboard() {
           </Panel>
           <Panel title="Safety Alerts" link="View all" linkTo="/admin/reports">
             <SafetyAlerts rows={summary.safetyAlerts || []} />
-          </Panel>
-          <Panel title="Quick Actions">
-            <div className="grid grid-cols-2 gap-4">
-              <QuickAction icon={UserPlus} label="Add Provider" to="/admin/providers" />
-              <QuickAction icon={Megaphone} label="Send Announcement" to="/admin/content" />
-              <QuickAction icon={ShieldCheck} label="Review Reports" to="/admin/reports" />
-              <QuickAction icon={FileText} label="Export Reports" to="/admin/payments" />
-            </div>
           </Panel>
         </aside>
       </section>
@@ -153,14 +161,14 @@ function Panel({ title, children, action, actionTo, link, linkTo, icon: Icon, in
 function LineChart({ rows = [] }) {
   if (!rows.length) return <ChartEmpty />;
   const max=Math.max(1,...rows.map(row=>Number(row.value||0)));
-  const points=rows.map((row,index)=>`${index/Math.max(rows.length-1,1)*500},${190-Number(row.value||0)/max*170}`).join(" ");
+  const points=rows.map((row,index)=>`${index/Math.max(rows.length-1,1)*500},${120-Number(row.value||0)/max*95}`).join(" ");
   return (
-    <svg viewBox="0 0 520 210" className="h-[210px] w-full">
-      {[30, 70, 110, 150, 190].map((y) => (
+    <svg viewBox="0 0 520 150" className="h-[150px] w-full">
+      {[22, 57, 92, 127].map((y) => (
         <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" />
       ))}
       <polyline points={points} fill="none" stroke="#0b4ad8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      {[0,Math.floor(rows.length/3),Math.floor(rows.length*2/3),rows.length-1].map(index=><text key={index} x={index/Math.max(rows.length-1,1)*470} y="208" fontSize="10" fill="#667085">{rows[index]?.label}</text>)}
+      {[0,Math.floor(rows.length/3),Math.floor(rows.length*2/3),rows.length-1].map(index=><text key={index} x={index/Math.max(rows.length-1,1)*470} y="148" fontSize="10" fill="#667085">{rows[index]?.label}</text>)}
     </svg>
   );
 }
@@ -169,13 +177,13 @@ function BarChart({ rows = [] }) {
   if (!rows.length) return <ChartEmpty />;
   const max=Math.max(1,...rows.map(row=>Number(row.value||0)));
   return (
-    <svg viewBox="0 0 520 210" className="h-[210px] w-full">
-      {[35, 75, 115, 155, 195].map((y) => (
+    <svg viewBox="0 0 520 150" className="h-[150px] w-full">
+      {[27, 62, 97, 132].map((y) => (
         <line key={y} x1="0" x2="520" y1={y} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" />
       ))}
-      {rows.map((row,index)=>{const height=Number(row.value||0)/max*170;return <rect key={row.label} x={25+index*60} y={195-height} width="24" height={height} rx="3" fill="#071b44"/>})}
+      {rows.map((row,index)=>{const height=Number(row.value||0)/max*105;return <rect key={row.label} x={25+index*60} y={135-height} width="24" height={height} rx="3" fill="#071b44"/>})}
       {rows.map((row, index) => (
-        <text key={row.label} x={18 + index * 60} y="208" fontSize="10" fill="#667085">{row.label}</text>
+        <text key={row.label} x={18 + index * 60} y="148" fontSize="10" fill="#667085">{row.label}</text>
       ))}
     </svg>
   );
@@ -184,11 +192,11 @@ function BarChart({ rows = [] }) {
 function DonutChart({ users = 0, providers = 0 }) {
   const total=users+providers; const userPercent=total?Math.round(users/total*100):0;
   return (
-    <div className="flex h-[210px] items-center justify-center gap-5">
-      <div className="relative grid h-36 w-36 place-items-center rounded-full" style={{background:`conic-gradient(#071b44 0 ${userPercent}%,#ffc21c ${userPercent}% 100%)`}}>
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-white text-center">
+    <div className="flex h-[150px] items-center justify-center gap-5">
+      <div className="relative grid h-28 w-28 place-items-center rounded-full" style={{background:`conic-gradient(#071b44 0 ${userPercent}%,#ffc21c ${userPercent}% 100%)`}}>
+        <div className="grid h-16 w-16 place-items-center rounded-full bg-white text-center">
           <div>
-            <p className="text-lg font-black">{formatNumber(total)}</p>
+            <p className="text-base font-black">{formatNumber(total)}</p>
             <p className="text-xs text-[#667085]">Total</p>
           </div>
         </div>
@@ -201,7 +209,7 @@ function DonutChart({ users = 0, providers = 0 }) {
   );
 }
 
-function ChartEmpty(){return <div className="grid h-[210px] place-items-center text-sm font-bold text-[#667085]">No database activity for this period.</div>}
+function ChartEmpty(){return <div className="grid h-[150px] place-items-center text-sm font-bold text-[#667085]">No database activity for this period.</div>}
 
 function ApprovalList({ rows }) {
   const icons = [Users, UserCheck, FileText, CreditIcon];
@@ -297,11 +305,24 @@ function Status({ value }) {
   return <span className={`rounded-md px-3 py-1 text-xs font-black ${classes[value] || "bg-[#f2f4f7]"}`}>{value}</span>;
 }
 
-function QuickAction({ icon: Icon, label, to }) {
+function QuickAction({ icon: Icon, label, note, to, tone = "blue" }) {
+  const tones = {
+    blue: "bg-[#eaf2ff] text-[#0b4aa2]",
+    green: "bg-[#e9f8e6] text-[#18803a]",
+    yellow: "bg-[#fff3d8] text-[#b26b00]",
+    orange: "bg-[#fff0e6] text-[#d85b16]",
+    red: "bg-[#fff0f0] text-[#d92d20]",
+  };
   return (
-    <Link to={to} className="grid h-24 place-items-center rounded-lg border border-[#dedede] bg-white px-3 text-center text-xs font-black text-[#071b44] transition hover:bg-[#fff7e6]">
-      <Icon size={28} />
-      <span>{label}</span>
+    <Link to={to} className="group flex min-h-20 items-center gap-3 rounded-xl border border-[#e4e7ec] bg-white p-3 transition hover:-translate-y-0.5 hover:border-[#f5b800] hover:shadow-md">
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tones[tone] || tones.blue}`}>
+        <Icon size={21} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-black text-[#071b44]">{label}</span>
+        <span className="mt-1 block truncate text-[11px] font-semibold text-[#667085]">{note}</span>
+      </span>
+      <ChevronRight size={17} className="shrink-0 text-[#98a2b3] transition group-hover:translate-x-0.5 group-hover:text-[#0b4aa2]" />
     </Link>
   );
 }

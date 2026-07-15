@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import api from "../../api/api";
@@ -99,8 +99,8 @@ export default function Register() {
   const [mobileVerified, setMobileVerified] = useState(false);
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
-  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
-  const [aadhaarVerified, setAadhaarVerified] = useState(false);
+  const [editingApplication, setEditingApplication] = useState(false);
+  const [existingDocumentUrl, setExistingDocumentUrl] = useState("");
   const [selfie, setSelfie] = useState(null);
   const [cameraStarted, setCameraStarted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,7 +141,6 @@ export default function Register() {
     height: "",
     hobbies: "",
     providerSafetyAgreement: false,
-    aadhaarOtp: "",
   });
 
   const notify = (message, type = "info") => {
@@ -160,6 +159,29 @@ export default function Register() {
 
   const selectedKyc =
     kycTypes.find((item) => item.value === form.documentType) || kycTypes[0];
+
+  useEffect(() => {
+    const token = localStorage.getItem("buddybook_application_token");
+    if (!token || !new URLSearchParams(window.location.search).has("edit")) return;
+    api.get("/auth/application", { headers: { Authorization: `Bearer ${token}` } }).then(({ data }) => {
+      const item = data.data;
+      const profile = item.role === "PROVIDER" ? item.providerProfile : item.userProfile;
+      const questions = Array.isArray(profile?.profileQuestions) && profile.profileQuestions.length ? profile.profileQuestions : emptyQuestions;
+      setEditingApplication(true);
+      setExistingDocumentUrl(item.kycVerification?.documentUrl || "");
+      setMobileVerified(Boolean(item.mobileVerified));
+      setEmailVerified(Boolean(item.emailVerified));
+      setSelfie(item.referenceSelfie || null);
+      setSelectedActivities(String(profile?.interests || profile?.activities || "").split(",").map(v => v.trim()).filter(Boolean));
+      if (item.role === "PROVIDER") setProviderQuestionAnswers(questions); else setUserQuestionAnswers(questions);
+      setForm((prev) => ({ ...prev,
+        fullName: item.fullName || "", phone: item.phone || "", email: item.email || "", city: item.city || "", state: item.state || "", gender: item.gender || "", role: item.role || "",
+        documentType: item.kycVerification?.documentType || "AADHAAR", documentNumber: item.kycVerification?.documentNumber || "", kycConsent: Boolean(item.kycVerification?.consentAccepted),
+        profileImage: item.profileImage ? { url: item.profileImage } : null, profileImagePreview: item.profileImage || "", preferredLanguage: profile?.preferredLanguage || "", emergencyContact: profile?.emergencyContact || "",
+        profession: profile?.profession || "", education: profile?.education || "", height: profile?.height || "", hobbies: profile?.hobbies || "", providerSafetyAgreement: Boolean(profile?.providerSafetyAgreement),
+      }));
+    }).catch(() => setNotice({ message: "Sign in again to edit your application.", type: "error" }));
+  }, []);
 
   const activeQuestions =
     form.role === "PROVIDER" ? providerQuestionAnswers : userQuestionAnswers;
@@ -241,7 +263,7 @@ export default function Register() {
   const sendEmailOtp = async () => {
     try {
       if (!form.email) {
-        notify("Email is optional. Enter email first if you want to verify it.");
+        notify("Enter your email address first. Email verification is required.");
         return;
       }
 
@@ -280,28 +302,6 @@ export default function Register() {
       console.error("VERIFY_EMAIL_OTP_FRONTEND_ERROR:", error);
       notify(error.response?.data?.message || "Email OTP verification failed");
     }
-  };
-
-  const sendAadhaarOtp = () => {
-    if (form.documentType !== "AADHAAR" || !form.documentNumber) {
-      notify("Enter Aadhaar details first.");
-      return;
-    }
-    setAadhaarOtpSent(true);
-    notify("Aadhaar OTP sent. Use 1234 for verification.");
-  };
-
-  const verifyAadhaarOtp = () => {
-    if (!form.documentNumber || !form.aadhaarOtp) {
-      notify("Enter Aadhaar and OTP first.");
-      return;
-    }
-    if (form.aadhaarOtp !== "1234") {
-      notify("Aadhaar OTP verification failed.", "error");
-      return;
-    }
-    setAadhaarVerified(true);
-    notify("Aadhaar verified successfully.", "success");
   };
 
   const handleProfilePhoto = async (event) => {
@@ -396,17 +396,17 @@ export default function Register() {
 
   const validateCurrentStep = () => {
     if (currentStep === 1) {
-      if (!form.fullName || !form.phone || !form.city || !form.state || !form.gender) {
-        notify("Please complete name, phone, city, state and gender.");
+      if (!form.fullName || !form.email || !form.phone || !form.city || !form.state || !form.gender) {
+        notify("Please complete name, email, phone, city, state and gender.");
         return false;
       }
 
-      if (!form.password || form.password.length < 6) {
+      if (!editingApplication && (!form.password || form.password.length < 6)) {
         notify("Please create a password with at least 6 characters.");
         return false;
       }
 
-      if (form.password !== form.confirmPassword) {
+      if (!editingApplication && form.password !== form.confirmPassword) {
         notify("Passwords do not match.");
         return false;
       }
@@ -416,20 +416,15 @@ export default function Register() {
         return false;
       }
 
-      if (form.email && emailOtpSent && !emailVerified) {
-        notify("Please verify email OTP or remove email.");
+      if (!emailVerified) {
+        notify("Email OTP verification is compulsory.");
         return false;
       }
     }
 
     if (currentStep === 2) {
-      if (!form.documentType || !form.documentNumber || !form.kycFile || !form.kycConsent) {
+      if (!form.documentType || !form.documentNumber || (!form.kycFile && !existingDocumentUrl) || !form.kycConsent) {
         notify("Please complete KYC details and accept consent.");
-        return false;
-      }
-
-      if (form.documentType === "AADHAAR" && !aadhaarVerified) {
-        notify("Please verify Aadhaar OTP.");
         return false;
       }
 
@@ -499,10 +494,13 @@ export default function Register() {
 
       const profileAnswersText = buildProfileAnswers(activeAnswers);
       const documentLast4 = form.documentNumber.slice(-4);
-      const documentForm = new FormData();
-      documentForm.append("document", form.kycFile);
-      const documentResponse = await api.post("/auth/upload-kyc-document", documentForm, { timeout: 60000 });
-      const documentUrl = documentResponse.data?.document?.url;
+      let documentUrl = existingDocumentUrl;
+      if (form.kycFile) {
+        const documentForm = new FormData();
+        documentForm.append("document", form.kycFile);
+        const documentResponse = await api.post("/auth/upload-kyc-document", documentForm, { timeout: 60000 });
+        documentUrl = documentResponse.data?.document?.url;
+      }
       if (!documentUrl) throw new Error("Identity document upload did not return a file URL.");
 
       const payload = {
@@ -545,12 +543,13 @@ export default function Register() {
         },
       };
 
-      const res = await api.post("/auth/register", payload);
+      const applicationToken = localStorage.getItem("buddybook_application_token");
+      const res = editingApplication
+        ? await api.patch("/auth/application", payload, { headers: { Authorization: `Bearer ${applicationToken}` } })
+        : await api.post("/auth/register", payload);
 
       notify(res.data.message || "Registration successful");
-      if (res.data.token) {
-        localStorage.setItem("buddybook_token", res.data.token);
-      }
+      if (res.data.applicationToken) localStorage.setItem("buddybook_application_token", res.data.applicationToken);
 
       const nextUser = {
         ...res.data.user,
@@ -575,9 +574,10 @@ export default function Register() {
         },
       };
 
-      localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
-
-      navigate("/");
+      localStorage.removeItem("buddybook_token");
+      localStorage.removeItem("buddybook_auth_user");
+      localStorage.setItem("buddybook_pending_application", JSON.stringify(editingApplication ? res.data.data : nextUser));
+      navigate("/application-review");
     } catch (error) {
       console.error("REGISTER_FRONTEND_ERROR:", error);
       notify(error.response?.data?.message || "Registration failed");
@@ -946,28 +946,6 @@ export default function Register() {
                           maxLength={selectedKyc.maxLength}
                         />
                       </div>
-
-                      {form.documentType === "AADHAAR" && (
-                        <div className="mt-4 rounded-none border border-black/10 bg-white p-4">
-                          <Input
-                            label="Aadhaar OTP"
-                            value={form.aadhaarOtp}
-                            onChange={(v) => updateField("aadhaarOtp", v)}
-                            placeholder="Enter Aadhaar OTP"
-                          />
-                          <div className="mt-4 flex flex-wrap gap-3">
-                            <button type="button" onClick={sendAadhaarOtp} className="rounded-none bg-black px-5 py-3 text-sm font-black text-white">
-                              Send Aadhaar OTP
-                            </button>
-                            {aadhaarOtpSent && (
-                              <button type="button" onClick={verifyAadhaarOtp} className="rounded-none bg-[#b5e48c] px-5 py-3 text-sm font-black text-black">
-                                Verify Aadhaar
-                              </button>
-                            )}
-                          </div>
-                          {aadhaarVerified ? <p className="mt-3 text-sm font-black text-emerald-700">Aadhaar OTP verified.</p> : null}
-                        </div>
-                      )}
 
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-bold text-black">

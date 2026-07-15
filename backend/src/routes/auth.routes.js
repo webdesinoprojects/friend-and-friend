@@ -17,6 +17,8 @@ const {
   me,
   updateMe,
   logout,
+  getApplication,
+  updateApplication,
 } = require("../controllers/auth.controller");
 
 const protect = require("../middlewares/auth.middleware");
@@ -79,6 +81,8 @@ router.post("/google/register-profile", googleRegisterProfile);
 // new OTP login
 router.post("/send-login-mobile-otp", sendLoginMobileOtp);
 router.post("/login-mobile-otp", loginWithMobileOtp);
+router.get("/application", getApplication);
+router.patch("/application", updateApplication);
 
 router.get("/me", protect.allowDisabled, me);
 router.patch("/me", protect, updateMe);

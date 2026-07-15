@@ -1,6 +1,5 @@
-const CONTACT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || "yashraj.webdesino@gmail.com";
-const CONTACT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL || "BuddyBOOK Contact <onboarding@resend.dev>";
+const { sendTransactionalEmail } = require("../utils/email");
+const CONTACT_TO_EMAIL = "yashraj.webdesino@gmail.com";
 
 function clean(value) {
   return String(value || "").trim();
@@ -84,36 +83,14 @@ const sendContactMessage = async (req, res) => {
       });
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: "Contact email is not configured. Add RESEND_API_KEY in backend .env.",
-      });
-    }
-
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: CONTACT_FROM_EMAIL,
-        to: [CONTACT_TO_EMAIL],
-        reply_to: payload.email,
-        subject: `BuddyBOOK contact: ${payload.service} - ${payload.name}`,
-        html: buildContactEmail(payload),
-      }),
+    const result = await sendTransactionalEmail({
+      to: CONTACT_TO_EMAIL,
+      replyTo: payload.email,
+      subject: `BuddyBOOK contact · ${payload.service} · ${payload.name}`,
+      html: buildContactEmail(payload),
+      text: `New BuddyBOOK contact\nName: ${payload.name}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nService: ${payload.service}\n\n${payload.message}`,
+      tag: "contact_form",
     });
-
-    const result = await resendResponse.json().catch(() => ({}));
-
-    if (!resendResponse.ok) {
-      return res.status(502).json({
-        success: false,
-        message: result?.message || "Resend could not send the message.",
-      });
-    }
 
     return res.json({
       success: true,

@@ -15,6 +15,7 @@ const NotFound = lazy(() => import("../pages/public/NotFound"));
 
 /* AUTH */
 const Login=lazy(()=>import("../pages/auth/Login")); const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
+const ApplicationReview=lazy(()=>import("../pages/auth/ApplicationReview"));
 
 /* USER */
 const UserDashboard=lazy(()=>import("../pages/user/UserDashboard")); const UserBookingPayment=lazy(()=>import("../pages/user/UserBookingPayment")); const UserBookings=lazy(()=>import("../pages/user/UserBookings")); const UserPayments=lazy(()=>import("../pages/user/UserPayments")); const UserWatchlist=lazy(()=>import("../pages/user/UserWatchlist")); const UserActiveMeet=lazy(()=>import("../pages/user/UserActiveMeet")); const UserProfile=lazy(()=>import("../pages/user/UserProfile")); const UserReviews=lazy(()=>import("../pages/user/UserReviews")); const UserSettings=lazy(()=>import("../pages/user/UserSettings")); const UserChats=lazy(()=>import("../pages/user/UserChats"));
@@ -51,6 +52,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/choose-role" element={<ChooseRole />} />
+      <Route path="/application-review" element={<ApplicationReview />} />
 
       {/* USER ROUTES */}
       <Route path="/app/user/dashboard" element={userOnly(<UserDashboard />)} />

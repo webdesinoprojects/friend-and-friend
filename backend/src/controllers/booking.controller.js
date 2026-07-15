@@ -48,62 +48,7 @@ function serializeBooking(booking) {
 
 // Generate a 6-digit OTP
 function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Send OTP function (mock implementation - in production, integrate with SMS/email service)
-async function sendOtp(userId, otp, type) {
-  // In a real app, you would send this via SMS or email
-  // For now, we'll just log it and store it in the database
-  console.log(`Sending ${type} OTP ${otp} to user ${userId}`);
-
-  // Store OTP in database
-  const expiresAt = new Date();
-  expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
-
-  await prisma.otpToken.create({
-    data: {
-      userId,
-      otp,
-      type,
-      expiresAt,
-    },
-  });
-
-  return { success: true };
-}
-
-// Verify OTP function
-async function verifyOtp(userId, otp, type) {
-  const otpRecord = await prisma.otpToken.findFirst({
-    where: {
-      userId,
-      otp,
-      type,
-      verified: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-
-  if (!otpRecord) {
-    return { success: false, message: "Invalid or expired OTP" };
-  }
-
-  // Mark OTP as verified
-  await prisma.otpToken.update({
-    where: { id: otpRecord.id },
-    data: { verified: true },
-  });
-
-  return { success: true, message: "OTP verified successfully" };
-}
-
-// Generate a 6-digit OTP
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // Send OTP function (mock implementation - in production, integrate with SMS/email service)
@@ -500,8 +445,8 @@ exports.generateEndOtp = async (req, res) => {
     // Generate OTP
     const otp = generateOtp();
 
-    // Determine recipient (provider for end OTP)
-    const recipientId = booking.providerUserId;
+    // The user validates the end OTP, so the OTP must belong to the user.
+    const recipientId = booking.userId;
 
     // Send OTP
     await sendOtp(recipientId, otp, "END");

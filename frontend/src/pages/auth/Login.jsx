@@ -48,6 +48,8 @@ export default function Login() {
     }
 
     localStorage.setItem("buddybook_auth_user", JSON.stringify(data.user));
+    localStorage.removeItem("buddybook_application_token");
+    localStorage.removeItem("buddybook_pending_application");
     goToDashboard(data.user);
   };
 
@@ -71,6 +73,12 @@ export default function Login() {
           })
         );
         navigate("/register", { state: { googleProfile: data.profile } });
+        return;
+      }
+
+      if (data?.applicationToken) {
+        localStorage.setItem("buddybook_application_token", data.applicationToken);
+        navigate("/application-review");
         return;
       }
 
@@ -99,6 +107,11 @@ export default function Login() {
       completeAuth(res.data);
     } catch (error) {
       console.error("LOGIN_FRONTEND_ERROR:", error);
+      if (error.response?.data?.applicationToken) {
+        localStorage.setItem("buddybook_application_token", error.response.data.applicationToken);
+        navigate("/application-review");
+        return;
+      }
       alert(error.response?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);
@@ -142,6 +155,11 @@ export default function Login() {
       completeAuth(res.data);
     } catch (error) {
       console.error("LOGIN_OTP_FRONTEND_ERROR:", error);
+      if (error.response?.data?.applicationToken) {
+        localStorage.setItem("buddybook_application_token", error.response.data.applicationToken);
+        navigate("/application-review");
+        return;
+      }
       alert(error.response?.data?.message || "OTP login failed");
     } finally {
       setIsLoading(false);

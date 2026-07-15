@@ -16,6 +16,10 @@ export default function ProtectedRoleRoute({ role, children }) {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.kycStatus && user.kycStatus !== "VERIFIED") {
+    return <Navigate to="/application-review" replace />;
+  }
+
   const actualRole = String(user.role || "").toUpperCase();
   const expectedRole = String(role || "").toUpperCase();
   const disabled = Boolean(user.accountDisabled && user.disabledUntil && new Date(user.disabledUntil).getTime() > now);
