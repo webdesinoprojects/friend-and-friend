@@ -207,7 +207,7 @@ export default function PublicNavbar() {
         </div>
       </header>
 
-      {location.pathname === "/" ? <nav
+      {["/", "/how-it-works", "/activities", "/safety", "/contact"].includes(location.pathname) ? <nav
         aria-label="Mobile navigation"
         className="fixed inset-x-0 bottom-0 z-[9998] grid grid-cols-4 overflow-hidden rounded-t-[1.5rem] border-x-2 border-t-2 border-black bg-[#fffdf9]/95 px-2 pb-[max(0.3rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-12px_36px_rgba(0,0,0,0.16)] backdrop-blur-2xl md:hidden"
       >

@@ -7,6 +7,8 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", bookingController.listMyBookings);
+router.post("/razorpay/order", bookingController.createRazorpayOrder);
+router.post("/razorpay/verify", bookingController.verifyRazorpayPayment);
 router.post("/", bookingController.createBooking);
 router.post("/:id/cancel", bookingController.cancelBooking);
 router.post("/:id/complete", bookingController.completeBooking);

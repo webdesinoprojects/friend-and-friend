@@ -205,6 +205,9 @@ model Booking {
   amount         Int      @default(0)
   paymentMethod  String?
   paymentStatus  String   @default("PAID")
+  razorpayOrderId   String? @unique
+  razorpayPaymentId String? @unique
+  razorpaySignature String?
   status         String   @default("CONFIRMED")
   cancelReason   String?
   cancelledAt    DateTime?

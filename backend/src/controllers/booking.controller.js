@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const crypto = require("crypto");
 const { isAccountDisabled } = require("../utils/accountLifecycle");
+const Razorpay = require("razorpay");
 
 function toInt(value, fallback = 0) {
   const parsed = Number(value);
@@ -39,6 +40,8 @@ function serializeBooking(booking) {
     amount: booking.amount,
     paymentMethod: booking.paymentMethod,
     paymentStatus: booking.paymentStatus,
+    transactionId: booking.razorpayPaymentId || null,
+    razorpayOrderId: booking.razorpayOrderId || null,
     status: booking.status,
     cancelReason: booking.cancelReason,
     cancelledAt: booking.cancelledAt,
@@ -103,6 +106,9 @@ async function verifyOtp(userId, otp, type) {
 
 exports.createBooking = async (req, res) => {
   try {
+    if (!req.razorpayVerified) {
+      return res.status(402).json({ success: false, message: "Complete and verify the Razorpay payment first." });
+    }
     const {
       providerId,
       service,
@@ -112,6 +118,9 @@ exports.createBooking = async (req, res) => {
       duration,
       amount,
       paymentMethod,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
     } = req.body;
 
     if (!providerId || !service || !date || !time) {
@@ -135,7 +144,7 @@ exports.createBooking = async (req, res) => {
 
     const hours = toInt(durationHours || duration, 1) || 1;
     const price = toInt(provider.hourlyPrice, 0);
-    const finalAmount = toInt(amount, price * hours);
+    const finalAmount = price * hours;
     const code = `BBK-${Date.now()}`;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -152,6 +161,9 @@ exports.createBooking = async (req, res) => {
           amount: finalAmount,
           paymentMethod: paymentMethod || "UPI",
           paymentStatus: "PAID",
+          razorpayOrderId,
+          razorpayPaymentId,
+          razorpaySignature,
           status: "CONFIRMED",
         },
         include: {
@@ -200,6 +212,59 @@ exports.createBooking = async (req, res) => {
       success: false,
       message: error.message || "Could not create booking.",
     });
+  }
+};
+
+function getRazorpay() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return null;
+  return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+}
+
+exports.createRazorpayOrder = async (req, res) => {
+  try {
+    const razorpay = getRazorpay();
+    if (!razorpay) return res.status(503).json({ success: false, message: "Razorpay test credentials are not configured." });
+    const { providerId, service, date, time, durationHours, duration } = req.body;
+    if (!providerId || !service || !date || !time) return res.status(400).json({ success: false, message: "Provider, activity, date and time are required." });
+    const provider = await prisma.providerProfile.findUnique({ where: { id: providerId }, include: { user: true } });
+    if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) return res.status(404).json({ success: false, message: "This provider profile is currently unavailable." });
+    const hours = Math.min(6, Math.max(1, toInt(durationHours || duration, 1)));
+    const amount = toInt(provider.hourlyPrice, 0) * hours;
+    if (amount < 1) return res.status(400).json({ success: false, message: "This provider does not have a valid booking price." });
+    const order = await razorpay.orders.create({
+      amount: amount * 100,
+      currency: "INR",
+      receipt: `bbk_${Date.now()}`,
+      notes: { userId: req.user.id, providerId, service: String(service).slice(0, 200), date: String(date), time: String(time), durationHours: String(hours) },
+    });
+    return res.status(201).json({ success: true, keyId: process.env.RAZORPAY_KEY_ID, order: { id: order.id, amount: order.amount, currency: order.currency }, providerName: provider.user.fullName });
+  } catch (error) {
+    console.error("CREATE_RAZORPAY_ORDER_ERROR:", error);
+    return res.status(500).json({ success: false, message: error.error?.description || error.message || "Could not start Razorpay checkout." });
+  }
+};
+
+exports.verifyRazorpayPayment = async (req, res) => {
+  try {
+    const razorpay = getRazorpay();
+    if (!razorpay) return res.status(503).json({ success: false, message: "Razorpay test credentials are not configured." });
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) return res.status(400).json({ success: false, message: "Razorpay payment details are incomplete." });
+    const expected = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
+    const valid = expected.length === razorpay_signature.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature));
+    if (!valid) return res.status(400).json({ success: false, message: "Payment signature verification failed." });
+    const [order, payment] = await Promise.all([razorpay.orders.fetch(razorpay_order_id), razorpay.payments.fetch(razorpay_payment_id)]);
+    if (String(order.notes?.userId) !== String(req.user.id) || payment.order_id !== razorpay_order_id || !["authorized", "captured"].includes(payment.status)) {
+      return res.status(400).json({ success: false, message: "The Razorpay payment could not be validated." });
+    }
+    const duplicate = await prisma.booking.findFirst({ where: { OR: [{ razorpayOrderId: razorpay_order_id }, { razorpayPaymentId: razorpay_payment_id }] }, include: { user: true, provider: { include: { user: true } } } });
+    if (duplicate) return res.json({ success: true, booking: serializeBooking(duplicate) });
+    req.razorpayVerified = true;
+    req.body = { providerId: order.notes.providerId, service: order.notes.service, date: order.notes.date, time: order.notes.time, durationHours: Number(order.notes.durationHours), paymentMethod: "RAZORPAY", razorpayOrderId: razorpay_order_id, razorpayPaymentId: razorpay_payment_id, razorpaySignature: razorpay_signature };
+    return exports.createBooking(req, res);
+  } catch (error) {
+    console.error("VERIFY_RAZORPAY_PAYMENT_ERROR:", error);
+    return res.status(500).json({ success: false, message: error.error?.description || error.message || "Could not verify Razorpay payment." });
   }
 };
 

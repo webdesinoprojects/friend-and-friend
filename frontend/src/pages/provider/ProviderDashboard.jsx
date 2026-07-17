@@ -21,9 +21,11 @@ import {
   IndianRupee,
   MapPin,
   MessageCircle,
+  Phone,
   Rocket,
   ShieldCheck,
   Sparkles,
+  Siren,
   Star,
   Users,
   Wallet,
@@ -446,48 +448,37 @@ function NextStepsCard({ provider, completion }) {
   ];
 
   return (
-    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="rounded-none border border-[#eddac7] bg-white p-4 shadow-sm">
       <h2 className="text-lg font-black">Next best actions</h2>
-      <div className="mt-4 grid gap-3">
+      <div className="mt-3 grid gap-2">
         {steps.map(([done, label]) => (
-          <div key={label} className="flex items-center gap-3 rounded-none bg-[#fffaf3] p-3 transition hover:bg-[#ffeedd]">
-            <span className={`grid h-9 w-9 place-items-center rounded-xl ${done ? "bg-[#e8f6ef] text-[#16815f]" : "bg-[#ffeedd] text-black"}`}>
+          <div key={label} className={`flex items-center gap-3 rounded-none border bg-[#fffaf3] p-2 transition hover:bg-[#ffeedd] ${done ? "border-transparent" : "border-red-500"}`}>
+            <span className={`grid h-8 w-8 place-items-center rounded-lg ${done ? "bg-[#e8f6ef] text-[#16815f]" : "bg-red-50 text-red-600"}`}>
               {done ? <CheckCircle2 size={17} /> : <Clock size={17} />}
             </span>
             <p className="text-sm font-black">{label}</p>
           </div>
         ))}
       </div>
-      <Link to="/app/provider/create" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-none bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
+      <Link to="/app/provider/create" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-none bg-black px-5 py-2 text-sm font-black text-[#fffaf3]">
         Open builder <ArrowRight size={16} />
       </Link>
     </section>
   );
 }
 
-function MiniScheduleCard({ provider, bookings = [] }) {
-  const todayRows = bookings.filter(isTodayBooking).slice(0, 3);
-  const fallback = String(provider?.availabilityDays || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((label) => ["Open", label]);
-  const rows = todayRows.length
-    ? todayRows.map((booking) => [booking.time || "Today", booking.service || booking.activity || "Public meetup"])
-    : fallback.length
-      ? fallback
-      : [["Today", "No backend schedule yet"]];
-
+function MiniScheduleCard() {
+  const contacts = [["Ambulance", "108"], ["Women helpline", "1091"], ["Local police", "100"]];
   return (
-    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-black">Today</h2>
-      <div className="mt-4 grid gap-3">
-        {rows.map(([time, label]) => (
-          <div key={time} className="flex items-center gap-3 rounded-none bg-[#fffaf3] p-3">
-            <span className="rounded-xl bg-[#ffeedd] px-3 py-2 text-xs font-black text-black">{time}</span>
-            <p className="text-sm font-black">{label}</p>
-          </div>
+    <section className="rounded-none border-2 border-black bg-white p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-black text-red-700"><Siren size={20} /> SOS / Emergency</h2>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {contacts.map(([label, number]) => (
+          <a key={number} href={`tel:${number}`} aria-label={`Call ${label} at ${number}`} className="flex min-w-0 flex-col items-center justify-center rounded-lg bg-red-600 px-2 py-3 text-center text-white transition hover:-translate-y-0.5 hover:bg-red-700">
+            <Phone size={17} />
+            <span className="mt-1 text-[9px] font-black sm:text-xs">{label}</span>
+            <span className="text-sm font-black">{number}</span>
+          </a>
         ))}
       </div>
     </section>

@@ -20,7 +20,8 @@
     "google-auth-library": "^10.7.0",
     "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "razorpay": "^2.9.8"
   },
   "devDependencies": {
     "@types/node": "^25.0.0",

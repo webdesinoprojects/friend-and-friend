@@ -7,7 +7,9 @@ import {
   Edit3,
   Heart,
   MapPin,
+  Phone,
   ShieldCheck,
+  Siren,
   Star,
   Users,
   Wallet,
@@ -261,6 +263,7 @@ export default function UserDashboard() {
           <WeeklyChart values={weeklyBookings} />
           <SuggestedProviders providers={providers.filter((provider) => Number(provider.rating || 0) >= 4).slice(0, 3)} />
           <SafetyChecklist />
+          <EmergencyActions />
         </aside>
       </section>
     </UserAppLayout>
@@ -466,6 +469,24 @@ function SafetyChecklist() {
         ))}
       </div>
       <Link to="/safety" className="mt-5 inline-flex text-sm font-black text-[#e08c4c]">View safety tips</Link>
+    </section>
+  );
+}
+
+function EmergencyActions() {
+  const contacts = [["Ambulance", "108"], ["Women helpline", "1091"], ["Local police", "100"]];
+  return (
+    <section className="rounded-none border border-red-600 bg-white p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-black text-red-700"><Siren size={20} /> SOS / Emergency</h2>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {contacts.map(([label, number]) => (
+          <a key={number} href={`tel:${number}`} aria-label={`Call ${label} at ${number}`} className="flex min-w-0 flex-col items-center justify-center rounded-lg bg-red-600 px-2 py-3 text-center text-white transition hover:-translate-y-0.5 hover:bg-red-700">
+            <Phone size={17} />
+            <span className="mt-1 text-[9px] font-black sm:text-xs">{label}</span>
+            <span className="text-sm font-black">{number}</span>
+          </a>
+        ))}
+      </div>
     </section>
   );
 }

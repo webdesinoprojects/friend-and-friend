@@ -31,6 +31,18 @@ const defaultContent = {
   providerCardPrimaryCta: "View Profile",
   providerCardBadgeText: "booked Recently",
   providerCardPriceSuffix: "/hr",
+  faqTitle: "Questions, answered clearly",
+  faqSubtitle: "Everything you need to know before planning a safe BuddyBOOK meetup.",
+  faq1Question: "How does BuddyBOOK verify members and providers?",
+  faq1Answer: "Profiles go through identity and safety checks before verification indicators are shown.",
+  faq2Question: "How do payments and bookings work?",
+  faq2Answer: "Choose a verified provider, select your plan details and complete the protected checkout to confirm your booking.",
+  faq3Question: "Where should a first meetup happen?",
+  faq3Answer: "Always choose a busy public place, keep your booking chat on BuddyBOOK and share your plan with someone you trust.",
+  faq4Question: "Can I cancel or report a booking?",
+  faq4Answer: "Yes. Booking controls and safety reporting remain available from your dashboard and booking history.",
+  faq5Question: "How is my personal information protected?",
+  faq5Answer: "BuddyBOOK keeps booking records and platform communication together so you do not need to share unnecessary personal details.",
   testimonials: [
     {
       name: "Riya Sharma",

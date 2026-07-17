@@ -8,21 +8,17 @@ import {
   IndianRupee,
   Lock,
   ShieldCheck,
-  Smartphone,
-  Wallet,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { formatRupees } from "../../utils/format";
-import { createBooking as createBackendBooking } from "../../api/bookings";
+import { createRazorpayOrder, verifyRazorpayPayment } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
 import { createPaidBooking } from "../../utils/userFlowStorage";
 import { hasAuthToken } from "../../utils/authSession";
 
 const paymentMethods = [
-  ["UPI", Smartphone, "Google Pay, PhonePe or any UPI app"],
-  ["Card", CreditCard, "Credit or debit card"],
-  ["Wallet", Wallet, "BuddyBOOK wallet balance"],
+  ["Razorpay Test Checkout", CreditCard, "UPI, cards, netbanking and supported wallets"],
 ];
 
 const TIME_OPTIONS = (() => {
@@ -48,11 +44,12 @@ export default function UserBookingPayment() {
   const [provider, setProvider] = useState(cachedProvider);
   const [loading, setLoading] = useState(!cachedProvider);
   const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [service, setService] = useState(() => bookingParams.get("service") || "");
   const [date, setDate] = useState(() => bookingParams.get("date") || dateValue(1));
   const [time, setTime] = useState(() => bookingParams.get("time") || "17:30");
   const [duration, setDuration] = useState(() => bookingParams.get("duration") || "1");
-  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [paymentMethod, setPaymentMethod] = useState("Razorpay Test Checkout");
 
   useEffect(() => {
     let mounted = true;
@@ -95,57 +92,57 @@ export default function UserBookingPayment() {
   const handlePayment = async () => {
     if (!provider || !service || !date || !time) return;
     setProcessing(true);
-
-    // Replace this short delay with Razorpay verification when live payments are enabled.
-    await new Promise((resolve) => setTimeout(resolve, 650));
+    setPaymentError("");
     try {
-      const booking = await createBackendBooking({
+      const checkoutLoaded = await loadRazorpayCheckout();
+      if (!checkoutLoaded) throw new Error("Razorpay Checkout could not be loaded. Check your internet connection.");
+      const orderData = await createRazorpayOrder({
         providerId: provider.id,
         service,
         date,
         time,
         durationHours: Number(duration || 1),
-        amount,
-        paymentMethod,
       });
-
-      createPaidBooking({
-        provider: {
-          ...provider,
-          id: booking.providerId || provider.id,
-          name: booking.providerName || provider.name,
-          image: booking.providerImage || provider.image,
+      const razorpay = new window.Razorpay({
+        key: orderData.keyId,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "BuddyBOOK",
+        description: `${service} with ${provider.name}`,
+        order_id: orderData.order.id,
+        prefill: { name: user?.fullName || "", email: user?.email || "", contact: user?.phone || "" },
+        notes: { provider: provider.name, activity: service },
+        theme: { color: "#171b30" },
+        modal: { ondismiss: () => setProcessing(false) },
+        handler: async (response) => {
+          try {
+            const booking = await verifyRazorpayPayment(response);
+            createPaidBooking({
+              provider: { ...provider, id: booking.providerId || provider.id, name: booking.providerName || provider.name, image: booking.providerImage || provider.image },
+              service, date, time, duration, paymentMethod: "RAZORPAY", user, bookingOverride: booking,
+            });
+            navigate("/app/user/dashboard", { replace: true, state: { paymentSuccess: true } });
+          } catch (error) {
+            setPaymentError(error.response?.data?.message || error.message || "Payment verification failed. Please contact support with your Razorpay payment ID.");
+            setProcessing(false);
+          }
         },
-        service,
-        date,
-        time,
-        duration,
-        paymentMethod,
-        user,
-        bookingOverride: booking,
       });
-    } catch {
-      createPaidBooking({
-        provider,
-        service,
-        date,
-        time,
-        duration,
-        paymentMethod,
-        user,
+      razorpay.on("payment.failed", (response) => {
+        setPaymentError(response.error?.description || "Razorpay payment failed. Please try again.");
+        setProcessing(false);
       });
+      razorpay.open();
+    } catch (error) {
+      setPaymentError(error.response?.data?.message || error.message || "Could not start Razorpay checkout.");
+      setProcessing(false);
     }
-
-    navigate("/app/user/dashboard", {
-      replace: true,
-      state: { paymentSuccess: true },
-    });
   };
 
   if (loading) {
     return (
       <UserAppLayout title="Secure Checkout" user={user}>
-        <div className="h-full animate-pulse rounded-[2rem] bg-[#ffeedd]" />
+        <div className="h-full animate-pulse border-2 border-black bg-white" />
       </UserAppLayout>
     );
   }
@@ -157,7 +154,7 @@ export default function UserBookingPayment() {
   if (!provider) {
     return (
       <UserAppLayout title="Booking Not Found" user={user}>
-        <div className="grid h-full place-items-center rounded-[2rem] bg-[#fffaf3] text-xl font-black">
+        <div className="grid h-full place-items-center border-2 border-black bg-white text-xl font-black">
           Provider not found.
         </div>
       </UserAppLayout>
@@ -166,16 +163,22 @@ export default function UserBookingPayment() {
 
   return (
     <UserAppLayout title="Secure Checkout" user={user}>
-      <section className="custom-scrollbar grid h-full min-w-0 gap-4 rounded-[1.5rem] bg-[#fffaf3] p-3 lg:grid-cols-[0.92fr_1.08fr] overflow-x-auto">
-        <div className="min-w-0 rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
-          <h1 className="text-2xl font-black">Booking Summary</h1>
-          <div className="mt-5 flex items-center gap-4 rounded-[1.25rem] bg-[#ffeedd] p-4">
-            <img src={provider.image} alt={provider.name} className="h-20 w-20 rounded-lg object-cover" />
+      <section className="custom-scrollbar h-full min-w-0 overflow-x-auto bg-[#fffaf3] p-3 text-[#171b30] sm:p-5">
+        <div className="mb-4 border-2 border-[#171b30] bg-[#171b30] p-4 text-white">
+          <div><p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">BuddyBOOK secure payments</p><h1 className="mt-1 text-xl font-black sm:text-2xl">Complete your verified booking</h1></div>
+        </div>
+
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0 border-2 border-[#171b30] bg-white p-5 shadow-[6px_6px_0_#e08c4c]">
+          <div className="flex items-center justify-between border-b-2 border-[#171b30] pb-4"><h2 className="text-2xl font-black">Booking summary</h2><span className="border border-[#e08c4c] bg-[#ffeedd] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#bc6e36]">Step 1 of 2</span></div>
+          <div className="mt-5 flex items-center gap-4 border-2 border-[#e08c4c] bg-[#fffaf3] p-4">
+            <img src={provider.image} alt={provider.name} className="h-20 w-20 border-2 border-[#171b30] object-cover" />
             <div className="min-w-0">
               <p className="truncate text-lg font-black">{provider.name}</p>
-              <p className="text-sm font-bold text-slate-600">{provider.profession}</p>
+              <p className="text-sm font-bold text-[#171b30]/55">{provider.profession}</p>
               <p className="mt-1 flex items-center text-sm font-black text-[#e08c4c]"><IndianRupee size={14} />{provider.price}/hr</p>
             </div>
+            <span className="ml-auto hidden border border-[#171b30] bg-[#171b30] px-3 py-1.5 text-[10px] font-black uppercase text-white sm:block">Verified</span>
           </div>
 
           <div className="mt-5 grid min-w-0 max-w-full gap-3 overflow-hidden sm:grid-cols-2">
@@ -199,16 +202,15 @@ export default function UserBookingPayment() {
             </Field>
           </div>
 
-          <div className="mt-5 rounded-[1.25rem] border border-black/10 bg-[#fffaf3] p-4">
-            <div className="flex justify-between text-sm font-bold text-slate-600"><span>Hourly rate</span><span>{formatRupees(provider.price)}</span></div>
-            <div className="mt-2 flex justify-between text-sm font-bold text-slate-600"><span>Duration</span><span>{duration} hour(s)</span></div>
-            <div className="mt-3 flex justify-between border-t border-[#e6ecff] pt-3 text-lg font-black"><span>Total</span><span>{formatRupees(amount)}</span></div>
+          <div className="mt-5 border-2 border-[#171b30] bg-[#fffaf3] p-4">
+            <div className="flex justify-between text-sm font-bold text-[#171b30]/60"><span>Hourly rate</span><span>{formatRupees(provider.price)}</span></div>
+            <div className="mt-2 flex justify-between text-sm font-bold text-[#171b30]/60"><span>Duration</span><span>{duration} hour(s)</span></div>
+            <div className="mt-4 flex justify-between border-t-2 border-[#171b30] pt-4 text-xl font-black"><span>Total payable</span><span className="text-[#e08c4c]">{formatRupees(amount)}</span></div>
           </div>
         </div>
 
-        <div className="min-w-0 rounded-[1.5rem] border border-[#f1dccb] bg-white p-5 shadow-sm">
-          <h2 className="text-2xl font-black">Choose Payment Method</h2>
-          <p className="mt-1 text-sm font-bold text-slate-500">Your booking is created after successful payment.</p>
+        <div className="min-w-0 border-2 border-[#171b30] bg-white p-5 shadow-[6px_6px_0_#e08c4c]">
+          <div className="flex items-center justify-between border-b-2 border-[#171b30] pb-4"><div><h2 className="text-2xl font-black">Payment</h2><p className="mt-1 text-sm font-bold text-[#171b30]/55">The booking is confirmed only after verified payment.</p></div><span className="border border-[#e08c4c] bg-[#ffeedd] px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#bc6e36]">Step 2 of 2</span></div>
 
           <div className="mt-5 grid gap-3">
             {paymentMethods.map(([name, Icon, description]) => (
@@ -216,34 +218,41 @@ export default function UserBookingPayment() {
                 key={name}
                 type="button"
                 onClick={() => setPaymentMethod(name)}
-                className={`flex items-center gap-4 rounded-lg border p-4 text-left transition ${
+                className={`flex items-center gap-4 border-2 p-4 text-left transition ${
                   paymentMethod === name
-                    ? "border-black bg-[#ffeedd]"
-                    : "border-black/10 hover:bg-[#fffaf3]"
+                    ? "border-[#e08c4c] bg-white text-[#171b30] shadow-[5px_5px_0_#171b30]"
+                    : "border-[#171b30] bg-[#fffaf3] hover:bg-[#ffeedd]"
                 }`} 
               >
-                <span className={`grid h-11 w-11 place-items-center rounded-md ${paymentMethod === name ? "bg-black text-[#fffaf3]" : "bg-[#ffeedd] text-black"}`}>
+                <span className={`grid h-11 w-11 place-items-center border ${paymentMethod === name ? "border-[#171b30] bg-[#171b30] text-white" : "border-[#171b30] bg-[#171b30] text-white"}`}>
                   <Icon size={19} />
                 </span>
-                <span className="flex-1"><span className="block text-sm font-black">{name}</span><span className="mt-1 block text-xs font-bold text-slate-500">{description}</span></span>
+                <span className="flex-1"><span className="block text-sm font-black">{name}</span><span className="mt-1 block text-xs font-bold text-[#171b30]/50">{description}</span></span>
                 {paymentMethod === name ? <Check size={18} className="text-[#e08c4c]" /> : null}
               </button>
             ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-3 rounded-[1.25rem] bg-[#ffeedd] p-4">
-            <ShieldCheck size={21} className="text-[#e08c4c]" />
-            <div><p className="text-sm font-black">Protected BuddyBOOK payment</p><p className="mt-1 text-xs font-bold leading-5 text-slate-600">Payment and booking records stay available in your dashboard, Bookings and Payments pages.</p></div>
+          <div className="mt-4 grid grid-cols-3 border-2 border-[#171b30] bg-[#ffeedd]">
+            {["PCI-DSS", "Verified order", "Secure signature"].map((item, index) => <div key={item} className={`p-3 text-center text-[10px] font-black uppercase tracking-wider ${index ? "border-l-2 border-[#171b30]" : ""}`}>{item}</div>)}
+          </div>
+
+          <div className="mt-5 flex items-start gap-3 border-2 border-[#e08c4c] bg-[#fffaf3] p-4">
+            <ShieldCheck size={21} className="shrink-0 text-[#e08c4c]" />
+            <div><p className="text-sm font-black">Authenticated BuddyBOOK payment</p><p className="mt-1 text-xs font-bold leading-5 text-[#171b30]/55">Order amount is calculated by BuddyBOOK and the payment signature is verified before your booking is created.</p></div>
           </div>
 
           <button
             type="button"
             disabled={processing}
             onClick={handlePayment}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-4 text-sm font-black text-[#fffaf3] shadow-[0_12px_28px_rgba(0,0,0,0.18)] disabled:opacity-60"
+            className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#2563eb] bg-[#2563eb] px-6 py-4 text-sm font-black text-white transition hover:bg-white hover:text-[#2563eb] disabled:opacity-60"
           >
             <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatRupees(amount)} Securely`}
           </button>
+          {paymentError ? <p role="alert" className="mt-5 border-2 border-[#e08c4c] bg-[#ffeedd] p-3 text-xs font-black text-[#a95820]">Payment notice: {paymentError}</p> : null}
+          <div className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-[#171b30]/55"><Lock size={12} /> Razorpay test mode · No real money is charged.</div>
+        </div>
         </div>
       </section>
 
@@ -254,8 +263,8 @@ export default function UserBookingPayment() {
 
 function Field({ label, icon: Icon, children }) {
   return (
-    <label className="block min-w-0 max-w-full overflow-hidden rounded-[1rem] border border-black/10 bg-[#fffaf3] p-3">
-      <span className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">{Icon ? <Icon size={12} /> : null}{label}</span>
+    <label className="block min-w-0 max-w-full overflow-hidden border-2 border-[#171b30] bg-[#fffaf3] p-3">
+      <span className="mb-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#e08c4c]">{Icon ? <Icon size={12} /> : null}{label}</span>
       {children}
     </label>
   );
@@ -301,8 +310,20 @@ function readUser() {
   try { return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null"); } catch { return null; }
 }
 
-
-
-
-
-
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}

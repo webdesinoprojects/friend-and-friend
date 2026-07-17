@@ -8,6 +8,7 @@ const tabs = [
   ["homepage", "Homepage"],
   ["stats", "Stats"],
   ["filters", "Filters & Cards"],
+  ["faq", "FAQ"],
   ["testimonials", "Testimonials"],
   ["userPanel", "User Panel"],
   ["providerPanel", "Provider Panel"],
@@ -43,6 +44,15 @@ const fieldGroups = {
     ["providerCardPrimaryCta", "Provider card button text", "text"],
     ["providerCardBadgeText", "Provider card badge text", "text"],
     ["providerCardPriceSuffix", "Provider card price suffix", "text"],
+  ],
+  faq: [
+    ["faqTitle", "FAQ section title", "text"],
+    ["faqSubtitle", "FAQ section subtitle", "textarea"],
+    ["faq1Question", "Question 1", "text"], ["faq1Answer", "Answer 1", "textarea"],
+    ["faq2Question", "Question 2", "text"], ["faq2Answer", "Answer 2", "textarea"],
+    ["faq3Question", "Question 3", "text"], ["faq3Answer", "Answer 3", "textarea"],
+    ["faq4Question", "Question 4", "text"], ["faq4Answer", "Answer 4", "textarea"],
+    ["faq5Question", "Question 5", "text"], ["faq5Answer", "Answer 5", "textarea"],
   ],
   userPanel: [
     ["userPanelTitle", "User panel title", "text"],

@@ -10,6 +10,7 @@ import {
   Phone,
   Send,
   ShieldCheck,
+  Siren,
   Sparkles,
   X,
 } from "lucide-react";
@@ -45,6 +46,12 @@ const services = [
   "Account verification",
   "Provider partnership",
   "Booking or payment issue",
+];
+
+const emergencyContacts = [
+  { label: "Ambulance", number: "108" },
+  { label: "Women helpline", number: "1091" },
+  { label: "Local police", number: "100" },
 ];
 
 export default function Contact() {
@@ -205,6 +212,17 @@ export default function Contact() {
                       For urgent safety reports, include booking ID, user name
                       and the meetup location in your message.
                     </p>
+                  </div>
+                </div>
+                <div className="mt-4 border-t border-white/15 pt-4">
+                  <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-[#f4ad75]"><Siren size={16} /> SOS / Emergency contacts</div>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-1">
+                    {emergencyContacts.map((contact) => (
+                      <a key={contact.number} href={`tel:${contact.number}`} aria-label={`Call ${contact.label} at ${contact.number}`} className="group flex min-w-0 flex-col items-center justify-center rounded-xl border border-red-400 bg-red-600 px-2 py-2.5 text-center text-white transition hover:-translate-y-0.5 hover:bg-red-700 sm:flex-row sm:justify-start sm:gap-3 sm:px-3 sm:text-left">
+                        <Phone size={15} className="shrink-0" />
+                        <span className="mt-1 text-[9px] font-black leading-tight sm:mt-0 sm:text-[11px]">{contact.label}<span className="block text-xs text-white">{contact.number}</span></span>
+                      </a>
+                    ))}
                   </div>
                 </div>
               </div>

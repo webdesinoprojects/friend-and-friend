@@ -563,6 +563,7 @@ export default function Home() {
             </div>
           </section>
 
+          <FaqSection content={siteContent} />
           <TestimonialsSection testimonials={homepageTestimonials} />
 
         </div>
@@ -605,7 +606,7 @@ export default function Home() {
         @keyframes orbit-spin { to { transform: rotate(360deg); } }
         @keyframes heart-pop { 0%,100% { opacity:0; transform:translateY(12px) scale(.5); } 45% { opacity:1; transform:translateY(-24px) scale(1); } }
         .safety-orbiter { animation: orbit-spin 13s linear infinite; }
-        .safety-orbiter img { animation: orbit-spin 13s linear infinite reverse; }
+        .safety-avatar-upright { animation: orbit-spin 13s linear infinite reverse; }
         .orbit-heart { animation: heart-pop 3.8s ease-in-out infinite; }
         @keyframes provider-scroll-rise {
           from { opacity: 0.28; transform: translateY(150px) scale(0.95); }
@@ -740,6 +741,54 @@ function ProfileCollageCard({ profile, index, grid = false }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function FaqSection({ content = {} }) {
+  const [openIndex, setOpenIndex] = useState(0);
+  const defaults = [
+    ["How does BuddyBOOK verify members and providers?", "Profiles go through identity and safety checks before verification indicators are shown."],
+    ["How do payments and bookings work?", "Choose a verified provider, select your plan details and complete the protected checkout to confirm your booking."],
+    ["Where should a first meetup happen?", "Always choose a busy public place, keep your booking chat on BuddyBOOK and share your plan with someone you trust."],
+    ["Can I cancel or report a booking?", "Yes. Booking controls and safety reporting remain available from your dashboard and booking history."],
+    ["How is my personal information protected?", "BuddyBOOK keeps booking records and platform communication together so you do not need to share unnecessary personal details."],
+  ];
+  const items = defaults.map(([question, answer], index) => [
+    content[`faq${index + 1}Question`] || question,
+    content[`faq${index + 1}Answer`] || answer,
+  ]);
+
+  return (
+    <section className="relative overflow-hidden bg-white px-5 py-20 sm:px-8 lg:py-28">
+      <div className="pointer-events-none absolute -right-32 top-10 h-72 w-72 rounded-full bg-[#ffeedd] blur-3xl" />
+      <div className="relative mx-auto max-w-5xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#e08c4c]">Help centre</p>
+          <h2 className="mt-3 text-4xl font-black tracking-tight text-[#171b30] sm:text-6xl">{content.faqTitle || "Questions, answered clearly"}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-black/50 sm:text-base">{content.faqSubtitle || "Everything you need to know before planning a safe BuddyBOOK meetup."}</p>
+        </div>
+
+        <div className="mt-12 grid gap-3">
+          {items.map(([question, answer], index) => {
+            const open = openIndex === index;
+            return (
+              <article key={index} className={`overflow-hidden rounded-2xl border-2 transition duration-300 ${open ? "border-[#e08c4c] bg-[#ffeedd] shadow-[8px_8px_0_#171b30]" : "border-black/10 bg-[#fffaf3] hover:border-[#e08c4c]/60"}`}>
+                <button type="button" onClick={() => setOpenIndex(open ? -1 : index)} aria-expanded={open} className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left sm:px-7">
+                  <span className="flex items-center gap-4"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-black ${open ? "bg-[#171b30] text-white" : "bg-white text-[#e08c4c]"}`}>0{index + 1}</span><span className="text-sm font-black text-[#171b30] sm:text-lg">{question}</span></span>
+                  <ChevronDown size={20} className={`shrink-0 transition duration-300 ${open ? "rotate-180 text-[#e08c4c]" : "text-black/40"}`} />
+                </button>
+                <div className={`grid transition-all duration-300 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}><div className="overflow-hidden"><p className="border-t border-[#e08c4c]/25 px-5 py-5 text-sm font-semibold leading-7 text-black/60 sm:px-20 sm:text-base">{answer}</p></div></div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 flex flex-col items-start justify-between gap-5 border-l-4 border-[#e08c4c] bg-[#fffaf3] p-6 sm:flex-row sm:items-center">
+          <div><p className="text-lg font-black text-[#171b30]">Still have questions?</p><p className="mt-1 text-sm font-semibold text-black/50">Our support team is ready to help with bookings, safety and verification.</p></div>
+          <Link to="/contact" className="shrink-0 rounded-full bg-[#171b30] px-6 py-3 text-sm font-black text-white transition hover:-translate-y-1 hover:bg-[#e08c4c]">Get in touch</Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -928,9 +977,34 @@ function HeroStats({ siteContent = {}, className = "" }) {
 }
 
 function HeroVisual({ publicProviders = [] }) {
-  const heroProfile = publicProviders[0] || { name: "Verified Buddy", image: "" };
+  const popularProfiles = useMemo(() => {
+    const ranked = [...publicProviders].sort((a, b) =>
+      Number(b.totalBookings || 0) - Number(a.totalBookings || 0) ||
+      Number(b.totalSpending || 0) - Number(a.totalSpending || 0)
+    );
+    const withActivity = ranked.filter((profile) => Number(profile.totalBookings || 0) > 0 || Number(profile.totalSpending || 0) > 0);
+    return withActivity.length ? withActivity : ranked;
+  }, [publicProviders]);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+
+  useEffect(() => {
+    if (popularProfiles.length < 2) return undefined;
+    setFeaturedIndex(Math.floor(Math.random() * popularProfiles.length));
+    const interval = window.setInterval(() => {
+      setFeaturedIndex((current) => {
+        const offset = 1 + Math.floor(Math.random() * (popularProfiles.length - 1));
+        return (current + offset) % popularProfiles.length;
+      });
+    }, 60000);
+    return () => window.clearInterval(interval);
+  }, [popularProfiles]);
+
+  const heroProfile = popularProfiles[featuredIndex % Math.max(popularProfiles.length, 1)] || { name: "Verified Buddy", image: "" };
   const heroName = heroProfile.name?.split(" ")[0] || "Buddy";
   const heroImage = heroProfile.image || heroProfile.avatar || heroProfile.profileImage || "";
+  const heroLink = heroProfile.id ? `/providers/${heroProfile.id}` : "#community";
+  const totalBookings = Number(heroProfile.totalBookings || heroProfile.completedBookings || 0);
+  const totalSpending = Number(heroProfile.totalSpending || heroProfile.amountSpent || 0);
 
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
@@ -965,7 +1039,17 @@ function HeroVisual({ publicProviders = [] }) {
         </div>
       </div>
 
-<div className="absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3.5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0 sm:p-5">
+      <Link to={heroLink} className="group absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3.5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(66,42,27,0.28)] focus:outline-none focus:ring-4 focus:ring-[#e08c4c]/30 sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0 sm:p-5">
+        <div className="pointer-events-none absolute bottom-[calc(100%-0.35rem)] right-[calc(100%-0.75rem)] hidden w-56 rounded-2xl border border-[#e08c4c]/40 bg-[#171b30] p-4 text-white shadow-[0_24px_60px_rgba(23,27,48,0.3)] group-hover:block group-focus-visible:block sm:w-64">
+          <div className="flex items-center gap-3">
+            {heroImage ? <img src={heroImage} alt="" className="h-12 w-12 rounded-full border-2 border-[#f4ad75] object-cover" /> : null}
+            <div className="min-w-0"><p className="truncate text-sm font-black">{heroProfile.name || heroName}</p><p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#f4ad75]">Star performer</p></div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-white/10 p-2"><p className="text-lg font-black">{totalBookings}</p><p className="text-[9px] font-bold text-white/55">Total bookings</p></div>
+            <div className="rounded-xl bg-white/10 p-2"><p className="text-lg font-black">{formatRupees(totalSpending)}</p><p className="text-[9px] font-bold text-white/55">Total spending</p></div>
+          </div>
+        </div>
         <div className="flex items-start gap-3">
           {heroImage ? (
             <img src={heroImage} alt={heroName} className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
@@ -989,7 +1073,7 @@ function HeroVisual({ publicProviders = [] }) {
           </div>
           <p className="text-base font-black text-[#e08c4c] sm:text-lg">{formatRupees(800)}</p>
         </div>
-      </div>
+      </Link>
 
       <div className="absolute left-[4%] top-[34%] z-20 grid h-12 w-12 place-items-center rounded-full bg-[#ed6572] text-white shadow-lg">
         <Heart size={18} />
@@ -1037,9 +1121,7 @@ function BackgroundSparkles() {
     ["spark", "left-[3%] top-[12%]", "0ms", "text-[#dc955e]", 20],
     ["star", "left-[9%] top-[31%]", "450ms", "text-[#e96975]", 14],
     ["dot", "left-[15%] top-[8%]", "900ms", "bg-[#76ad98]", 10],
-    ["heart", "left-[20%] top-[72%]", "1350ms", "text-[#e96975]", 15],
     ["spark", "left-[26%] top-[20%]", "1800ms", "text-[#d99058]", 15],
-    ["dot", "left-[31%] top-[84%]", "2250ms", "bg-[#e8ae7d]", 8],
     ["star", "left-[36%] top-[9%]", "500ms", "text-[#dca064]", 18],
     ["spark", "left-[41%] top-[42%]", "1050ms", "text-[#7eae9c]", 13],
     ["heart", "left-[46%] top-[78%]", "1550ms", "text-[#e96975]", 14],
@@ -1396,7 +1478,13 @@ function SafetyCard({ icon: Icon, title, text, index = 0 }) {
 }
 
 function SafetyOrbit({ profiles: rows }) {
-  const orbitProfiles = (rows || []).slice(0, 6);
+  const [orbitProfiles, setOrbitProfiles] = useState(() => pickRandomProfiles(rows, 7));
+
+  useEffect(() => {
+    setOrbitProfiles(pickRandomProfiles(rows, 7));
+    const interval = window.setInterval(() => setOrbitProfiles(pickRandomProfiles(rows, 7)), 120000);
+    return () => window.clearInterval(interval);
+  }, [rows]);
   if (!orbitProfiles.length) {
     return (
       <div className="relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle,#fff_0%,#fff5ea_52%,transparent_70%)]">
@@ -1413,12 +1501,25 @@ function SafetyOrbit({ profiles: rows }) {
       <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e08c4c] shadow-xl"><ShieldCheck size={34} /></div>
       {orbitProfiles.map((profile, index) => (
         <div key={profile.id || profile.name || index} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
-          <img src={profile.image} alt={profile.name} className="absolute left-1/2 top-0 h-14 w-14 -translate-x-1/2 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
+          <div className="absolute left-1/2 top-0 -translate-x-1/2">
+            <div className="safety-avatar-upright" style={{ animationDelay: `-${index * 2.1}s` }}>
+              <img src={profile.image} alt={profile.name} className="h-14 w-14 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
+            </div>
+          </div>
         </div>
       ))}
       {[12, 42, 74].map((left, index) => <Heart key={left} size={18 + index * 4} fill="currentColor" className="orbit-heart absolute bottom-[12%] text-[#e08c4c]" style={{ left: `${left}%`, animationDelay: `-${index * 1.2}s` }} />)}
     </div>
   );
+}
+
+function pickRandomProfiles(rows, limit) {
+  const shuffled = [...(Array.isArray(rows) ? rows : [])];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+  }
+  return shuffled.slice(0, limit);
 }
 
 function SmallIndianProviderCard({ provider, index, content = {} }) {

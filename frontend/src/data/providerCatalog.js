@@ -112,6 +112,8 @@ export function normalizeProvider(raw, index = 0) {
     price,
     rating: Number(profile.rating || raw?.rating || raw?.averageRating || 0),
     reviews: Number(profile.reviewCount || raw?.reviewCount || 0),
+    totalBookings: Number(raw?.totalBookings || profile.totalBookings || raw?.bookingCount || profile.completedBookings || raw?.completedBookings || 0),
+    totalSpending: Number(raw?.totalSpending || profile.totalSpending || raw?.amountSpent || profile.amountSpent || raw?.totalEarning || profile.totalEarning || 0),
     age,
     available: profile.available ?? profile.isAvailable ?? raw?.available ?? true,
     languages: profile.languages || raw?.languages || "",
