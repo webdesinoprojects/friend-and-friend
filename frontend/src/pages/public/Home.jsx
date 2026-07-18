@@ -1493,12 +1493,18 @@ function SafetyOrbit({ profiles: rows }) {
   const [orbitProfiles, setOrbitProfiles] = useState(() => pickRecentProfiles(rows, 7));
 
   useEffect(() => {
+    let active = true;
     const recentProfiles = pickRecentProfiles(rows, 7);
     setOrbitProfiles(recentProfiles);
-    const interval = window.setInterval(() => {
-      setOrbitProfiles(pickRandomProfiles(rows, 7));
+    const interval = window.setInterval(async () => {
+      const nextProfiles = pickRandomProfiles(rows, 7);
+      await preloadProfileImages(nextProfiles);
+      if (active) setOrbitProfiles(nextProfiles);
     }, 120000);
-    return () => window.clearInterval(interval);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [rows]);
   if (!orbitProfiles.length) {
     return (
@@ -1517,7 +1523,7 @@ function SafetyOrbit({ profiles: rows }) {
       {orbitProfiles.map((profile, index) => {
         const evenlySpacedDelay = -(index * 13) / orbitProfiles.length;
         return (
-        <div key={profile.id || profile.name || index} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
+        <div key={`orbit-slot-${index}`} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
           <div className="absolute left-1/2 top-0 -translate-x-1/2">
             <div className="safety-avatar-upright" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
               <img src={profile.image} alt={profile.name} className="h-14 w-14 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
@@ -1539,6 +1545,16 @@ function pickRecentProfiles(rows, limit) {
       return rightDate - leftDate;
     })
     .slice(0, limit);
+}
+
+function preloadProfileImages(profiles) {
+  return Promise.all((Array.isArray(profiles) ? profiles : []).map((profile) => new Promise((resolve) => {
+    if (!profile?.image) return resolve();
+    const image = new Image();
+    image.onload = resolve;
+    image.onerror = resolve;
+    image.src = profile.image;
+  })));
 }
 
 function pickRandomProfiles(rows, limit) {

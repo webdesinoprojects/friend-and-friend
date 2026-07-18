@@ -7,7 +7,6 @@ import {
   CreditCard,
   IndianRupee,
   Lock,
-  ShieldCheck,
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
@@ -80,9 +79,10 @@ export default function UserBookingPayment() {
     };
   }, [providerId, cachedProvider]);
 
+  const hourlyRate = useMemo(() => parseHourlyRate(provider?.price), [provider?.price]);
   const amount = useMemo(
-    () => Number(provider?.price || 0) * Number(duration || 1),
-    [duration, provider]
+    () => hourlyRate * Number(duration || 1),
+    [duration, hourlyRate]
   );
   const invalidUrl = useMemo(
     () => provider ? hasInvalidBookingParams(bookingParams, provider) : false,
@@ -176,7 +176,7 @@ export default function UserBookingPayment() {
             <div className="min-w-0">
               <p className="truncate text-lg font-black">{provider.name}</p>
               <p className="text-sm font-bold text-[#171b30]/55">{provider.profession}</p>
-              <p className="mt-1 flex items-center text-sm font-black text-[#e08c4c]"><IndianRupee size={14} />{provider.price}/hr</p>
+              <p className="mt-1 flex items-center text-sm font-black text-[#e08c4c]"><IndianRupee size={14} />{hourlyRate}/hr</p>
             </div>
             <span className="ml-auto hidden border border-[#171b30] bg-[#171b30] px-3 py-1.5 text-[10px] font-black uppercase text-white sm:block">Verified</span>
           </div>
@@ -203,7 +203,7 @@ export default function UserBookingPayment() {
           </div>
 
           <div className="mt-5 border-2 border-[#171b30] bg-[#fffaf3] p-4">
-            <div className="flex justify-between text-sm font-bold text-[#171b30]/60"><span>Hourly rate</span><span>{formatRupees(provider.price)}</span></div>
+            <div className="flex justify-between text-sm font-bold text-[#171b30]/60"><span>Hourly rate</span><span>{formatRupees(hourlyRate)}</span></div>
             <div className="mt-2 flex justify-between text-sm font-bold text-[#171b30]/60"><span>Duration</span><span>{duration} hour(s)</span></div>
             <div className="mt-4 flex justify-between border-t-2 border-[#171b30] pt-4 text-xl font-black"><span>Total payable</span><span className="text-[#e08c4c]">{formatFullRupees(amount)}</span></div>
           </div>
@@ -233,25 +233,17 @@ export default function UserBookingPayment() {
             ))}
           </div>
 
-          <div className="mt-4 grid grid-cols-3 border-2 border-[#171b30] bg-[#ffeedd]">
-            {["PCI-DSS", "Verified order", "Secure signature"].map((item, index) => <div key={item} className={`p-3 text-center text-[10px] font-black uppercase tracking-wider ${index ? "border-l-2 border-[#171b30]" : ""}`}>{item}</div>)}
-          </div>
-
-          <div className="mt-5 flex items-start gap-3 border-2 border-[#e08c4c] bg-[#fffaf3] p-4">
-            <ShieldCheck size={21} className="shrink-0 text-[#e08c4c]" />
-            <div><p className="text-sm font-black">Authenticated BuddyBOOK payment</p><p className="mt-1 text-xs font-bold leading-5 text-[#171b30]/55">Order amount is calculated by BuddyBOOK and the payment signature is verified before your booking is created.</p></div>
-          </div>
-
           <button
             type="button"
             disabled={processing}
             onClick={handlePayment}
-            className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#171b30] bg-[#171b30] px-6 py-4 text-sm font-black text-white transition hover:bg-white hover:text-[#171b30] disabled:opacity-60"
+            className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#2563eb] bg-[#2563eb] px-6 py-4 text-sm font-black text-white transition hover:bg-[#1d4ed8] disabled:opacity-60"
           >
             <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatFullRupees(amount)} Securely`}
           </button>
           {paymentError ? <p role="alert" className="mt-5 border-2 border-[#e08c4c] bg-[#ffeedd] p-3 text-xs font-black text-[#a95820]">Payment notice: {paymentError}</p> : null}
           <div className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-[#171b30]/55"><Lock size={12} /> Razorpay test mode · No real money is charged.</div>
+          <p className="mx-auto mt-2 max-w-xl text-center text-xs font-semibold leading-5 text-[#171b30]/45">Order amount is calculated by BuddyBOOK and the payment signature is verified before your booking is created.</p>
         </div>
         </div>
       </section>
@@ -272,6 +264,13 @@ function Field({ label, icon: Icon, children }) {
 
 function formatFullRupees(value) {
   return `₹${Math.round(Number(value || 0)).toLocaleString("en-IN")}`;
+}
+
+function parseHourlyRate(value) {
+  const normalized = String(value ?? "").trim().toLowerCase().replace(/,/g, "");
+  const match = normalized.match(/(\d+(?:\.\d+)?)\s*(k)?/);
+  if (!match) return 0;
+  return Math.round(Number(match[1]) * (match[2] ? 1000 : 1));
 }
 
 function dateValue(addDays) {
