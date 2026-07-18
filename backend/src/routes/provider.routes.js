@@ -31,9 +31,20 @@ function handleProviderImageUpload(req, res, next) {
   });
 }
 
+function handleProfilePhotoUpload(req, res, next) {
+  upload.single('image')(req, res, (error) => {
+    if (!error) return next();
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Profile photo upload failed.',
+    });
+  });
+}
+
 router.post('/', protect, providerController.createProvider);
 router.get('/', providerController.listProviders);
 router.post('/images', protect, handleProviderImageUpload, providerController.uploadProviderImages);
+router.patch('/me/profile-photo', protect, handleProfilePhotoUpload, providerController.updateMyProfilePhoto);
 router.get('/me/profile', protect, providerController.getMyProvider);
 router.put('/me/profile', protect, providerController.upsertMyProvider);
 router.get('/:id/images', providerController.getProviderImages);

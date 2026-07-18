@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlignLeft, ArrowDown, ArrowUp, Eye, Image, ListFilter, PanelLeft, Quote, Save, Type } from "lucide-react";
+import { AlignLeft, ArrowDown, ArrowUp, Image, ListFilter, PanelLeft, Quote, Save, Type } from "lucide-react";
 import api from "../../api/api";
 import AdminShell from "../../components/layout/AdminShell";
 import ImageField from "../../components/admin/ImageField";
@@ -19,7 +19,14 @@ const fieldGroups = {
   homepage: [
     ["heroTitle", "Hero title", "text"],
     ["heroHighlight", "Hero highlight", "text"],
+    ["heroDescription", "Hero description", "textarea"],
     ["heroImage", "Hero image URL", "text"],
+    ["heroImageAlt", "Hero image description", "text"],
+    ["heroTrustItems", "Trust items (comma separated)", "text"],
+    ["heroVerifiedValue", "Hero verified value", "text"],
+    ["heroVerifiedLabel", "Hero verified label", "text"],
+    ["heroLocationValue", "Hero location value", "text"],
+    ["heroLocationLabel", "Hero location label", "text"],
     ["communityTitle", "Community title", "text"],
     ["trustTitle", "Trust title", "text"],
   ],
@@ -41,6 +48,22 @@ const fieldGroups = {
     ["filterPrivacyLabel", "Privacy label", "text"],
     ["filterGenderLabel", "Gender label", "text"],
     ["filterMaxPriceLabel", "Max price label", "text"],
+    ["filterButtonLabel", "Filter button label", "text"],
+    ["filterUsernamePlaceholder", "Username placeholder", "text"],
+    ["filterLocationPlaceholder", "Location placeholder", "text"],
+    ["filterStatePlaceholder", "State placeholder", "text"],
+    ["filterActivityPlaceholder", "Activity placeholder", "text"],
+    ["filterGenderPlaceholder", "Gender placeholder", "text"],
+    ["filterPricePlaceholder", "Price placeholder", "text"],
+    ["filterSortOptions", "Sort options (comma separated)", "text"],
+    ["filterGenderOptions", "Gender options (comma separated)", "text"],
+    ["filterPriceOptions", "Price options (comma separated)", "text"],
+    ["filterResetLabel", "Reset button label", "text"],
+    ["filterApplyLabel", "Apply button label", "text"],
+    ["serviceTypeLabel", "Service type heading", "text"],
+    ["serviceTypePrimary", "Primary service", "text"],
+    ["serviceTypeOptions", "Service types (comma separated)", "text"],
+    ["serviceMoreLabel", "More services button", "text"],
     ["providerCardPrimaryCta", "Provider card button text", "text"],
     ["providerCardBadgeText", "Provider card badge text", "text"],
     ["providerCardPriceSuffix", "Provider card price suffix", "text"],
@@ -182,12 +205,14 @@ export default function AdminContent() {
           <div className="h-72 animate-pulse rounded-2xl bg-black/5" />
         ) : activeTab === "testimonials" ? (
           <TestimonialsEditor
+            content={content}
             testimonials={normalizeTestimonials(content.testimonials)}
             onAdd={addTestimonial}
             onRemove={removeTestimonial}
             onChange={updateTestimonial}
             onMessage={setMessage}
             onMove={moveTestimonial}
+            onContentChange={updateField}
           />
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
@@ -220,7 +245,7 @@ export default function AdminContent() {
           </p>
         ) : null}
 
-        <div className="mt-6 flex flex-wrap gap-3"><a href="/" target="_blank" rel="noreferrer" className="inline-flex h-12 items-center gap-2 rounded-2xl border border-black/10 bg-white px-6 text-sm font-black"><Eye size={17}/>Preview homepage</a><button
+        <div className="mt-6 flex flex-wrap gap-3"><button
           type="submit"
           disabled={saving || loading}
           className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black px-8 text-sm font-black text-white transition hover:bg-black/90 disabled:opacity-50 md:w-auto"
@@ -262,10 +287,14 @@ function ContentField({ fieldKey, label, type, value, onChange }) {
   );
 }
 
-function TestimonialsEditor({ testimonials, onAdd, onRemove, onChange, onMessage, onMove }) {
+function TestimonialsEditor({ content, testimonials, onAdd, onRemove, onChange, onMessage, onMove, onContentChange }) {
   const [dragIndex, setDragIndex] = useState(null);
   return (
     <div className="grid gap-5">
+      <div className="grid gap-4 rounded-2xl border border-black/10 bg-[#f7f7f5] p-4 lg:grid-cols-2">
+        <ContentField fieldKey="testimonialsEyebrow" label="Section eyebrow" type="text" value={content.testimonialsEyebrow || ""} onChange={onContentChange} />
+        <ContentField fieldKey="testimonialsTitle" label="Section title" type="text" value={content.testimonialsTitle || ""} onChange={onContentChange} />
+      </div>
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black">Testimonials</h2>

@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { SkeletonRows } from "../components/common/Feedback";
+import Activities from "../pages/public/Activities";
 
 /* PUBLIC */
 const Home = lazy(() => import("../pages/public/Home"));
 const HowItWorks = lazy(() => import("../pages/public/HowItWorks"));
-const Activities = lazy(() => import("../pages/public/Activities"));
 const Safety = lazy(() => import("../pages/public/Safety"));
 const Contact = lazy(() => import("../pages/public/Contact"));
 const EarnWithBuddyBook = lazy(() => import("../pages/public/EarnWithBuddyBook"));

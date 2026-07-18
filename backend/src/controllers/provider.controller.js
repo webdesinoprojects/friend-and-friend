@@ -388,6 +388,48 @@ const uploadProviderImages = async (req, res) => {
   }
 };
 
+const updateMyProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Select a profile photo.' });
+    }
+
+    const image = await uploadProviderImage(req.file, 0);
+    const current = await prisma.providerProfile.findUnique({
+      where: { userId: req.user.id },
+      select: { profileImages: true },
+    });
+    if (!current) {
+      return res.status(404).json({ success: false, message: 'Provider profile was not found.' });
+    }
+
+    const previousImages = normalizeProfileImages(current.profileImages);
+    const profileImages = [image, ...previousImages.slice(1, 4)];
+    const [, provider] = await prisma.$transaction([
+      prisma.user.update({ where: { id: req.user.id }, data: { profileImage: image.url } }),
+      prisma.providerProfile.update({
+        where: { userId: req.user.id },
+        data: { profileImages },
+        include: includeUser,
+      }),
+    ]);
+    clearProviderListCache();
+
+    return res.json({
+      success: true,
+      message: 'Public profile photo updated.',
+      image,
+      data: sanitizeProviderImages(provider),
+    });
+  } catch (err) {
+    console.error('updateMyProfilePhoto error', err);
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || 'Profile photo could not be updated.',
+    });
+  }
+};
+
 const getProviderImages = async (req, res) => {
   try {
     const { id } = req.params;
@@ -521,6 +563,7 @@ const deleteProvider = async (req, res) => {
 module.exports = {
   createProvider,
   uploadProviderImages,
+  updateMyProfilePhoto,
   getProviderImages,
   listProviders,
   getProvider,

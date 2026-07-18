@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
-import { listProviders } from "../../api/providers";
+import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import ProviderCard from "../../components/users/ProviderCard";
 import {
@@ -29,7 +29,7 @@ const initialFilters = {
 export default function UserSearch() {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState(() => readUser());
-  const [providers, setProviders] = useState([]);
+  const [providers, setProviders] = useState(() => getCachedProviders());
   const [watchlist, setWatchlist] = useState(getWatchlist);
   const [filters, setFilters] = useState(() => ({
     ...initialFilters,

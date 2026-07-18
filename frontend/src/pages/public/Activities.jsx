@@ -1,13 +1,21 @@
 import { ArrowRight, CheckCircle2, MapPin, Sparkles, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { listProviders } from "../../api/providers";
+import { getCachedProviders, listProviders } from "../../api/providers";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 
+function buildActivities(providers) {
+  const names = [...new Set((Array.isArray(providers) ? providers : []).flatMap((provider) =>
+    Array.isArray(provider.activities) ? provider.activities : String(provider.activities || "").split(",")
+  ).map((item) => String(item).trim()).filter(Boolean))];
+  const icons = ["☕", "🎬", "🍽️", "🎮", "🚶", "📸"];
+  return names.map((name, index) => ({ name, tag: "Live provider activity", icon: icons[index % icons.length] }));
+}
+
 export default function Activities() {
-  const [activities,setActivities]=useState([]);
-  useEffect(()=>{let mounted=true;listProviders({verified:true}).then((providers)=>{if(!mounted)return;const names=[...new Set(providers.flatMap((provider)=>Array.isArray(provider.activities)?provider.activities:String(provider.activities||"").split(",")).map((item)=>String(item).trim()).filter(Boolean))];setActivities(names.map((name,index)=>({name,tag:"Live provider activity",icon:["☕","🎬","🍽️","🎮","🚶","📸"][index%6]})));}).catch(()=>setActivities([]));return()=>{mounted=false;};},[]);
+  const [activities,setActivities]=useState(() => buildActivities(getCachedProviders()));
+  useEffect(()=>{let mounted=true;listProviders({verified:true}).then((providers)=>{if(mounted)setActivities(buildActivities(providers));}).catch(()=>{});return()=>{mounted=false;};},[]);
   const marqueeActivities = [
     ...activities.slice(0, 10),
     ...activities.slice(0, 10),

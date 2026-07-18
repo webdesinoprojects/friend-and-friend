@@ -367,14 +367,14 @@ export default function Home() {
               </p>
 
               <h1 className="mt-3 max-w-[650px] text-[2.8rem] font-black leading-[1.02] tracking-tight sm:text-6xl lg:text-[4.8rem]">
-                {getHeroTitleParts("Safe Meetups. Real Connections.").main}
+                {siteContent.heroTitle || "Safe Meetups."}
                 <span className="block text-[#e08c4c]">
-                  {getHeroTitleParts("Safe Meetups. Real Connections.").highlight}
+                  {siteContent.heroHighlight || "Real Connections."}
                 </span>
               </h1>
 
               <p className="mt-5 max-w-xl text-sm font-bold leading-6 text-black sm:text-base">
-                BuddyBOOK helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings.
+                {siteContent.heroDescription || "BuddyBOOK helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings."}
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -391,7 +391,7 @@ export default function Home() {
               </div>
 
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-black text-black/45">
-                {["KYC profiles", "Public places", "Private chat", "Secure payments"].map(
+                {parseContentList(siteContent.heroTrustItems, ["KYC profiles", "Public places", "Private chat", "Secure payments"]).map(
                   (item) => (
                     <span key={item} className="flex items-center gap-1.5">
                       <Check size={14} className="text-[#d67f3d]" /> {item}
@@ -403,7 +403,7 @@ export default function Home() {
               <HeroStats siteContent={siteContent} className="mt-10 hidden lg:grid" />
             </div>
 
-            <HeroVisual publicProviders={publicProviders} />
+            <HeroVisual publicProviders={publicProviders} siteContent={siteContent} />
 
             <HeroStats siteContent={siteContent} className="mt-6 lg:hidden" />
           </div>
@@ -565,7 +565,7 @@ export default function Home() {
           </section>
 
           <FaqSection content={siteContent} />
-          <TestimonialsSection testimonials={homepageTestimonials} />
+          <TestimonialsSection testimonials={homepageTestimonials} content={siteContent} />
 
         </div>
       </main>
@@ -798,7 +798,7 @@ function FaqSection({ content = {} }) {
   );
 }
 
-function TestimonialsSection({ testimonials }) {
+function TestimonialsSection({ testimonials, content = {} }) {
   const [current, setCurrent] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [direction, setDirection] = useState(0); // 1 for next, -1 for prev, 0 idle
@@ -861,10 +861,10 @@ function TestimonialsSection({ testimonials }) {
       <div className="relative z-10 mx-auto max-w-7xl">
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
-            What buddies say
+            {content.testimonialsEyebrow || "What buddies say"}
           </p>
           <h2 className="mt-3 text-3xl font-black leading-tight sm:text-5xl">
-            Testimonials from real members
+            {content.testimonialsTitle || "Testimonials from real members"}
           </h2>
         </div>
 
@@ -982,7 +982,7 @@ function HeroStats({ siteContent = {}, className = "" }) {
   );
 }
 
-function HeroVisual({ publicProviders = [] }) {
+function HeroVisual({ publicProviders = [], siteContent = {} }) {
   const popularProfiles = useMemo(() => {
     const ranked = [...publicProviders].sort((a, b) =>
       Number(b.totalBookings || 0) - Number(a.totalBookings || 0) ||
@@ -1016,8 +1016,8 @@ function HeroVisual({ publicProviders = [] }) {
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
       <div className="absolute inset-x-[4%] bottom-24 top-4 overflow-hidden rounded-t-[45%] rounded-b-lg sm:inset-x-[10%] sm:bottom-16 lg:inset-x-[8%]">
         <img
-          src={friendsHero}
-          alt="Verified companions enjoying a public meetup"
+          src={siteContent.heroImage || friendsHero}
+          alt={siteContent.heroImageAlt || "Verified companions enjoying a public meetup"}
           className="h-full w-full object-cover object-[82%_center] transition duration-700 hover:scale-[1.025] sm:object-[78%_center] lg:object-[86%_center]"
         />
         <div className="absolute inset-0 bg-[#efb37f]/10" />
@@ -1029,8 +1029,8 @@ function HeroVisual({ publicProviders = [] }) {
             <UserRoundCheck size={17} />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-black">300+ verified</p>
-            <p className="text-[10px] font-bold text-black/35">Growing community</p>
+            <p className="text-xs font-black">{siteContent.heroVerifiedValue || "300+ verified"}</p>
+            <p className="text-[10px] font-bold text-black/35">{siteContent.heroVerifiedLabel || "Growing community"}</p>
           </div>
         </div>
       </div>
@@ -1039,8 +1039,8 @@ function HeroVisual({ publicProviders = [] }) {
         <div className="flex items-center gap-3">
           <MapPin size={17} className="text-[#f4ad75]" />
           <div>
-            <p className="text-xs font-black">Public meetup</p>
-            <p className="text-[10px] font-bold text-white/45">Location selected</p>
+            <p className="text-xs font-black">{siteContent.heroLocationValue || "Public meetup"}</p>
+            <p className="text-[10px] font-bold text-white/45">{siteContent.heroLocationLabel || "Location selected"}</p>
           </div>
         </div>
       </div>
@@ -1217,26 +1217,21 @@ function PublicServiceExploreSection({
       behavior: "smooth",
     });
   };
-  const servicePills = [
-    ["City tour", "City walk"],
-    ["Events", "Event partner"],
-    ["Cafe meet", "Coffee meetup"],
-    ["Gaming", "Gaming session"],
-    ["Dinner", "Dinner plan"],
-    ["Shopping", "Shopping companion"],
-    ["Sports", "Cricket companion"],
-  ];
+  const servicePills = parseContentList(content.serviceTypeOptions, ["City tour", "Events", "Cafe meet", "Gaming", "Dinner", "Shopping", "Sports"]);
+  const sortOptions = parseContentList(content.filterSortOptions, ["Recently Active", "Highest Ratings"]);
+  const genderOptions = parseContentList(content.filterGenderOptions, ["All", "Male", "Female", "Others"]);
+  const priceOptions = parseContentList(content.filterPriceOptions, ["All", "500", "700", "900", "1200", "1500", "2000"]);
 
   return (
     <section id="community" className="border-y border-black/10 bg-white px-5 py-10 sm:px-8">
       <span id="providers" className="block scroll-mt-28" />
       <div className="mx-auto max-w-[1520px]">
         <div className="flex flex-wrap items-center gap-3 border-b border-black/10 pb-5">
-          <p className="mr-2 text-xl font-black text-black">Service Type</p>
+          <p className="mr-2 text-xl font-black text-black">{content.serviceTypeLabel || "Service Type"}</p>
           <span className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black">
-            Meet up
+            {content.serviceTypePrimary || "Meet up"}
           </span>
-          {servicePills.map(([label]) => (
+          {servicePills.map((label) => (
             <span
               key={label}
               className={`cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black ${["Events", "Cafe meet", "Gaming", "Dinner", "Shopping", "Sports"].includes(label) ? "hidden sm:inline-flex" : ""}`}
@@ -1248,13 +1243,13 @@ function PublicServiceExploreSection({
             to="/activities"
             className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white"
           >
-            View more services ({activities.length || 0}) <ArrowRight size={16} />
+            {content.serviceMoreLabel || "View more services"} ({activities.length || 0}) <ArrowRight size={16} />
           </Link>
         </div>
 
         <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
           <button type="button" onClick={() => setShowFilters(true)} className="inline-flex w-max items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md lg:hidden">
-            <SlidersHorizontal size={16} /> Filter
+            <SlidersHorizontal size={16} /> {content.filterButtonLabel || "Filter"}
           </button>
           {showFilters ? <button type="button" aria-label="Close filters" onClick={() => setShowFilters(false)} className="fixed inset-x-0 bottom-0 top-[76px] z-[9998] bg-black/40 lg:hidden" /> : null}
           <aside className={`fixed bottom-0 left-0 top-[76px] z-[9999] w-[min(86vw,340px)] overflow-y-auto border-r border-black/10 bg-white p-6 shadow-2xl transition-transform duration-300 lg:sticky lg:top-28 lg:z-auto lg:h-max lg:w-auto lg:translate-x-0 lg:overflow-visible lg:border lg:shadow-none ${showFilters ? "translate-x-0" : "-translate-x-full"}`}>
@@ -1264,7 +1259,7 @@ function PublicServiceExploreSection({
               className="flex w-full items-center justify-between rounded-lg bg-[#2563eb] px-4 py-3 text-white shadow-md lg:pointer-events-none"
               aria-expanded={showFilters}
             >
-              <h3 className="text-2xl font-black">Filter</h3>
+              <h3 className="text-2xl font-black">{content.filterButtonLabel || "Filter"}</h3>
               <ChevronDown
                 size={22}
                 className={`text-white transition lg:hidden ${showFilters ? "rotate-180" : ""}`}
@@ -1276,34 +1271,34 @@ function PublicServiceExploreSection({
                 <input
                   value={filters.keyword}
                   onChange={(event) => onFilter("keyword", event.target.value)}
-                  placeholder="Enter username"
+                  placeholder={content.filterUsernamePlaceholder || "Enter username"}
                   className="mt-3 h-14 w-full rounded-none border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
                 />
               </label>
-              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} placeholder="eg. Gurgaon" options={cities} onChange={(value) => onFilter("city", value)} />
-              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} placeholder="eg. Haryana" options={states} onChange={(value) => onFilter("state", value)} />
-              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} placeholder="eg. Cafe meet" options={activities} onChange={(value) => onFilter("activity", value)} />
+              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} placeholder={content.filterLocationPlaceholder || "eg. Gurgaon"} options={cities} onChange={(value) => onFilter("city", value)} />
+              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} placeholder={content.filterStatePlaceholder || "eg. Haryana"} options={states} onChange={(value) => onFilter("state", value)} />
+              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} placeholder={content.filterActivityPlaceholder || "eg. Cafe meet"} options={activities} onChange={(value) => onFilter("activity", value)} />
               <FilterRadioGroup
                 title={content.filterSortLabel || "Sort By"}
-                value={filters.rating === "4" ? "Highest Ratings" : "Recently Active"}
-                options={["Recently Active", "Highest Ratings"]}
-                onChange={(value) => onFilter("rating", value === "Highest Ratings" ? "4" : "All")}
+                value={filters.rating === "4" ? sortOptions[1] : sortOptions[0]}
+                options={sortOptions}
+                onChange={(value) => onFilter("rating", value === sortOptions[1] ? "4" : "All")}
               />
-              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} placeholder="Any gender" options={["All", "Male", "Female", "Others"]} onChange={(value) => onFilter("gender", value)} />
-              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} placeholder="eg. Rs 1000" options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
+              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} placeholder={content.filterGenderPlaceholder || "Any gender"} options={genderOptions} onChange={(value) => onFilter("gender", value)} />
+              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} placeholder={content.filterPricePlaceholder || "eg. Rs 1000"} options={priceOptions} onChange={(value) => onFilter("maxPrice", value)} />
               <div className="grid max-w-[230px] grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={onReset}
                   className="rounded-none border border-black/15 bg-white px-3 py-2.5 text-xs font-black"
                 >
-                  Reset
+                  {content.filterResetLabel || "Reset"}
                 </button>
                 <button
                   type="button"
                   className="rounded-none bg-black px-3 py-2.5 text-xs font-black text-white"
                 >
-                  Apply
+                  {content.filterApplyLabel || "Apply"}
                 </button>
               </div>
             </div>
@@ -1499,16 +1494,9 @@ function SafetyOrbit({ profiles: rows }) {
 
   useEffect(() => {
     const recentProfiles = pickRecentProfiles(rows, 7);
-    const recentIds = new Set(recentProfiles.map((profile) => profile.id).filter(Boolean));
-    const remainingProfiles = (Array.isArray(rows) ? rows : []).filter(
-      (profile) => !profile.id || !recentIds.has(profile.id)
-    );
-
     setOrbitProfiles(recentProfiles);
     const interval = window.setInterval(() => {
-      setOrbitProfiles(
-        pickRandomProfiles(remainingProfiles.length ? remainingProfiles : rows, 7)
-      );
+      setOrbitProfiles(pickRandomProfiles(rows, 7));
     }, 120000);
     return () => window.clearInterval(interval);
   }, [rows]);
@@ -1772,6 +1760,11 @@ function uniqueValues(values) {
 
 function sameText(left, right) {
   return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
+}
+
+function parseContentList(value, fallback) {
+  const items = String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  return items.length ? items : fallback;
 }
 
 function readPreviewContent() {

@@ -6,9 +6,7 @@ const MY_PROVIDER_CACHE_KEY = 'buddybook_my_provider_profile_cache';
 const providerImageCache = new Map();
 
 export function getCachedProviders() {
-  // Discovery must be server-authoritative so disabled/deleted profiles never
-  // reappear from stale browser storage.
-  return [];
+  return readProviderCache();
 }
 
 export function getCachedProvider(id) {
@@ -33,7 +31,7 @@ export async function listProviders(params = {}) {
     writeProviderCache(normalized);
     return normalized;
   } catch {
-    return [];
+    return getCachedProviders();
   }
 }
 
@@ -88,6 +86,14 @@ export async function uploadProviderImages(files) {
   });
 
   return Array.isArray(res.data?.images) ? res.data.images : [];
+}
+
+export async function updateMyProviderProfilePhoto(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await api.patch('/providers/me/profile-photo', formData, { timeout: 60000 });
+  clearProviderCaches();
+  return res.data;
 }
 
 export async function getProvider(id) {

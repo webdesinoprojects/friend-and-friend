@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BadgeCheck, Briefcase, Edit3, IndianRupee, Languages, MapPin, ShieldCheck, Star } from "lucide-react";
+import { BadgeCheck, Briefcase, Camera, Edit3, IndianRupee, Languages, MapPin, ShieldCheck, Star } from "lucide-react";
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
-import { getMyProviderProfile } from "../../api/providers";
+import { getMyProviderProfile, updateMyProviderProfilePhoto } from "../../api/providers";
 import { getReceivedReviews } from "../../utils/userFlowStorage";
 import { listMyReviews } from "../../api/reports";
 
@@ -13,6 +13,33 @@ export default function ProviderProfile() {
   const localReviews = getReceivedReviews("PROVIDER");
   const [backendReviews, setBackendReviews] = useState([]);
   const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState("");
+
+  const changeProfilePhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
+      setPhotoMessage("Use a JPG, PNG or WebP image up to 3 MB.");
+      return;
+    }
+    try {
+      setPhotoSaving(true);
+      setPhotoMessage("");
+      const result = await updateMyProviderProfilePhoto(file);
+      setProvider(result.data);
+      if (result.data?.user) {
+        setUser(result.data.user);
+        localStorage.setItem("buddybook_auth_user", JSON.stringify(result.data.user));
+      }
+      setPhotoMessage("Profile photo updated.");
+    } catch (uploadError) {
+      setPhotoMessage(uploadError.response?.data?.message || "Profile photo could not be updated.");
+    } finally {
+      setPhotoSaving(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -75,6 +102,11 @@ export default function ProviderProfile() {
             ) : (
               <div className="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-[1.5rem] bg-[#ffeedd] text-4xl font-black xl:mx-0">{(user?.fullName || "P").charAt(0)}</div>
             )}
+            <label className="mx-auto mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white xl:mx-0">
+              <Camera size={14} /> {photoSaving ? "Updating..." : "Change profile photo"}
+              <input type="file" accept="image/jpeg,image/png,image/webp" disabled={photoSaving} onChange={changeProfilePhoto} className="hidden" />
+            </label>
+            {photoMessage ? <p className="mt-2 text-xs font-bold text-[#6b5d52]">{photoMessage}</p> : null}
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-black">{user?.fullName || "Provider"}</h1>
               <Link to="/app/provider/create" className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-2 text-[10px] font-black text-[#fffaf3]">
