@@ -543,6 +543,13 @@ const register = async (req, res) => {
       });
     }
 
+    if (!normalizeProfileImage(profileImage)) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile photo is required.",
+      });
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
 
     const application = await prisma.registrationApplication.create({
@@ -589,15 +596,6 @@ if (!identifier || !password) {
         success: false,
         message: "Email or phone and password are required.",
       });
-    }
-
-    if (documentType === "AADHAAR" && !/^\d{12}$/.test(fullDocumentNumber)) {
-      return res.status(400).json({ success: false, message: "Aadhaar number must contain exactly 12 digits." });
-    }
-
-    if (documentType === "AADHAAR") {
-      const aadhaarVerified = await prisma.otpToken.findFirst({ where: { email: `aadhaar:${fullDocumentNumber}`, type: "AADHAAR_DEMO", verified: true }, orderBy: { createdAt: "desc" } });
-      if (!aadhaarVerified) return res.status(400).json({ success: false, message: "Verify the Aadhaar demo OTP before registration." });
     }
 
 const user = await prisma.user.findUnique({

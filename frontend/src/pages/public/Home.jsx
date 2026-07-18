@@ -82,7 +82,7 @@ const publicSearchDefaults = {
   maxPrice: "All",
   rating: "All",
 };
-const PROVIDERS_PER_PAGE = 12;
+const PROVIDERS_PER_PAGE = 8;
 
 export default function Home() {
   const heroLayerRef = useRef(null);
@@ -458,6 +458,7 @@ export default function Home() {
         {!isProviderAccount ? (
           <PublicServiceExploreSection
             providers={paginatedPublicProviders}
+            mobileProviders={filteredPublicProviders}
             totalProviders={filteredPublicProviders.length}
             loading={providerLoading}
             filters={publicFilters}
@@ -603,6 +604,10 @@ export default function Home() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes provider-page-in {
+          from { opacity: 0; transform: translate3d(0, 24px, 0) scale(.97); filter: blur(5px); }
+          to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+        }
         @keyframes orbit-spin { to { transform: rotate(360deg); } }
         @keyframes heart-pop { 0%,100% { opacity:0; transform:translateY(12px) scale(.5); } 45% { opacity:1; transform:translateY(-24px) scale(1); } }
         .safety-orbiter { animation: orbit-spin 13s linear infinite; }
@@ -615,6 +620,7 @@ export default function Home() {
         .animate-float { animation: float-soft 4.5s ease-in-out infinite; }
         .animate-twinkle { animation: twinkle 3s ease-in-out infinite; }
         .animate-rise { animation: rise 700ms ease-out both; }
+        .provider-page-card { animation: provider-page-in 620ms cubic-bezier(.22, 1, .36, 1) both; }
         .hero-stage {
           transform-origin: center top;
           will-change: filter, transform, opacity;
@@ -644,7 +650,7 @@ export default function Home() {
           }
         }
 @media (prefers-reduced-motion: reduce) {
-           .animate-float, .animate-twinkle, .animate-rise, .provider-reveal { animation: none; }
+           .animate-float, .animate-twinkle, .animate-rise, .provider-reveal, .provider-page-card { animation: none; }
          }
        `}</style>
      </div>
@@ -1188,6 +1194,7 @@ function SectionHeading({ eyebrow, title, text }) {
 
 function PublicServiceExploreSection({
   providers,
+  mobileProviders = [],
   totalProviders,
   loading,
   filters,
@@ -1326,13 +1333,26 @@ function PublicServiceExploreSection({
                 ))}
               </div>
             ) : providers.length ? (
-              <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 sm:mt-7 sm:grid sm:grid-cols-2 sm:gap-x-5 sm:gap-y-9 sm:overflow-visible xl:grid-cols-4">
-                {providers.map((provider, index) => (
+              <>
+              <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 lg:hidden">
+                {mobileProviders.map((provider, index) => (
                   <div key={provider.id} className="w-[82vw] max-w-[290px] shrink-0 snap-center [transform:perspective(900px)_rotateY(-2deg)] sm:w-auto sm:max-w-none sm:transform-none">
                     <SmallIndianProviderCard provider={provider} index={index} content={content} />
                   </div>
                 ))}
               </div>
+              <div key={`provider-page-${page}`} className="mt-7 hidden grid-cols-2 gap-x-5 gap-y-9 lg:grid xl:grid-cols-4">
+                {providers.map((provider, index) => (
+                  <div
+                    key={provider.id}
+                    className="provider-page-card"
+                    style={{ animationDelay: `${index * 65}ms` }}
+                  >
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} />
+                  </div>
+                ))}
+              </div>
+              </>
             ) : (
               <div className="mt-7 grid min-h-[360px] place-items-center rounded-2xl border border-dashed border-black/20 bg-[#fafafa] text-center">
                 <div>
@@ -1346,7 +1366,7 @@ function PublicServiceExploreSection({
             )}
 
             {pageCount > 1 ? (
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
+              <div className="mt-10 hidden flex-wrap items-center justify-center gap-2 lg:flex">
                 <button
                   type="button"
                   disabled={page <= 1}
@@ -1475,11 +1495,21 @@ function SafetyCard({ icon: Icon, title, text, index = 0 }) {
 }
 
 function SafetyOrbit({ profiles: rows }) {
-  const [orbitProfiles, setOrbitProfiles] = useState(() => pickRandomProfiles(rows, 7));
+  const [orbitProfiles, setOrbitProfiles] = useState(() => pickRecentProfiles(rows, 7));
 
   useEffect(() => {
-    setOrbitProfiles(pickRandomProfiles(rows, 7));
-    const interval = window.setInterval(() => setOrbitProfiles(pickRandomProfiles(rows, 7)), 120000);
+    const recentProfiles = pickRecentProfiles(rows, 7);
+    const recentIds = new Set(recentProfiles.map((profile) => profile.id).filter(Boolean));
+    const remainingProfiles = (Array.isArray(rows) ? rows : []).filter(
+      (profile) => !profile.id || !recentIds.has(profile.id)
+    );
+
+    setOrbitProfiles(recentProfiles);
+    const interval = window.setInterval(() => {
+      setOrbitProfiles(
+        pickRandomProfiles(remainingProfiles.length ? remainingProfiles : rows, 7)
+      );
+    }, 120000);
     return () => window.clearInterval(interval);
   }, [rows]);
   if (!orbitProfiles.length) {
@@ -1496,18 +1526,31 @@ function SafetyOrbit({ profiles: rows }) {
       <div className="absolute inset-[9%] rounded-full border border-[#e6a572]/60" />
       <div className="absolute inset-[25%] rounded-full border border-[#f4ad75]/55" />
       <div className="absolute inset-[40%] grid place-items-center rounded-full bg-white text-[#e08c4c] shadow-xl"><ShieldCheck size={34} /></div>
-      {orbitProfiles.map((profile, index) => (
-        <div key={profile.id || profile.name || index} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `-${index * 2.1}s` }}>
+      {orbitProfiles.map((profile, index) => {
+        const evenlySpacedDelay = -(index * 13) / orbitProfiles.length;
+        return (
+        <div key={profile.id || profile.name || index} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
           <div className="absolute left-1/2 top-0 -translate-x-1/2">
-            <div className="safety-avatar-upright" style={{ animationDelay: `-${index * 2.1}s` }}>
+            <div className="safety-avatar-upright" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
               <img src={profile.image} alt={profile.name} className="h-14 w-14 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
       {[12, 42, 74].map((left, index) => <Heart key={left} size={18 + index * 4} fill="currentColor" className="orbit-heart absolute bottom-[12%] text-[#e08c4c]" style={{ left: `${left}%`, animationDelay: `-${index * 1.2}s` }} />)}
     </div>
   );
+}
+
+function pickRecentProfiles(rows, limit) {
+  return [...(Array.isArray(rows) ? rows : [])]
+    .sort((left, right) => {
+      const rightDate = new Date(right.createdAt || right.updatedAt || 0).getTime();
+      const leftDate = new Date(left.createdAt || left.updatedAt || 0).getTime();
+      return rightDate - leftDate;
+    })
+    .slice(0, limit);
 }
 
 function pickRandomProfiles(rows, limit) {

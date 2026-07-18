@@ -434,6 +434,11 @@ export default function Register() {
         return false;
       }
 
+      if (!form.profileImage?.url) {
+        notify("Profile photo is required before continuing.");
+        return false;
+      }
+
       if (!/^\d{10}$/.test(form.phone)) {
         notify("Mobile number must contain exactly 10 digits.");
         return false;
@@ -842,9 +847,9 @@ export default function Register() {
                         )}
                       </div>
                       <div className="min-w-[220px] flex-1">
-                        <p className="text-sm font-black text-black">Profile photo</p>
+                        <p className="text-sm font-black text-black">Profile photo <span className="text-rose-600">*</span></p>
                         <p className="mt-1 text-xs font-bold text-black/45">
-                          This appears in your user/provider workspace after registration.
+                          Required for every account. This appears in your user/provider workspace after registration.
                         </p>
                       </div>
                       <label className="inline-flex cursor-pointer rounded-none bg-black px-5 py-3 text-sm font-black text-[#fffaf3]">
