@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   CreditCard,
   Eye,
@@ -14,18 +15,20 @@ import UserAppLayout from "../../components/users/UserAppLayout";
 import AccountLifecyclePanel from "../../components/account/AccountLifecyclePanel";
 
 const options = [
-  ["Login security", "Password, sessions and device activity", Lock],
-  ["Privacy controls", "Profile visibility and data sharing", Eye],
-  ["Location sharing", "Meetup location and safety sharing", MapPin],
-  ["Payment methods", "Cards, UPI and refund preferences", CreditCard],
-  ["KYC and safety", "Verification records and safety agreement", ShieldCheck],
-  ["Language and region", "App language, city and timezone", Globe2],
-  ["Blocked accounts", "People you do not want to meet again", UserX],
-  ["Help and support", "Report an issue or contact BuddyBOOK", Headphones],
+  ["Login security", "Password, sessions and device activity", Lock, "lifecycle"],
+  ["Privacy controls", "Profile visibility and data sharing", Eye, "privateProfile"],
+  ["Location sharing", "Meetup location and safety sharing", MapPin, "locationSharing"],
+  ["Payment methods", "Cards, UPI and refund preferences", CreditCard, "/app/user/wallet"],
+  ["KYC and safety", "Verification records and safety agreement", ShieldCheck, "/app/user/profile"],
+  ["Language and region", "Use device language and timezone", Globe2, "deviceLocale"],
+  ["Blocked accounts", "Restrict new contacts to booked providers", UserX, "restrictContacts"],
+  ["Help and support", "Report an issue or contact BuddyBOOK", Headphones, "/contact"],
 ];
 
 export default function UserSettings() {
   const navigate = useNavigate();
+  const [preferences,setPreferences]=useState(()=>{try{return JSON.parse(localStorage.getItem("buddybook_user_preferences")||"{}");}catch{return {};}});
+  const handleOption=(action)=>{if(action.startsWith("/")){navigate(action);return;}if(action==="lifecycle"){document.getElementById("account-lifecycle")?.scrollIntoView({behavior:"smooth"});return;}setPreferences((current)=>{const next={...current,[action]:!current[action]};localStorage.setItem("buddybook_user_preferences",JSON.stringify(next));return next;});};
 
   const logout = () => {
     localStorage.removeItem("buddybook_auth_user");
@@ -43,18 +46,19 @@ export default function UserSettings() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {options.map(([title, text, Icon]) => (
+          {options.map(([title, text, Icon, action]) => (
             <button
               key={title}
               type="button"
-              className="flex items-center gap-4 rounded-2xl border border-[#eddac7] bg-white p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#ffeedd]"
+              onClick={()=>handleOption(action)}
+              className="flex items-center gap-4 rounded-2xl border border-[#eddac7] bg-white p-4 text-left transition hover:bg-[#ffeedd]"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#fffaf3] text-[#e08c4c]">
                 <Icon size={19} />
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-black text-black">{title}</span>
-                <span className="mt-1 block text-xs font-bold leading-5 text-[#6b5d52]">{text}</span>
+                <span className="mt-1 block text-xs font-bold leading-5 text-[#6b5d52]">{text}{!action.startsWith("/")&&action!=="lifecycle" ? ` · ${preferences[action] ? "Enabled" : "Disabled"}` : ""}</span>
               </span>
             </button>
           ))}
@@ -75,7 +79,7 @@ export default function UserSettings() {
             </button>
           </section>
 
-          <div className="grid gap-4"><AccountLifecyclePanel /></div>
+          <div id="account-lifecycle" className="grid gap-4"><AccountLifecyclePanel /></div>
         </div>
       </section>
     </UserAppLayout>

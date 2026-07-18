@@ -31,14 +31,14 @@ function handleProviderImageUpload(req, res, next) {
   });
 }
 
-router.post('/', providerController.createProvider);
+router.post('/', protect, providerController.createProvider);
 router.get('/', providerController.listProviders);
-router.post('/images', handleProviderImageUpload, providerController.uploadProviderImages);
+router.post('/images', protect, handleProviderImageUpload, providerController.uploadProviderImages);
 router.get('/me/profile', protect, providerController.getMyProvider);
 router.put('/me/profile', protect, providerController.upsertMyProvider);
 router.get('/:id/images', providerController.getProviderImages);
 router.get('/:id', providerController.getProvider);
-router.put('/:id', providerController.updateProvider);
-router.delete('/:id', providerController.deleteProvider);
+router.put('/:id', protect, providerController.updateProvider);
+router.delete('/:id', protect, providerController.deleteProvider);
 
 module.exports = router;

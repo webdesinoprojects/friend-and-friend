@@ -5,15 +5,15 @@ import Logo from "../../components/common/Logo";
 
 export default function ApplicationReview() {
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#fffaf4] text-[#0f1e3b] [background-image:linear-gradient(rgba(226,140,75,.075)_1px,transparent_1px),linear-gradient(90deg,rgba(226,140,75,.075)_1px,transparent_1px)] [background-size:48px_48px] lg:h-screen lg:overflow-hidden">
+    <main className="relative min-h-screen overflow-x-hidden bg-[#fffaf4] text-[#0f1e3b] [&>span]:hidden [background-image:linear-gradient(rgba(226,140,75,.075)_1px,transparent_1px),linear-gradient(90deg,rgba(226,140,75,.075)_1px,transparent_1px)] [background-size:48px_48px] lg:h-screen lg:overflow-hidden">
       <header className="relative z-20 mx-auto flex h-[64px] max-w-[1500px] items-center justify-between gap-3 px-4 sm:h-[68px] sm:px-[5vw] lg:absolute lg:inset-x-0 lg:top-0">
         <Link to="/" aria-label="BuddyBOOK home" className="min-w-0 rounded-full bg-white/90 px-2 py-1.5 shadow-sm backdrop-blur sm:px-3 sm:py-2"><Logo /></Link>
         <Link to="/login" className="shrink-0 rounded-full border border-[#efc5a4] bg-white/95 px-3 py-2 text-xs font-black shadow-sm transition hover:bg-black hover:text-white sm:px-5 sm:py-2.5 sm:text-sm">Back to login</Link>
       </header>
 
-      <span className="absolute left-[34%] top-[7.5%] h-3 w-3 rounded-full bg-[#f47e83]" />
+      <span className="hidden" />
       <span className="absolute left-[40%] top-[40%] text-2xl text-[#72b992]">⌘</span>
-      <span className="absolute bottom-[7%] left-[45%] h-3 w-3 rounded-full bg-[#a6cdb7]" />
+      <span className="hidden" />
       <span className="absolute right-[6%] top-[20%] text-3xl text-[#f4a061]">☆</span>
 
       <section className="mx-auto grid max-w-[1500px] gap-8 px-4 pb-8 pt-4 sm:px-[5vw] lg:h-full lg:grid-cols-[.93fr_1.07fr] lg:items-center lg:gap-[4.5vw] lg:pb-0 lg:pt-[62px]">

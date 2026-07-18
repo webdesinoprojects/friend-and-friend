@@ -95,17 +95,9 @@ export default function UserAppLayout({
 
         <div className="flex min-h-0 min-w-0 flex-col">
           <header className="lg:hidden">
-            <div className="fixed left-3 right-3 top-3 z-[9998] overflow-hidden rounded-full border-2 border-black bg-white/90 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl">
+            <div className="fixed left-3 right-3 top-3 z-[9998] rounded-full border-2 border-black bg-white/90 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl">
               <div className="flex h-14 items-center justify-between gap-3 px-4">
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/")}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
-                    aria-label="Go to home page"
-                  >
-                    <Home size={18} />
-                  </button>
                   <button
                     type="button"
                     onClick={() => setDrawerOpen(true)}
@@ -113,6 +105,14 @@ export default function UserAppLayout({
                     aria-label="Open user workspace menu"
                   >
                     <Menu size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
+                    aria-label="Go to home page"
+                  >
+                    <Home size={18} />
                   </button>
                 </div>
                 <h1 className="text-sm font-black tracking-tight text-black sm:text-base">

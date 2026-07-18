@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, MapPin, Star } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
-import { listProviders } from "../../api/providers";
+import { getProvider } from "../../api/providers";
 import { formatRs } from "../../utils/format";
-import { getWatchlist, subscribeToUserData, toggleWatchlist } from "../../utils/userFlowStorage";
+import { getWatchlist, removeMissingWatchlistProviders, subscribeToUserData, toggleWatchlist } from "../../utils/userFlowStorage";
 
 export default function UserWatchlist() {
   const [items, setItems] = useState(getWatchlist);
@@ -13,10 +13,24 @@ export default function UserWatchlist() {
   useEffect(() => {
     let mounted = true;
     const refresh = async () => {
-      const activeProviders = await listProviders();
-      if (!mounted || !activeProviders.length) return;
-      const activeIds = new Set(activeProviders.map((provider) => provider.id));
-      setItems(getWatchlist().filter((provider) => activeIds.has(provider.id)));
+      const savedProviders = getWatchlist();
+      const results = await Promise.allSettled(savedProviders.map((provider) => getProvider(provider.id)));
+      if (!mounted) return;
+      const deletedIds = results.flatMap((result, index) =>
+        result.status === "rejected" && result.reason?.response?.status === 404
+          ? [savedProviders[index].id]
+          : []
+      );
+      const currentProviders = deletedIds.length
+        ? removeMissingWatchlistProviders(deletedIds)
+        : getWatchlist();
+      const liveProviders = new Map(results.flatMap((result) =>
+        result.status === "fulfilled" && result.value ? [[result.value.id, result.value]] : []
+      ));
+      setItems(currentProviders.map((provider) => ({
+        ...provider,
+        ...(liveProviders.get(provider.id) || {}),
+      })));
     };
     refresh();
     const unsubscribe = subscribeToUserData(refresh);

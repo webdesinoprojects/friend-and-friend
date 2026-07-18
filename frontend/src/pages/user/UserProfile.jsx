@@ -30,9 +30,11 @@ export default function UserProfile() {
   const [form, setForm] = useState(() => userToForm(readUser()));
   const localReviews = getReceivedReviews("USER");
   const [backendReviews, setBackendReviews] = useState([]);
+  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true); setError("");
     if (!hasAuthToken()) {
       return () => {
         mounted = false;
@@ -48,11 +50,11 @@ export default function UserProfile() {
         setForm(userToForm({ ...readUser(), ...nextUser }));
         localStorage.setItem("buddybook_auth_user", JSON.stringify({ ...readUser(), ...nextUser }));
       })
-      .catch(() => {});
+      .catch(() => {if(mounted)setError("Your profile could not be loaded.");}).finally(()=>{if(mounted)setLoading(false);});
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     let mounted = true;
@@ -153,6 +155,8 @@ export default function UserProfile() {
   return (
     <UserAppLayout title="Profile" user={user}>
       <section className="min-h-full rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-4 shadow-sm lg:p-6">
+        {error ? <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-black text-red-700">{error}<button onClick={()=>setReload(v=>v+1)} className="ml-3 rounded-lg bg-black px-3 py-2 text-white">Retry</button></div> : null}
+        {loading ? <div className="mb-5 h-32 animate-pulse rounded-2xl bg-black/5" /> : null}
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="h-max rounded-2xl border border-[#eddac7] bg-white p-5">
             <div className="relative w-max">

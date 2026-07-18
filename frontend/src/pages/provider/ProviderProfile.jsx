@@ -12,20 +12,22 @@ export default function ProviderProfile() {
   const [provider, setProvider] = useState(null);
   const localReviews = getReceivedReviews("PROVIDER");
   const [backendReviews, setBackendReviews] = useState([]);
+  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true); setError("");
     getMyProviderProfile()
       .then(({ provider: nextProvider }) => {
         if (!mounted) return;
         setProvider(nextProvider);
         if (nextProvider?.user) setUser(nextProvider.user);
       })
-      .catch(() => {});
+      .catch(() => {if(mounted)setError("Provider profile could not be loaded.");}).finally(()=>{if(mounted)setLoading(false);});
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     let mounted = true;
@@ -64,12 +66,14 @@ export default function ProviderProfile() {
   return (
     <AppShell type="provider">
       <section className="min-h-0 bg-[#fff7ed] text-black">
+        {error ? <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-black text-red-700">{error}<button onClick={()=>setReload(v=>v+1)} className="ml-3 rounded-lg bg-black px-3 py-2 text-white">Retry</button></div> : null}
+        {loading ? <div className="mb-5 h-40 animate-pulse rounded-2xl bg-black/5" /> : null}
         <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="h-max rounded-2xl border border-[#eddac7] bg-white p-5">
+          <aside className="h-max min-w-0 rounded-2xl border border-[#eddac7] bg-white p-4 sm:p-5">
             {avatar ? (
-              <img src={avatar} alt={user?.fullName || "Provider"} className="h-48 w-48 rounded-[1.5rem] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.12)]" />
+              <img src={avatar} alt={user?.fullName || "Provider"} className="mx-auto aspect-square w-full max-w-[240px] rounded-[1.5rem] object-cover shadow-[0_18px_42px_rgba(0,0,0,0.12)] xl:mx-0" />
             ) : (
-              <div className="grid h-48 w-48 place-items-center rounded-[1.5rem] bg-[#ffeedd] text-4xl font-black">{(user?.fullName || "P").charAt(0)}</div>
+              <div className="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-[1.5rem] bg-[#ffeedd] text-4xl font-black xl:mx-0">{(user?.fullName || "P").charAt(0)}</div>
             )}
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-black">{user?.fullName || "Provider"}</h1>

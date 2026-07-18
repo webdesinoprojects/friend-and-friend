@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import EmojiPicker from "emoji-picker-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -33,6 +32,7 @@ import {
 import { confirmAction, notify } from "../common/Feedback";
 
 const MAX_TEXT_LENGTH = 2000;
+const EmojiPicker = lazy(() => import("emoji-picker-react"));
 const MAX_VOICE_SECONDS = 120;
 
 function storedUser() {
@@ -548,7 +548,7 @@ export default function ChatWorkspace({ role }) {
                 {recording && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-rose-50 p-3"><span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" /><strong className="flex-1 text-sm text-rose-700">Recording {recordingSeconds}s / {MAX_VOICE_SECONDS}s</strong><button onClick={stopRecording} className="flex items-center gap-1 rounded-full bg-rose-600 px-3 py-2 text-xs font-black text-white"><StopCircle size={15} /> Stop</button></div>}
                 {voiceDraft && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-orange-50 p-3"><audio controls src={voiceDraft.url} className="h-9 min-w-0 flex-1" /><button disabled={voiceSending} onClick={sendVoice} className="rounded-full bg-black p-2 text-white disabled:opacity-50">{voiceSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send size={17} />}</button><button disabled={voiceSending} onClick={discardVoice}><Trash2 size={17} className="text-rose-600" /></button></div>}
                 <div className="flex items-end gap-2">
-                  <div className="relative"><button disabled={recording || Boolean(voiceDraft)} onClick={() => setEmojiOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 text-lg disabled:opacity-40">☺</button>{emojiOpen && <div className="absolute bottom-14 left-0 z-30"><EmojiPicker onEmojiClick={(emoji) => onTextChange(text + emoji.emoji)} width={300} height={380} /></div>}</div>
+                  <div className="relative"><button disabled={recording || Boolean(voiceDraft)} onClick={() => setEmojiOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 text-lg disabled:opacity-40">☺</button>{emojiOpen && <div className="absolute bottom-14 left-0 z-30"><Suspense fallback={<div className="grid h-24 w-[min(300px,80vw)] place-items-center rounded-2xl border bg-white text-xs font-black">Loading emojis...</div>}><EmojiPicker onEmojiClick={(emoji) => onTextChange(text + emoji.emoji)} width={300} height={380} /></Suspense></div>}</div>
                   <div className="relative"><button disabled={sendingLocation} onClick={() => setLocationOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 disabled:opacity-40">{sendingLocation ? <LoaderCircle className="animate-spin" size={18} /> : <MapPin size={18} />}</button>{locationOpen && <div className="absolute bottom-14 left-0 z-20 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={() => shareLocation(false)} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black hover:bg-black/5">Share current location</button><button onClick={() => shareLocation(true)} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black hover:bg-black/5">Share live location</button></div>}</div>
                   <textarea value={text} onChange={(event) => onTextChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submitText(); } }} rows={1} maxLength={MAX_TEXT_LENGTH} placeholder="Write a message…" className="max-h-28 min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-black/10 bg-[#f8f5f1] px-4 py-3 text-sm font-semibold outline-none focus:border-[#df843f]" />
                   {!text.trim() ? <button disabled={recording || Boolean(voiceDraft)} onClick={startRecording} className="grid h-11 w-11 place-items-center rounded-full bg-black text-white disabled:opacity-40" aria-label="Record voice message"><Mic size={18} /></button> : <button onClick={submitText} className="grid h-11 w-11 place-items-center rounded-full bg-[#df843f] text-white" aria-label="Send message"><Send size={18} /></button>}

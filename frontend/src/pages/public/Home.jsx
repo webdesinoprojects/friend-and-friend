@@ -1019,7 +1019,7 @@ function HeroVisual({ publicProviders = [] }) {
 
       <div className="animate-float absolute left-0 top-[8%] z-20 rounded-lg bg-white px-4 py-3 shadow-[0_18px_45px_rgba(66,42,27,0.15)] sm:left-[2%]">
         <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e8f5ee] text-[#267a5b]">
+          <span className="hidden h-9 w-9 place-items-center rounded-full bg-[#e8f5ee] text-[#267a5b] sm:grid">
             <UserRoundCheck size={17} />
           </span>
           <div className="min-w-0">
@@ -1074,13 +1074,6 @@ function HeroVisual({ publicProviders = [] }) {
           <p className="text-base font-black text-[#e08c4c] sm:text-lg">{formatRupees(800)}</p>
         </div>
       </Link>
-
-      <div className="absolute left-[4%] top-[34%] z-20 grid h-12 w-12 place-items-center rounded-full bg-[#ed6572] text-white shadow-lg">
-        <Heart size={18} />
-      </div>
-      <div className="absolute right-[7%] top-[7%] z-20 grid h-14 w-14 place-items-center rounded-full bg-white text-[#d77f40] shadow-lg">
-        <Sparkles size={20} />
-      </div>
 
     </div>
   );
@@ -1143,7 +1136,7 @@ function BackgroundSparkles() {
   ];
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div className="hidden" aria-hidden="true">
       {sparks.map(([type, position, delay, color, size], index) => {
         const shared = `animate-twinkle absolute ${position} ${color}`;
 
@@ -1239,7 +1232,7 @@ function PublicServiceExploreSection({
           {servicePills.map(([label]) => (
             <span
               key={label}
-              className="cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black"
+              className={`cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black ${["Events", "Cafe meet", "Gaming", "Dinner", "Shopping", "Sports"].includes(label) ? "hidden sm:inline-flex" : ""}`}
             >
               {label}
             </span>
@@ -1253,20 +1246,24 @@ function PublicServiceExploreSection({
         </div>
 
         <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="h-max rounded-none border border-black/10 bg-white p-6 lg:sticky lg:top-28">
+          <button type="button" onClick={() => setShowFilters(true)} className="inline-flex w-max items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md lg:hidden">
+            <SlidersHorizontal size={16} /> Filter
+          </button>
+          {showFilters ? <button type="button" aria-label="Close filters" onClick={() => setShowFilters(false)} className="fixed inset-x-0 bottom-0 top-[76px] z-[9998] bg-black/40 lg:hidden" /> : null}
+          <aside className={`fixed bottom-0 left-0 top-[76px] z-[9999] w-[min(86vw,340px)] overflow-y-auto border-r border-black/10 bg-white p-6 shadow-2xl transition-transform duration-300 lg:sticky lg:top-28 lg:z-auto lg:h-max lg:w-auto lg:translate-x-0 lg:overflow-visible lg:border lg:shadow-none ${showFilters ? "translate-x-0" : "-translate-x-full"}`}>
             <button
               type="button"
               onClick={() => setShowFilters((value) => !value)}
-              className="flex w-full items-center justify-between lg:pointer-events-none"
+              className="flex w-full items-center justify-between rounded-lg bg-[#2563eb] px-4 py-3 text-white shadow-md lg:pointer-events-none"
               aria-expanded={showFilters}
             >
-              <h3 className="text-2xl font-black text-black">Filter</h3>
+              <h3 className="text-2xl font-black">Filter</h3>
               <ChevronDown
                 size={22}
-                className={`text-black transition lg:hidden ${showFilters ? "rotate-180" : ""}`}
+                className={`text-white transition lg:hidden ${showFilters ? "rotate-180" : ""}`}
               />
             </button>
-            <div className={`mt-8 gap-6 lg:grid ${showFilters ? "grid" : "hidden"}`}>
+            <div className="mt-8 grid gap-6">
               <label>
                 <span className="text-sm font-black text-black">{content.filterUsernameLabel || "Find username"}</span>
                 <input

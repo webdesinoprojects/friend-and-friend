@@ -33,7 +33,7 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
-import { getMyProviderProfile } from "../../api/providers";
+import { getMyProviderProfile, saveMyProviderProfile } from "../../api/providers";
 import { completeBookingApi, listBookings } from "../../api/bookings";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
@@ -49,18 +49,19 @@ const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const palette = ["#e08c4c", "#111111", "#ffeedd", "#16815f"];
 
 export function ProviderServices() {
-  const { provider, stats } = useProviderWorkspace();
-  const [services, setServices] = useState(() => [
-    { name: "Coffee meetup", price: 450, status: "Live" },
-    { name: "City walk", price: 700, status: "Live" },
-    { name: "Shopping companion", price: 650, status: "Draft" },
-  ]);
+  const { provider, bookings, loading, error, retry } = useProviderWorkspace();
+  const [services, setServices] = useState([]); const [saving,setSaving]=useState(false);
+  useEffect(()=>{ if(!provider)return; const saved=(provider.profileQuestions||[]).filter((item)=>item?.type==="SERVICE"); setServices(saved.length?saved:String(provider.activities||"").split(",").map(name=>name.trim()).filter(Boolean).map(name=>({type:"SERVICE",name,price:Number(provider.hourlyPrice||0),status:"Live"}))); },[provider]);
 
   const addService = () =>
     setServices((current) => [
       ...current,
       { name: provider?.activities?.split(",")?.[0]?.trim() || "New activity", price: Number(provider?.hourlyPrice || 500), status: "Draft" },
     ]);
+  const demandData = services.map((item) => ({
+    name: item.name,
+    value: bookings.filter((booking) => String(booking.service || booking.activity || "").trim().toLowerCase() === String(item.name || "").trim().toLowerCase()).length,
+  }));
 
   return (
     <ProviderPageShell
@@ -68,6 +69,8 @@ export function ProviderServices() {
       subtitle="Package your activities into clear offers users can book."
       action={<button onClick={addService} className="inline-flex items-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-black text-[#fffaf3] shadow-lg shadow-black/10"><Plus size={16} /> Add service</button>}
     >
+      {error ? <WorkspaceError message={error} onRetry={retry} /> : null}
+      {loading ? <WorkspaceLoading /> : null}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Panel title="Service catalog" subtitle="Edit the public offers connected to your provider profile.">
           <div className="grid gap-3">
@@ -95,13 +98,14 @@ export function ProviderServices() {
               </div>
             ))}
           </div>
+          <button type="button" disabled={saving} onClick={async()=>{setSaving(true);try{const others=(provider.profileQuestions||[]).filter(item=>item?.type!=="SERVICE");await saveMyProviderProfile({...provider,activities:services.filter(s=>s.status==="Live").map(s=>s.name).join(", "),profileQuestions:[...others,...services.map(s=>({...s,type:"SERVICE"}))]});notify("Services saved.","success");}catch{notify("Services could not be saved.","error");}finally{setSaving(false);}}} className="mt-4 rounded-xl bg-black px-5 py-3 text-sm font-black text-white disabled:opacity-50"><Save size={16} className="mr-2 inline" />{saving?"Saving...":"Save services"}</button>
         </Panel>
 
-        <Panel title="Demand mix" subtitle="Projected interest by activity.">
+        <Panel title="Demand mix" subtitle="Bookings received for each activity.">
           <div className="h-[270px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={services.map((item, index) => ({ name: item.name, value: 20 + index * 12 }))} dataKey="value" outerRadius={90}>
+                <Pie data={demandData.some((item) => item.value > 0) ? demandData : [{ name: "No bookings yet", value: 1 }]} dataKey="value" outerRadius={90}>
                   {services.map((_, index) => <Cell key={index} fill={palette[index % palette.length]} />)}
                 </Pie>
                 <Tooltip />
@@ -115,17 +119,17 @@ export function ProviderServices() {
 }
 
 export function ProviderAvailability() {
-  const { provider } = useProviderWorkspace();
-  const [slots, setSlots] = useState(() =>
-    week.map((day, index) => ({
+  const { provider, loading, error, retry } = useProviderWorkspace(); const [saving,setSaving]=useState(false);
+  const [slots, setSlots] = useState(() => week.map((day, index) => ({
       day,
       enabled: index !== 2,
       window: index > 4 ? "11:00 AM - 7:00 PM" : "5:00 PM - 9:00 PM",
-    }))
-  );
+    })));
+  useEffect(()=>{if(!provider)return;const saved=(provider.profileQuestions||[]).find(item=>item?.type==="WEEKLY_AVAILABILITY")?.slots;if(Array.isArray(saved)&&saved.length)setSlots(saved);},[provider]);
 
   return (
     <ProviderPageShell title="Availability" subtitle="Control when users can request public meetup bookings.">
+      {error ? <WorkspaceError message={error} onRetry={retry} /> : null}{loading ? <WorkspaceLoading /> : null}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Panel title="Weekly schedule" subtitle={provider?.availabilityDays || "Set the days and windows you prefer."}>
           <div className="grid gap-3">
@@ -146,6 +150,7 @@ export function ProviderAvailability() {
               </label>
             ))}
           </div>
+          <button type="button" disabled={saving} onClick={async()=>{setSaving(true);try{const others=(provider.profileQuestions||[]).filter(item=>item?.type!=="WEEKLY_AVAILABILITY");await saveMyProviderProfile({...provider,availabilityDays:slots.filter(s=>s.enabled).map(s=>s.day).join(", "),profileQuestions:[...others,{type:"WEEKLY_AVAILABILITY",slots}]});notify("Availability saved.","success");}catch{notify("Availability could not be saved.","error");}finally{setSaving(false);}}} className="mt-4 rounded-xl bg-black px-5 py-3 text-sm font-black text-white disabled:opacity-50"><Save size={16} className="mr-2 inline" />{saving?"Saving...":"Save availability"}</button>
         </Panel>
 
         <Panel title="Availability flow" subtitle="Live slots by day">
@@ -361,20 +366,30 @@ function ProviderReviewForm({ booking, onSubmitted }) {
 }
 
 export function ProviderEarnings() {
-  const { stats } = useProviderWorkspace();
+  const { stats, bookings } = useProviderWorkspace();
+  const completedBookings = bookings.filter((booking) => String(booking.status || "").toUpperCase() === "COMPLETED");
+  const revenueBookings = completedBookings.length ? completedBookings : bookings.filter((booking) =>
+    ["CONFIRMED", "ACCEPTED"].includes(String(booking.status || "").toUpperCase())
+  );
+  const bookingRevenue = revenueBookings.reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+  const totalRevenue = Number(stats.totalRevenue || bookingRevenue || 0);
+  const pendingPayout = revenueBookings
+    .filter((booking) => String(booking.payoutStatus || "PENDING").toUpperCase() !== "PAID")
+    .reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+  const averageBooking = revenueBookings.length ? bookingRevenue / revenueBookings.length : 0;
 
   return (
     <ProviderPageShell title="Earnings" subtitle="Track expected revenue and payout health.">
-      <div className="grid gap-5">
-        <div className="grid gap-4 md:grid-cols-4">
-          <Kpi icon={Wallet} label="Total revenue" value={formatRs(Number(stats.totalRevenue || 0))} />
-          <Kpi icon={IndianRupee} label="Pending payout" value={formatRs(2800)} />
-          <Kpi icon={TrendingUp} label="Avg booking" value={formatRs(720)} />
-          <Kpi icon={CheckCircle2} label="Completed" value={stats.totalBookings || 0} />
+      <div className="grid min-w-0 gap-4 sm:gap-5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          <Kpi icon={Wallet} label="Total revenue" value={formatRs(totalRevenue)} />
+          <Kpi icon={IndianRupee} label="Pending payout" value={formatRs(pendingPayout)} />
+          <Kpi icon={TrendingUp} label="Avg booking" value={formatRs(averageBooking)} />
+          <Kpi icon={CheckCircle2} label="Completed" value={completedBookings.length} />
         </div>
 
         <Panel title="Revenue trend" subtitle="A simple view of weekly earning momentum.">
-          <div className="h-[360px]">
+          <div className="h-[240px] min-w-0 sm:h-[320px] lg:h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.weeklyViews}>
                 <defs>
@@ -402,10 +417,10 @@ function ProviderPageShell({ title, subtitle, action, children }) {
   return (
     <AppShell type="provider">
       <div className="min-h-0 bg-[#fff7ed] text-black">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-6 text-black shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-4 text-black shadow-sm sm:mb-5 sm:p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e08c4c]">Provider workspace</p>
-            <h1 className="mt-2 text-3xl font-black">{title}</h1>
+            <h1 className="mt-2 text-2xl font-black sm:text-3xl">{title}</h1>
             <p className="mt-2 max-w-2xl text-sm font-semibold text-[#6b5d52]">{subtitle}</p>
           </div>
           {hasAction ? action : null}
@@ -418,7 +433,7 @@ function ProviderPageShell({ title, subtitle, action, children }) {
 
 function Panel({ title, subtitle, children }) {
   return (
-    <section className="rounded-2xl border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-[#eddac7] bg-white p-3 shadow-sm sm:p-5">
       <div className="mb-4">
         <h2 className="text-lg font-black">{title}</h2>
         <p className="mt-1 text-xs font-bold text-[#8b7563]">{subtitle}</p>
@@ -430,12 +445,12 @@ function Panel({ title, subtitle, children }) {
 
 function Kpi({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-[#eddac7] bg-white p-4 shadow-sm">
-      <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#ffeedd] text-black">
+    <div className="flex min-h-[132px] min-w-0 flex-col justify-between rounded-none border border-[#eddac7] bg-white p-3 shadow-sm sm:min-h-[150px] sm:p-4">
+      <span className="grid h-9 w-9 place-items-center rounded-none bg-[#ffeedd] text-black sm:h-11 sm:w-11">
         <Icon size={19} />
       </span>
-      <p className="mt-4 text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">{label}</p>
+      <div className="mt-3 min-w-0"><p className="truncate text-xl font-black sm:text-2xl">{value}</p>
+      <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.08em] text-[#8b7563] sm:text-xs sm:tracking-[0.12em]">{label}</p></div>
     </div>
   );
 }
@@ -485,6 +500,8 @@ function updateRow(setter, index, key, value) {
 
 function useProviderWorkspace() {
   const [provider, setProvider] = useState(null);
+  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalBookings: 0,
@@ -493,17 +510,22 @@ function useProviderWorkspace() {
 
   useEffect(() => {
     let mounted = true;
-    getMyProviderProfile()
-      .then((result) => {
+    setLoading(true); setError("");
+    Promise.all([getMyProviderProfile(), listBookings().catch(() => getBookings())])
+      .then(([result, bookingRows]) => {
         if (!mounted) return;
         setProvider(result.provider);
+        setBookings(Array.isArray(bookingRows) ? bookingRows : []);
         if (result.stats) setStats((current) => ({ ...current, ...result.stats }));
       })
-      .catch(() => {});
+      .catch(() => { if(mounted)setError("Provider workspace data could not be loaded."); }).finally(()=>{if(mounted)setLoading(false);});
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
-  return useMemo(() => ({ provider, stats }), [provider, stats]);
+  return useMemo(() => ({ provider, stats, bookings, loading, error, retry:()=>setReload(v=>v+1) }), [provider, stats, bookings, loading, error]);
 }
+
+function WorkspaceLoading(){return <div className="mb-4 h-20 animate-pulse rounded-2xl bg-black/5" />;}
+function WorkspaceError({message,onRetry}){return <div role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-black text-red-700">{message}<button type="button" onClick={onRetry} className="ml-3 rounded-lg bg-black px-3 py-2 text-xs text-white">Retry</button></div>;}

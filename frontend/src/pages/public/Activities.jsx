@@ -1,10 +1,13 @@
 import { ArrowRight, CheckCircle2, MapPin, Sparkles, Star } from "lucide-react";
 import { Link } from "react-router-dom";
-import { activities } from "../../data/mockData";
+import { useEffect, useState } from "react";
+import { listProviders } from "../../api/providers";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 
 export default function Activities() {
+  const [activities,setActivities]=useState([]);
+  useEffect(()=>{let mounted=true;listProviders({verified:true}).then((providers)=>{if(!mounted)return;const names=[...new Set(providers.flatMap((provider)=>Array.isArray(provider.activities)?provider.activities:String(provider.activities||"").split(",")).map((item)=>String(item).trim()).filter(Boolean))];setActivities(names.map((name,index)=>({name,tag:"Live provider activity",icon:["☕","🎬","🍽️","🎮","🚶","📸"][index%6]})));}).catch(()=>setActivities([]));return()=>{mounted=false;};},[]);
   const marqueeActivities = [
     ...activities.slice(0, 10),
     ...activities.slice(0, 10),

@@ -26,18 +26,20 @@ const fallbackSummary = {
 
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(fallbackSummary);
+  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true); setError("");
     api.get("/admin/summary").then(({ data }) => {
       if (!mounted) return;
       setSummary({ ...fallbackSummary, ...(data?.data || {}) });
-    }).catch(() => {});
+    }).catch(() => {if(mounted)setError("Admin overview could not be loaded.");}).finally(()=>{if(mounted)setLoading(false);});
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reload]);
 
   const metrics = summary.metrics || fallbackSummary.metrics;
   const latestProviders = useMemo(() => {
@@ -47,6 +49,8 @@ export default function AdminDashboard() {
 
   return (
     <AdminShell title="Admin Overview" text="Manage BuddyBOOK operations and website content">
+      {error ? <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-black text-red-700">{error}<button type="button" onClick={()=>setReload(v=>v+1)} className="ml-3 rounded-lg bg-black px-3 py-2 text-xs text-white">Retry</button></div> : null}
+      {loading ? <div className="mb-5 h-24 animate-pulse rounded-xl bg-black/5" /> : null}
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(0,1fr))_minmax(180px,1fr)]">
         <MetricCard icon={Users} tone="blue" label="Total Users" value={formatNumber(metrics.totalUsers)} trend="Live" note="database" />
         <MetricCard icon={ShieldCheck} tone="green" label="Verified Providers" value={formatNumber(metrics.verifiedProviders)} trend="Live" note="database" />

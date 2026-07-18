@@ -1,11 +1,19 @@
 import { PackageCheck, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
-import { formatDate, formatMoney, getAdminOrders } from "./adminData";
+import { formatDate, formatMoney } from "./adminData";
+import api from "../../api/api";
 
 export default function AdminOrders() {
   const [query, setQuery] = useState("");
-  const orders = getAdminOrders();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const loadOrders = useCallback(() => {
+    setLoading(true); setError("");
+    api.get("/admin/bookings").then(({ data }) => setOrders((data?.data || []).map(toOrder))).catch(() => setError("Orders could not be loaded from the server.")).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { loadOrders(); }, [loadOrders]);
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return orders;
@@ -39,11 +47,17 @@ export default function AdminOrders() {
           </label>
         </div>
 
-        <OrderTable orders={visible} empty="No booked orders found yet." />
+        {error ? <LoadError message={error} onRetry={loadOrders} /> : loading ? <LoadingRows /> : <OrderTable orders={visible} empty="No booked orders found yet." />}
       </section>
     </AdminShell>
   );
 }
+
+export function toOrder(booking) {
+  return { id: booking.id, image: booking.providerImage || "", name: booking.service || booking.activity || "BuddyBOOK booking", customerName: booking.userName || "Customer", providerName: booking.providerName || "Provider", quantity: Number(booking.durationHours || 1), price: Number(booking.amount || 0), date: booking.date || booking.createdAt, status: String(booking.status || "PENDING").toUpperCase(), paymentStatus: String(booking.paymentStatus || "PENDING").toUpperCase() };
+}
+export function LoadingRows() { return <div className="space-y-3 rounded-2xl border bg-white p-6">{Array.from({length:6},(_,i)=><div key={i} className="h-12 animate-pulse rounded-xl bg-black/5" />)}</div>; }
+export function LoadError({ message, onRetry }) { return <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center"><p className="text-sm font-black text-red-700">{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-xl bg-black px-5 py-2.5 text-xs font-black text-white">Retry</button></div>; }
 
 export function OrderTable({ orders, empty }) {
   return (
@@ -67,7 +81,7 @@ export function OrderTable({ orders, empty }) {
               orders.map((order) => (
                 <tr key={order.id} className="transition hover:bg-[#fffaf3]">
                   <td className="px-4 py-3">
-                    <img src={order.image} alt={order.name} className="h-14 w-14 rounded-xl object-cover" />
+                    {order.image ? <img src={order.image} alt={order.name} className="h-14 w-14 rounded-xl object-cover" /> : <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#ffeedd] text-xs font-black">BB</div>}
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm font-black text-black">{order.name}</p>

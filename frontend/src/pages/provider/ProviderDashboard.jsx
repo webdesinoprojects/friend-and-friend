@@ -13,17 +13,14 @@ import {
 } from "recharts";
 import {
   ArrowRight,
-  BadgeCheck,
   Briefcase,
   CalendarCheck,
   CheckCircle2,
   Clock,
   IndianRupee,
-  MapPin,
   MessageCircle,
   Phone,
   Rocket,
-  ShieldCheck,
   Sparkles,
   Siren,
   Star,
@@ -123,7 +120,6 @@ export default function ProviderDashboard() {
   }, [providerBookings, search]);
   const firstName = profile.name.split(" ")[0] || "Provider";
   const completion = useMemo(() => getCompletion(provider), [provider]);
-  const photoCount = Array.isArray(provider?.profileImages) ? provider.profileImages.length : 0;
   const liveStats = useMemo(
     () => buildLiveStats({ stats, bookings: providerBookings, reviews, provider }),
     [stats, providerBookings, reviews, provider]
@@ -132,39 +128,24 @@ export default function ProviderDashboard() {
 
   return (
     <AppShell type="provider" searchValue={search} onSearchChange={setSearch}>
-      <div className="min-h-0 bg-[#fff7ed] text-[#14231f]">
+      <div className="min-h-0 bg-white text-[#14231f]">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="grid gap-5">
-            <div className="relative overflow-hidden rounded-none border border-[#eddac7] bg-[#fffaf3] p-7 text-black shadow-sm">
+            <div className="relative overflow-hidden rounded-none border border-[#eddac7] bg-[#fffaf3] px-3 py-2.5 text-black shadow-sm sm:px-4 sm:py-3">
               <div className="relative z-10 max-w-3xl">
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
+                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#e08c4c] sm:text-[10px]">
                   Provider command center
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <h1 className="text-3xl font-black tracking-tight md:text-5xl">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <h1 className="text-base font-black tracking-tight sm:text-lg md:text-xl">
                     Welcome back, {firstName}
                   </h1>
                 </div>
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#6b5d52]">
-                  Track profile reach, booking momentum, earnings and next actions from one clean workspace.
-                </p>
-                <div className="mt-6 grid max-w-4xl gap-3 sm:grid-cols-4">
-                  {[
-                    [BadgeCheck, `${completion}% profile`],
-                    [MapPin, profile.city],
-                    [CameraBadge, `${photoCount}/4 photos`],
-                    [ShieldCheck, provider?.approved ? "Explore live" : "Setup needed"],
-                  ].map(([Icon, label]) => (
-                    <div key={label} className="flex items-center gap-2 rounded-none bg-[#ffeedd] px-3 py-3 text-xs font-black transition hover:-translate-y-0.5 hover:bg-white">
-                      <Icon size={16} />
-                      {label}
-                    </div>
-                  ))}
-                </div>
+
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
               <Metric icon={Users} label="Profile Views" value={loading ? "..." : liveStats.totalViews} tone="bg-[#ffeedd] text-black" />
               <Metric icon={Briefcase} label="Bookings" value={loading ? "..." : liveStats.totalBookings} tone="bg-[#fffaf3] text-black" />
               <Metric icon={Wallet} label="Revenue" value={formatRs(revenue)} tone="bg-[#fff4e6] text-[#d67f3d]" />
@@ -208,7 +189,7 @@ export default function ProviderDashboard() {
           </div>
 
           <aside className="grid h-max gap-5">
-            <ProfileHealthCard profile={profile} completion={completion} photoCount={photoCount} provider={provider} />
+            <ProfileHealthCard profile={profile} provider={provider} />
             <NextStepsCard provider={provider} completion={completion} />
             <MiniScheduleCard provider={provider} bookings={filteredBookings} />
           </aside>
@@ -220,12 +201,15 @@ export default function ProviderDashboard() {
 
 function Metric({ icon: Icon, label, value, tone }) {
   return (
-    <div className="group rounded-none border border-[#eddac7] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
-      <div className={`grid h-11 w-11 place-items-center rounded-2xl transition group-hover:scale-110 ${tone}`}>
+    <div className="group relative flex min-h-[132px] min-w-0 flex-col justify-between overflow-hidden rounded-none border border-[#eddac7] bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(83,52,30,0.12)] sm:min-h-[150px] sm:p-4">
+      <span className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#fff1df] opacity-70" />
+      <div className={`relative grid h-9 w-9 place-items-center rounded-none transition group-hover:scale-110 sm:h-11 sm:w-11 ${tone}`}>
         <Icon size={20} />
       </div>
-      <p className="mt-4 text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">{label}</p>
+      <div className="relative mt-3 min-w-0">
+        <p className="truncate text-xl font-black sm:text-2xl">{value}</p>
+        <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.08em] text-[#8b7563] sm:text-xs sm:tracking-[0.12em]">{label}</p>
+      </div>
     </div>
   );
 }
@@ -334,7 +318,7 @@ function PipelinePanel({ bookings = [] }) {
   ];
 
   return (
-    <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-none border border-[#eddac7] bg-white p-3 shadow-sm sm:p-5">
       <h2 className="text-lg font-black">Booking flow</h2>
       <p className="mt-1 text-xs font-bold text-[#8b7563]">A quick conversion view for your profile.</p>
       <div className="mt-5 grid gap-4">
@@ -403,7 +387,7 @@ function ActivityPanel({ profile, bookings = [], reviews = [] }) {
   );
 }
 
-function ProfileHealthCard({ profile, completion, photoCount, provider }) {
+function ProfileHealthCard({ profile, provider }) {
   const images = getProviderImageUrls(provider);
   return (
     <section className="rounded-none border border-[#eddac7] bg-white p-5 shadow-sm">
@@ -415,26 +399,18 @@ function ProfileHealthCard({ profile, completion, photoCount, provider }) {
       </div>
 
       <div className="mt-4 overflow-hidden rounded-none border border-[#eddac7]">
-        <div className="h-56 bg-[#ffeedd]">
+        <div className="h-48 bg-[#ffeedd] sm:h-64 xl:h-56">
           <ProviderImageCarousel images={images} alt={profile.name} className="h-full w-full" />
         </div>
         <div className="p-4">
           <h3 className="text-lg font-black">{profile.name}</h3>
           <p className="mt-1 text-sm font-bold text-[#6b5d52]">{profile.headline}</p>
           <div className="mt-4 grid gap-2 text-sm font-bold text-[#5d4a3c]">
-            <span className="inline-flex items-center gap-2"><MapPin size={15} /> {profile.city}</span>
             <span className="inline-flex items-center gap-2"><IndianRupee size={15} /> {profile.price}/hr</span>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-sm font-black">
-        <span>{completion}% complete</span>
-        <span>{photoCount}/4 photos</span>
-      </div>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-[#ffeedd]">
-        <div className="h-full rounded-full bg-black" style={{ width: `${completion}%` }} />
-      </div>
     </section>
   );
 }
@@ -483,10 +459,6 @@ function MiniScheduleCard() {
       </div>
     </section>
   );
-}
-
-function CameraBadge(props) {
-  return <Sparkles {...props} />;
 }
 
 function providerToProfile(provider, user) {

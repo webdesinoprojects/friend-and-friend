@@ -296,13 +296,10 @@ function buildStats(provider) {
 
 const createProvider = async (req, res) => {
   try {
-    const {
-      userId,
-    } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ success: false, message: 'userId is required' });
+    if (req.user.role !== 'PROVIDER') {
+      return res.status(403).json({ success: false, message: 'Only provider accounts can create provider profiles.' });
     }
+    const userId = req.user.id;
 
     const data = buildProfileData(req.body, { requireImages: true });
 
@@ -480,6 +477,14 @@ const updateProvider = async (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
+    const ownedProvider = await prisma.providerProfile.findFirst({
+      where: { id, userId: req.user.id },
+      select: { id: true },
+    });
+    if (!ownedProvider) {
+      return res.status(403).json({ success: false, message: 'You can only update your own provider profile.' });
+    }
+
     const provider = await prisma.providerProfile.update({
       where: { id },
       data,
@@ -496,6 +501,14 @@ const updateProvider = async (req, res) => {
 const deleteProvider = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const ownedProvider = await prisma.providerProfile.findFirst({
+      where: { id, userId: req.user.id },
+      select: { id: true },
+    });
+    if (!ownedProvider) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own provider profile.' });
+    }
     await prisma.providerProfile.delete({ where: { id } });
     clearProviderListCache();
     return res.json({ success: true });

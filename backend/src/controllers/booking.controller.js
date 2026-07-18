@@ -28,6 +28,7 @@ function serializeBooking(booking) {
     providerId: booking.providerId,
     providerUserId: booking.providerUserId,
     providerName: providerUnavailable ? "Account unavailable" : provider?.user?.fullName || "BuddyBOOK provider",
+    providerPhone: providerUnavailable ? "" : provider?.user?.phone || "",
     providerImage: providerUnavailable ? "" : getImageUrl(provider),
     userUnavailable,
     providerUnavailable,

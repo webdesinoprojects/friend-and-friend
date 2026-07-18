@@ -398,24 +398,24 @@ export default function ProviderCreate() {
               </label>
             </div>
 
-            <div className="mt-6 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-4 shadow-[0_18px_55px_rgba(80,45,20,0.06)]">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-6 min-w-0 rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] p-3 shadow-[0_18px_55px_rgba(80,45,20,0.06)] sm:p-4">
+              <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-black">Profile photos</h3>
                   <p className="mt-1 text-xs font-bold text-[#6b5d52]">
                     Exactly 4 photos are required. JPG, PNG or WebP, up to 3 MB each.
                   </p>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-black px-4 py-3 text-sm font-black text-[#fffaf3] shadow-[0_16px_32px_rgba(0,0,0,0.16)]">
+                <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-black px-4 py-3 text-sm font-black text-[#fffaf3] shadow-[0_16px_32px_rgba(0,0,0,0.16)] sm:w-auto">
                   <UploadCloud size={16} />
                   Upload photos
                   <input type="file" accept="image/*" multiple onChange={handleImages} className="hidden" />
                 </label>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
                 {[0, 1, 2, 3].map((index) => (
-                  <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#eddac7] bg-white shadow-sm">
+                  <div key={index} className="relative aspect-square min-w-0 overflow-hidden rounded-xl border border-[#eddac7] bg-white shadow-sm sm:aspect-[4/3] sm:rounded-2xl">
                     {form.profileImages[index] ? (
                       <>
                         <img src={getImageSrc(form.profileImages[index])} alt={`Provider upload ${index + 1}`} className="h-full w-full object-cover object-center" loading="lazy" />

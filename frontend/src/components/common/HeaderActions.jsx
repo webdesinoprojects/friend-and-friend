@@ -1,17 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, CalendarCheck, Clock3, MessageCircle, Star, X } from "lucide-react";
-import { listBookings } from "../../api/bookings";
-import { listChats } from "../../api/chats";
-
-function readList(key) {
-  try {
-    const rows = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(rows) ? rows : [];
-  } catch {
-    return [];
-  }
-}
+import api from "../../api/api";
 
 function formatTime(value) {
   const date = value ? new Date(value) : new Date();
@@ -24,73 +14,16 @@ function formatTime(value) {
   });
 }
 
-function buildNotifications() {
-  const bookings = readList("buddybook_bookings")
-    .slice()
-    .map((booking) => ({
-      id: booking.id || `${booking.providerName}-${booking.createdAt || booking.date}`,
-      kind: "booking",
-      title: booking.providerName
-        ? `Booking with ${booking.providerName}`
-        : "Booking created",
-      detail: booking.date
-        ? `${booking.service || booking.activity || "Meetup"} on ${booking.date}${booking.time ? ` at ${booking.time}` : ""}`
-        : booking.service || booking.activity || "Your booking is saved",
-      time: formatTime(booking.createdAt || booking.date),
-      sortAt: booking.createdAt || booking.date,
-    }));
-
-  const reviews = readList("buddybook_reviews").map((review) => ({
-    id: review.id,
-    kind: "review",
-    title:
-      review.targetRole === "PROVIDER"
-        ? `Review for ${review.targetName || "provider"}`
-        : "User review submitted",
-    detail: `${review.rating}/5 stars - ${review.description || "Review submitted"}`,
-    time: formatTime(review.createdAt),
-    sortAt: review.createdAt,
-  }));
-
-  return [...bookings, ...reviews]
-    .sort((a, b) => new Date(b.sortAt || 0) - new Date(a.sortAt || 0));
-}
-
 async function buildBackendNotifications() {
-  const [bookings, chats] = await Promise.all([
-    listBookings().catch(() => []),
-    listChats().catch(() => []),
-  ]);
-
-  const bookingRows = bookings.map((booking) => ({
-    id: `booking-${booking.id}`,
-    kind: "booking",
-    title: booking.providerName ? `Booking with ${booking.providerName}` : `Booking from ${booking.userName || "user"}`,
-    detail: `${booking.service || booking.activity || "Meetup"} on ${booking.date || "scheduled date"}${booking.time ? ` at ${booking.time}` : ""}`,
-    time: formatTime(booking.updatedAt || booking.createdAt || booking.date),
-    sortAt: booking.updatedAt || booking.createdAt || booking.date,
-  }));
-
-  const chatRows = chats
-    .filter((chat) => Number(chat.unreadCount || 0) > 0)
-    .map((chat) => ({
-      id: `chat-${chat.id}`,
-      kind: "chat",
-      title: `${chat.unreadCount} unread message${Number(chat.unreadCount) > 1 ? "s" : ""}`,
-      detail: `New message in ${chat.service || "chat"} with ${chat.userName || chat.providerName || "BuddyBOOK"}`,
-      time: formatTime(chat.updatedAt),
-      sortAt: chat.updatedAt,
-    }));
-
-  return [...chatRows, ...bookingRows, ...buildNotifications()]
-    .filter((item, index, rows) => rows.findIndex((row) => row.id === item.id) === index)
-    .sort((a, b) => new Date(b.sortAt || 0) - new Date(a.sortAt || 0));
+  const { data } = await api.get("/notifications", { suppressGlobalError: true });
+  const rows = Array.isArray(data?.data) ? data.data : [];
+  return rows.map((row) => ({ id: row.id, kind: String(row.type || "notification").toLowerCase(), title: row.title, detail: row.message, link: row.link, readAt: row.readAt, time: formatTime(row.createdAt), sortAt: row.createdAt }));
 }
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [notifications, setNotifications] = useState(() => buildNotifications());
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -100,7 +33,7 @@ export function NotificationBell() {
           if (mounted) setNotifications(rows);
         })
         .catch(() => {
-          if (mounted) setNotifications(buildNotifications());
+          if (mounted) setNotifications([]);
         });
     };
     refresh();
@@ -116,7 +49,9 @@ export function NotificationBell() {
   }, []);
 
   const latest = notifications[0];
-  const unread = notifications.length > 0;
+  const unread = notifications.some((item) => !item.readAt);
+  const markRead = async (id) => { await api.patch(`/notifications/${id}/read`).catch(() => {}); setNotifications((current) => current.map((item) => item.id === id ? { ...item, readAt: new Date().toISOString() } : item)); };
+  const markAllRead = async () => { await api.patch("/notifications/all/read").catch(() => {}); setNotifications((current) => current.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() }))); };
 
   return (
     <div className="relative">
@@ -177,7 +112,7 @@ export function NotificationBell() {
       ) : null}
 
       {drawerOpen ? createPortal(
-        <div className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)}>
+        <div className="fixed inset-x-0 bottom-0 top-[76px] z-[80] bg-black/30 backdrop-blur-sm lg:top-[92px]" onClick={() => setDrawerOpen(false)}>
           <aside
             className="ml-auto flex h-full w-full max-w-sm flex-col bg-[#fffaf3] p-5 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
@@ -200,9 +135,10 @@ export function NotificationBell() {
             </div>
 
             <div className="mt-5 grid gap-3 overflow-y-auto">
+              {unread ? <button type="button" onClick={markAllRead} className="rounded-xl border border-black/10 bg-white px-4 py-2 text-xs font-black">Mark all as read</button> : null}
               {notifications.length ? (
                 notifications.map((item) => (
-                  <article key={item.id} className="rounded-2xl border border-[#ecd9c8] bg-white p-4">
+                  <article key={item.id} onClick={() => markRead(item.id)} className={`cursor-pointer rounded-2xl border border-[#ecd9c8] p-4 ${item.readAt ? "bg-white" : "bg-[#fff0df]"}`}>
                     <p className="text-sm font-black text-black">{item.title}</p>
                     <p className="mt-1 text-xs font-bold leading-5 text-[#6b5d52]">{item.detail}</p>
                     <p className="mt-3 flex items-center gap-1 text-[10px] font-black text-[#e08c4c]">
@@ -224,25 +160,5 @@ export function NotificationBell() {
         document.body
       ) : null}
     </div>
-  );
-}
-
-export function ComingSoonMessageButton({ className = "" }) {
-  const [pulse, setPulse] = useState(false);
-  const label = useMemo(() => (pulse ? "Coming soon" : "Messages"), [pulse]);
-
-  return (
-    <button
-      type="button"
-      onMouseEnter={() => setPulse(true)}
-      onMouseLeave={() => setPulse(false)}
-      className={`group relative grid h-11 w-11 place-items-center rounded-2xl bg-[#fffaf3] text-[#56655f] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#ffeedd] hover:text-black ${className}`}
-      aria-label={label}
-    >
-      <MessageCircle size={16} />
-      <span className="pointer-events-none absolute right-0 top-[calc(100%+0.65rem)] z-50 origin-top-right scale-90 rounded-xl bg-black px-3 py-2 text-[10px] font-black text-[#fffaf3] opacity-0 shadow-[0_14px_34px_rgba(0,0,0,0.22)] transition duration-300 group-hover:translate-y-1 group-hover:scale-100 group-hover:opacity-100">
-        Coming soon
-      </span>
-    </button>
   );
 }

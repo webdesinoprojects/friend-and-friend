@@ -1,18 +1,21 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { MapPin, Phone, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import UserAppLayout from "../../components/users/UserAppLayout";
-import { completeBookingApi } from "../../api/bookings";
+import { completeBookingApi, listBookings } from "../../api/bookings";
+import { listChats, sendChatMessage } from "../../api/chats";
+import { notify } from "../../components/common/Feedback";
 import { getBookings, updateBooking } from "../../utils/userFlowStorage";
 
 export default function UserActiveMeet() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const bookings = getBookings();
-  const booking = bookings.find((item) => item.id === bookingId);
+  const [booking,setBooking]=useState(()=>getBookings().find(item=>item.id===bookingId)); const [thread,setThread]=useState(null); const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [sharing,setSharing]=useState(false);
+  const load=useCallback(()=>{setLoading(true);setError("");Promise.all([listBookings(),listChats()]).then(([rows,chats])=>{setBooking(rows.find(item=>item.id===bookingId));setThread(chats.find(chat=>chat.bookingId===bookingId));}).catch(()=>setError("Active meet details could not be loaded.")).finally(()=>setLoading(false));},[bookingId]);
+  useEffect(()=>{load();},[load]);
 
-  // Get user role from localStorage
-  const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
-  const isProvider = user && user.role === "PROVIDER";
+  if (loading) return <UserAppLayout title="Active Meet"><div className="h-64 animate-pulse rounded-[2rem] bg-black/5" /></UserAppLayout>;
+  if (error) return <UserAppLayout title="Active Meet"><div role="alert" className="rounded-[2rem] border border-red-200 bg-red-50 p-8 text-center font-black text-red-700">{error}<button onClick={load} className="ml-3 rounded-xl bg-black px-4 py-2 text-white">Retry</button></div></UserAppLayout>;
 
   if (!booking) {
     return (
@@ -25,27 +28,24 @@ export default function UserActiveMeet() {
   }
 
   const handleEndMeet = async () => {
-    if (!isProvider) {
-      alert("Only the provider can end the meet.");
-      return;
-    }
     try {
-      await completeBookingApi(bookingId);
-      // Update local storage
+      const completed = await completeBookingApi(bookingId);
       updateBooking(bookingId, { status: "COMPLETED" });
+      setBooking(completed?.booking || completed || {...booking,status:"COMPLETED"});
+      notify("Meet completed successfully.","success");
       navigate("/app/user/dashboard");
     } catch (error) {
-      alert("Failed to end the meet: " + (error.message || "Unknown error"));
+      notify(error.response?.data?.message || "Failed to end the meet.","error");
     }
   };
 
-  const handleCall = () => {
-    alert("Call feature is not implemented yet.");
-  };
+  const handleCall = () => { if(booking.providerPhone) window.location.href=`tel:${booking.providerPhone}`; else notify("Provider phone number is unavailable.","error"); };
 
   const handleSOS = () => {
-    alert("SOS feature is not implemented yet.");
+    window.location.href="tel:112";
   };
+
+  const shareLocation=()=>{if(!navigator.geolocation||!thread?.id){notify("Location sharing is unavailable for this booking.","error");return;}setSharing(true);navigator.geolocation.getCurrentPosition(async({coords})=>{try{await sendChatMessage(thread.id,{type:"LOCATION",latitude:coords.latitude,longitude:coords.longitude});notify("Current location shared in booking chat.","success");}catch{notify("Location could not be shared.","error");}finally{setSharing(false);}},()=>{setSharing(false);notify("Location permission was denied.","error");},{enableHighAccuracy:true,timeout:15000});};
 
   return (
     <UserAppLayout title="Location Transfer / Active Meet">
@@ -59,17 +59,17 @@ export default function UserActiveMeet() {
             <div className="text-center">
               <MapPin className="mx-auto text-[#3f37ff]" size={60} />
               <p className="mt-3 text-lg font-black text-black">
-                Location sharing demo
+                Share your current location
               </p>
               <p className="mt-1 text-sm font-bold text-black/50">
-                Real map/live location will be added later.
+                Your coordinates are securely shared in this booking chat.
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex justify-between rounded-[1.5rem] bg-[#eef4ff] p-4 text-sm font-bold text-slate-600">
-            <span>You are sharing live location</span>
-            <span>Accuracy: High</span>
+            <span>Location sharing is off by default</span>
+            <button type="button" disabled={sharing} onClick={shareLocation} className="font-black text-[#3f37ff]">{sharing?"Sharing...":"Share now"}</button>
           </div>
         </div>
 

@@ -189,6 +189,13 @@ export function isInWatchlist(providerId) {
   return getWatchlist().some((item) => item.id === providerId);
 }
 
+export function removeMissingWatchlistProviders(providerIds) {
+  const missingIds = new Set(providerIds);
+  const next = getWatchlist().filter((item) => !missingIds.has(item.id));
+  writeList(KEYS.watchlist, next);
+  return next;
+}
+
 export function rememberProvider(provider) {
   sessionStorage.setItem(KEYS.selectedProvider, JSON.stringify(provider));
 }

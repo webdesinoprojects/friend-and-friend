@@ -205,7 +205,7 @@ export default function UserBookingPayment() {
           <div className="mt-5 border-2 border-[#171b30] bg-[#fffaf3] p-4">
             <div className="flex justify-between text-sm font-bold text-[#171b30]/60"><span>Hourly rate</span><span>{formatRupees(provider.price)}</span></div>
             <div className="mt-2 flex justify-between text-sm font-bold text-[#171b30]/60"><span>Duration</span><span>{duration} hour(s)</span></div>
-            <div className="mt-4 flex justify-between border-t-2 border-[#171b30] pt-4 text-xl font-black"><span>Total payable</span><span className="text-[#e08c4c]">{formatRupees(amount)}</span></div>
+            <div className="mt-4 flex justify-between border-t-2 border-[#171b30] pt-4 text-xl font-black"><span>Total payable</span><span className="text-[#e08c4c]">{formatFullRupees(amount)}</span></div>
           </div>
         </div>
 
@@ -246,9 +246,9 @@ export default function UserBookingPayment() {
             type="button"
             disabled={processing}
             onClick={handlePayment}
-            className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#2563eb] bg-[#2563eb] px-6 py-4 text-sm font-black text-white transition hover:bg-white hover:text-[#2563eb] disabled:opacity-60"
+            className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#171b30] bg-[#171b30] px-6 py-4 text-sm font-black text-white transition hover:bg-white hover:text-[#171b30] disabled:opacity-60"
           >
-            <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatRupees(amount)} Securely`}
+            <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatFullRupees(amount)} Securely`}
           </button>
           {paymentError ? <p role="alert" className="mt-5 border-2 border-[#e08c4c] bg-[#ffeedd] p-3 text-xs font-black text-[#a95820]">Payment notice: {paymentError}</p> : null}
           <div className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-[#171b30]/55"><Lock size={12} /> Razorpay test mode · No real money is charged.</div>
@@ -268,6 +268,10 @@ function Field({ label, icon: Icon, children }) {
       {children}
     </label>
   );
+}
+
+function formatFullRupees(value) {
+  return `₹${Math.round(Number(value || 0)).toLocaleString("en-IN")}`;
 }
 
 function dateValue(addDays) {

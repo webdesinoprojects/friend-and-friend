@@ -22,6 +22,7 @@ const UserDashboard=lazy(()=>import("../pages/user/UserDashboard")); const UserB
 
 /* PROVIDER */
 const ProviderDashboard=lazy(()=>import("../pages/provider/ProviderDashboard")); const ProviderCreate=lazy(()=>import("../pages/provider/ProviderCreate")); const ProviderReviews=lazy(()=>import("../pages/provider/ProviderReviews")); const ProviderSettings=lazy(()=>import("../pages/provider/ProviderSettings")); const ProviderChats=lazy(()=>import("../pages/provider/ProviderChats")); const ProviderUserProfile=lazy(()=>import("../pages/provider/ProviderUserProfile"));
+const ProviderProfile=lazy(()=>import("../pages/provider/ProviderProfile"));
 const ProviderBookings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderBookings}))); const ProviderEarnings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderEarnings}))); const ProviderServices=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderServices}))); const ProviderAvailability=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderAvailability})));
 
 /* ADMIN */
@@ -108,7 +109,7 @@ export default function AppRoutes() {
         element={providerOnly(<ProviderEarnings />)}
       />
       <Route path="/app/provider/reviews" element={providerOnly(<ProviderReviews />)} />
-      <Route path="/app/provider/profile" element={providerOnly(<ProviderCreate />)} />
+      <Route path="/app/provider/profile" element={providerOnly(<ProviderProfile />)} />
       <Route path="/app/provider/settings" element={providerOnly(<ProviderSettings />)} />
 
       {/* ADMIN ROUTES */}

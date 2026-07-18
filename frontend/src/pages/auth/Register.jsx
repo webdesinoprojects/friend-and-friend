@@ -72,16 +72,24 @@ const kycTypes = [
 ];
 
 const profileQuestions = [
-  "My friends call me",
-  "My go-to fun place is",
-  "The activity I never get bored of is",
-  "A perfect weekend for me is",
-  "People usually like me for",
-  "My comfort meetup place is",
-  "One thing I can talk about for hours is",
-  "My favourite food plan is",
-  "A vibe I bring to meetups is",
-  "My safest public meetup preference is",
+  "What's your ideal day out?",
+  "What kind of conversations do you enjoy?",
+  "What are your favorite hobbies?",
+  "What type of people do you enjoy spending time with?",
+  "What's something you're passionate about?",
+  "What makes hanging out with you fun?",
+  "What's your favorite weekend activity?",
+  "How would your friends describe you?",
+  "What kind of vibe do you bring?",
+  "What's your perfect coffee meetup like?",
+  "What's your favorite local spot?",
+  "What's something you're always excited to do?",
+  "What's your idea of a great first meetup?",
+  "What do you enjoy doing in your free time?",
+  "If we met for lunch, what kind of place would you choose?",
+  "What's your favorite place to spend an afternoon?",
+  "What's a topic you genuinely enjoy talking about?",
+  "If someone books time with you, what can they expect?",
 ];
 
 const emptyQuestions = [
@@ -1189,7 +1197,7 @@ export default function Register() {
                       </div>
 
                       <QuestionSection
-                        title="User profile questions"
+                        title="Help people get to know you"
                         answers={userQuestionAnswers}
                         onUpdate={updateQuestion}
                       />
@@ -1228,7 +1236,7 @@ export default function Register() {
                       </div>
 
                       <QuestionSection
-                        title="Provider profile questions"
+                        title="Help people get to know you"
                         answers={providerQuestionAnswers}
                         onUpdate={updateQuestion}
                       />
@@ -1302,7 +1310,7 @@ function SectionHeading({ title, text }) {
 function Input({ label, value, onChange, placeholder, type = "text", maxLength, inputMode }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold text-black">{label}</label>
+      {label ? <label className="mb-2 block text-sm font-bold text-black">{label}</label> : null}
       <input
         type={type}
         value={value}
@@ -1436,34 +1444,46 @@ function PillMultiSelect({ options, selected, onToggle }) {
   );
 }
 
+function QuestionSelect({ value, onChange, selectedQuestions }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center justify-between gap-3 rounded-none border border-black/10 bg-white px-5 py-4 text-left text-sm font-semibold text-black">
+        <span className="min-w-0 truncate">{value || "Select"}</span>
+        <span aria-hidden="true" className={`shrink-0 transition ${open ? "rotate-180" : ""}`}>▼</span>
+      </button>
+      {open ? <div className="absolute inset-x-0 top-[calc(100%+0.25rem)] z-50 max-h-60 overflow-y-auto overscroll-contain border border-black/10 bg-white p-1 shadow-xl">
+        {profileQuestions.map((question) => {
+          const unavailable = question !== value && selectedQuestions.includes(question);
+          return <button key={question} type="button" disabled={unavailable} onClick={() => { onChange(question); setOpen(false); }} className={`block w-full px-4 py-3 text-left text-sm font-semibold ${unavailable ? "cursor-not-allowed text-black/25" : "hover:bg-[#fbfaf7]"} ${value === question ? "bg-[#fff0df] font-black" : ""}`}>{question}</button>;
+        })}
+      </div> : null}
+    </div>
+  );
+}
+
 function QuestionSection({ title, answers, onUpdate }) {
   return (
     <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
       <h3 className="text-lg font-black text-black">{title}</h3>
       <p className="mt-1 text-sm font-semibold text-black/50">
-        Choose any 3 different questions and write honest short answers.
-      </p>
+      Answer any 3 questions to show your personality and what it's like to spend time with you.      </p>
 
       <div className="mt-5 grid gap-4">
         {answers.map((item, index) => (
-          <div
+          <details
             key={index}
-            className="grid gap-3 rounded-none border border-black/10 bg-white p-4"
+            className="group rounded-none border border-black/10 bg-white"
           >
-            <Select
-              label={`Question ${index + 1}`}
-              value={item.question}
-              onChange={(v) => onUpdate(index, "question", v)}
-              options={profileQuestions}
-            />
-
-            <Input
-              label="Your answer"
-              value={item.answer}
-              onChange={(v) => onUpdate(index, "answer", v)}
-              placeholder="Write a short real answer"
-            />
-          </div>
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-sm font-black text-black">
+              <span className="min-w-0 truncate">{`Question ${index + 1}`}</span>
+              <span aria-hidden="true" className="shrink-0 transition group-open:rotate-180">▼</span>
+            </summary>
+            <div className="grid gap-3 border-t border-black/10 p-4">
+              <QuestionSelect value={item.question} selectedQuestions={answers.map((answer) => answer.question).filter(Boolean)} onChange={(v) => onUpdate(index, "question", v)} />
+              <Input label="Your answer" value={item.answer} onChange={(v) => onUpdate(index, "answer", v)} placeholder="Write a short real answer" />
+            </div>
+          </details>
         ))}
       </div>
     </div>
