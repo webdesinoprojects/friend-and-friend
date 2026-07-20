@@ -351,6 +351,8 @@ export default function Home() {
       <main>
         <section className="hero-shell relative top-0 z-0 overflow-hidden bg-[#d9dce3] lg:min-h-screen">
           <div ref={heroLayerRef} className="hero-stage hero-pattern relative min-h-screen origin-center overflow-hidden px-5 pb-16 pt-28 sm:px-8 lg:h-full lg:px-12 lg:pb-20 lg:pt-36">
+          <div className="hero-glow hero-glow-left" aria-hidden="true" />
+          <div className="hero-glow hero-glow-right" aria-hidden="true" />
           <BackgroundSparkles />
 
           <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
@@ -478,7 +480,6 @@ export default function Home() {
         ) : null}
 
         <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
-          <SectionSparkles tone="green" />
           <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.92fr_1.08fr]">
             <div className="relative min-h-[500px]">
               <img
@@ -530,7 +531,6 @@ export default function Home() {
 
 <section className="px-5 pb-20 sm:px-8 lg:pb-28">
            <div className="relative mx-auto grid max-w-7xl overflow-hidden rounded-lg bg-[#ffeedd] lg:grid-cols-[1.1fr_0.9fr]">
-             <SectionSparkles tone="light" />
              <div className="relative z-10 p-8 text-white sm:p-12 lg:p-16">
                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">Become a verified buddy</p>
                <h2 className="mt-4 max-w-2xl text-3xl text-black font-black leading-tight sm:text-5xl">
@@ -589,8 +589,28 @@ export default function Home() {
       <style>{`
         .hero-pattern {
           background-color: #fffaf3;
-          background-image: linear-gradient(rgba(220, 189, 164, 0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(220, 189, 164, 0.14) 1px, transparent 1px);
+          background-image: linear-gradient(rgba(220, 189, 164, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(220, 189, 164, 0.12) 1px, transparent 1px);
           background-size: 64px 64px;
+        }
+        .hero-glow {
+          position: absolute;
+          border-radius: 999px;
+          pointer-events: none;
+          filter: blur(8px);
+        }
+        .hero-glow-left {
+          left: -10rem;
+          top: 18%;
+          width: 25rem;
+          height: 25rem;
+          background: radial-gradient(circle, rgba(244, 173, 117, .2), rgba(244, 173, 117, 0) 70%);
+        }
+        .hero-glow-right {
+          right: -11rem;
+          bottom: 4%;
+          width: 30rem;
+          height: 30rem;
+          background: radial-gradient(circle, rgba(118, 173, 152, .2), rgba(118, 173, 152, 0) 70%);
         }
         @keyframes float-soft {
           0%, 100% { transform: translate3d(0, 0, 0); }
@@ -856,8 +876,6 @@ function TestimonialsSection({ testimonials, content = {} }) {
 
   return (
     <section className="relative overflow-hidden bg-[#fffaf3] px-5 py-20 sm:px-8 lg:py-28">
-      <SectionSparkles tone="green" />
-
       <div className="relative z-10 mx-auto max-w-7xl">
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-[#e08c4c]">
@@ -1117,32 +1135,38 @@ function ProfileCard({ profile, large = false }) {
 
 function BackgroundSparkles() {
   const sparks = [
-    ["spark", "left-[3%] top-[12%]", "0ms", "text-[#dc955e]", 20],
-    ["star", "left-[9%] top-[31%]", "450ms", "text-[#e96975]", 14],
-    ["dot", "left-[15%] top-[8%]", "900ms", "bg-[#76ad98]", 10],
-    ["spark", "left-[26%] top-[20%]", "1800ms", "text-[#d99058]", 15],
-    ["star", "left-[36%] top-[9%]", "500ms", "text-[#dca064]", 18],
-    ["spark", "left-[41%] top-[42%]", "1050ms", "text-[#7eae9c]", 13],
-    ["heart", "left-[46%] top-[78%]", "1550ms", "text-[#e96975]", 14],
-    ["dot", "left-[50%] top-[16%]", "2050ms", "bg-[#ef6877]", 9],
-    ["spark", "left-[55%] top-[62%]", "2500ms", "text-[#d99058]", 20],
-    ["star", "left-[60%] top-[7%]", "300ms", "text-[#e6a875]", 13],
-    ["dot", "left-[64%] top-[88%]", "750ms", "bg-[#76ad98]", 11],
-    ["heart", "left-[69%] top-[35%]", "1200ms", "text-[#e96975]", 16],
-    ["spark", "left-[73%] top-[15%]", "1650ms", "text-[#d99058]", 17],
-    ["star", "left-[77%] top-[73%]", "2150ms", "text-[#7eae9c]", 14],
-    ["dot", "left-[81%] top-[47%]", "2600ms", "bg-[#e8ae7d]", 8],
-    ["spark", "left-[85%] top-[9%]", "600ms", "text-[#d99058]", 21],
-    ["heart", "left-[88%] top-[82%]", "1100ms", "text-[#e96975]", 13],
-    ["star", "left-[92%] top-[28%]", "1500ms", "text-[#dca064]", 16],
-    ["dot", "left-[95%] top-[64%]", "1950ms", "bg-[#76ad98]", 10],
-    ["spark", "left-[6%] top-[91%]", "2400ms", "text-[#d99058]", 14],
-    ["star", "left-[34%] top-[55%]", "2750ms", "text-[#e96975]", 12],
-    ["spark", "left-[58%] top-[91%]", "350ms", "text-[#7eae9c]", 16],
+    ["spark", "hidden sm:block left-[2%] top-[13%]", "0ms", "text-[#dc955e]/75", 28],
+    ["star", "hidden sm:block left-[9%] top-[31%]", "450ms", "text-[#e96975]/65", 21],
+    ["dot", "hidden sm:block left-[16%] top-[8%]", "900ms", "bg-[#76ad98]/70", 13],
+    ["spark", "hidden sm:block left-[25%] top-[23%]", "1800ms", "text-[#d99058]/65", 23],
+    ["star", "hidden sm:block left-[36%] top-[7%]", "500ms", "text-[#dca064]/70", 25],
+    ["spark", "hidden sm:block left-[43%] top-[47%]", "1050ms", "text-[#7eae9c]/65", 21],
+    ["heart", "left-[47%] top-[78%]", "1550ms", "text-[#e96975]/65", 22],
+    ["dot", "hidden sm:block left-[52%] top-[15%]", "2050ms", "bg-[#ef6877]/65", 12],
+    ["spark", "hidden sm:block left-[57%] top-[61%]", "2500ms", "text-[#d99058]/70", 29],
+    ["star", "hidden sm:block left-[63%] top-[8%]", "300ms", "text-[#e6a875]/75", 22],
+    ["dot", "hidden sm:block left-[67%] top-[88%]", "750ms", "bg-[#76ad98]/70", 14],
+    ["heart", "hidden sm:block left-[71%] top-[34%]", "1200ms", "text-[#e96975]/65", 24],
+    ["spark", "hidden sm:block left-[76%] top-[16%]", "1650ms", "text-[#d99058]/70", 26],
+    ["star", "left-[80%] top-[72%]", "2150ms", "text-[#7eae9c]/70", 22],
+    ["dot", "left-[84%] top-[48%]", "2600ms", "bg-[#e8ae7d]/75", 13],
+    ["spark", "hidden sm:block left-[88%] top-[9%]", "600ms", "text-[#d99058]/75", 30],
+    ["heart", "left-[91%] top-[84%]", "1100ms", "text-[#e96975]/65", 21],
+    ["star", "hidden sm:block left-[94%] top-[28%]", "1500ms", "text-[#dca064]/75", 24],
+    ["dot", "left-[96%] top-[64%]", "1950ms", "bg-[#76ad98]/75", 14],
+    ["spark", "hidden sm:block left-[7%] top-[91%]", "2400ms", "text-[#d99058]/70", 23],
+    ["star", "left-[3%] top-[3%] sm:hidden", "500ms", "text-[#dca064]/70", 25],
+    ["spark", "right-[2%] top-[6%] sm:hidden", "600ms", "text-[#d99058]/75", 28],
+    ["spark", "right-[1%] top-[39%] sm:hidden", "0ms", "text-[#dc955e]/70", 25],
+    ["heart", "left-[2%] top-[42%] sm:hidden", "1200ms", "text-[#e96975]/60", 22],
+    ["star", "right-[2%] top-[46%] sm:hidden", "1500ms", "text-[#dca064]/70", 22],
+    ["spark", "left-[2%] top-[55%] sm:hidden", "1650ms", "text-[#7eae9c]/65", 24],
+    ["dot", "right-[3%] top-[82%] sm:hidden", "750ms", "bg-[#76ad98]/70", 13],
+    ["spark", "right-[2%] top-[96%] sm:hidden", "2400ms", "text-[#d99058]/65", 21],
   ];
 
   return (
-    <div className="hidden" aria-hidden="true">
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden" aria-hidden="true">
       {sparks.map(([type, position, delay, color, size], index) => {
         const shared = `animate-twinkle absolute ${position} ${color}`;
 
@@ -1166,18 +1190,6 @@ function BackgroundSparkles() {
           />
         );
       })}
-    </div>
-  );
-}
-
-function SectionSparkles({ tone }) {
-  const light = tone === "light";
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <Sparkles className={`animate-twinkle absolute left-[6%] top-[18%] ${light ? "text-white/25" : "text-[#62a087]/30"}`} size={24} />
-      <Star className={`animate-twinkle absolute right-[9%] top-[15%] ${light ? "text-[#ffd49f]/50" : "text-[#62a087]/30"}`} size={17} style={{ animationDelay: "800ms" }} />
-      <Heart className={`animate-twinkle absolute bottom-[14%] left-[44%] ${light ? "text-white/20" : "text-[#de8e61]/25"}`} size={18} style={{ animationDelay: "1500ms" }} />
-      <span className={`animate-float absolute bottom-[20%] right-[6%] h-2.5 w-2.5 rounded-full ${light ? "bg-[#ffd49f]/40" : "bg-[#62a087]/25"}`} />
     </div>
   );
 }

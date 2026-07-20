@@ -1,23 +1,25 @@
 const crypto = require("crypto");
 
-const RESEND_TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT || "yashraj.webdesino@gmail.com";
+const RESEND_TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT || "webdesino.com@gmail.com";
 
-const isResendTestMode = () => String(process.env.RESEND_TEST_MODE || "true").toLowerCase() !== "false";
+const isResendTestMode = () => String(process.env.RESEND_TEST_MODE || "false").toLowerCase() === "true";
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character]);
 
 async function sendTransactionalEmail({ to, subject, html, text, tag = "account", replyTo }) {
   if (!to) throw new Error("Recipient email is missing.");
-  if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured.");
+  const apiKey = process.env.RESEND_TRANSACTIONAL_API_KEY;
+  if (!apiKey) throw new Error("RESEND_TRANSACTIONAL_API_KEY is not configured.");
   // Resend's onboarding sender can only deliver to the account owner. Keep every
   // application email testable until a custom sending domain is verified.
   const recipient = isResendTestMode() ? RESEND_TEST_RECIPIENT : to;
-  const configuredFrom = process.env.CONTACT_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-  const from = configuredFrom.includes("<") ? configuredFrom : `BuddyBOOK <${configuredFrom}>`;
+  const configuredFrom = process.env.RESEND_FROM_EMAIL || process.env.CONTACT_FROM_EMAIL || "onboarding@resend.dev";
+  const senderName = String(process.env.RESEND_FROM_NAME || "BuddyBOOK").trim();
+  const from = configuredFrom.includes("<") ? configuredFrom : `${senderName} <${configuredFrom}>`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
       "idempotency-key": `buddybook-${tag}-${crypto.randomUUID()}`,
     },

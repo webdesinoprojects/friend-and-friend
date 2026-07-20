@@ -67,6 +67,20 @@ function addMinutes(minutes) {
   return new Date(Date.now() + minutes * 60 * 1000);
 }
 
+function environmentFlag(name, fallback) {
+  const value = process.env[name];
+  if (value === undefined || value === "") return fallback;
+  return String(value).toLowerCase() !== "false";
+}
+
+function isMobileOtpDemoMode() {
+  return environmentFlag("MOBILE_OTP_TEST_MODE", true);
+}
+
+function isEmailOtpDemoMode() {
+  return environmentFlag("EMAIL_OTP_TEST_MODE", environmentFlag("OTP_TEST_MODE", true));
+}
+
 function normalizeProviderImages(images) {
   if (!Array.isArray(images)) return [];
   return images.map(normalizeStoredImage).filter(Boolean);
@@ -144,7 +158,7 @@ exports.sendMobileOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
-    const testMode = String(process.env.OTP_TEST_MODE || "true").toLowerCase() !== "false";
+    const testMode = isMobileOtpDemoMode();
     if (!testMode) {
       try {
         await deliverMobileOtp(phone, otp);
@@ -246,7 +260,7 @@ exports.sendEmailOtp = async (req, res) => {
         expiresAt: addMinutes(10),
       },
     });
-    const testMode = String(process.env.OTP_TEST_MODE || "true").toLowerCase() !== "false";
+    const testMode = isEmailOtpDemoMode();
     if (!testMode) {
       try {
         await deliverEmailOtp(email, otp);
@@ -1129,12 +1143,13 @@ const sendLoginMobileOtp = async (req, res) => {
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
-    await deliverMobileOtp(phone, otp);
+    const testMode = isMobileOtpDemoMode();
+    if (!testMode) await deliverMobileOtp(phone, otp);
 
     return res.status(200).json({
       success: true,
-      message: "Login OTP sent successfully.",
-      ...(process.env.NODE_ENV !== "production" && !process.env.MSG91_AUTH_KEY ? { demoOtp: otp } : {}),
+      message: testMode ? "Demo login OTP generated successfully." : "Login OTP sent successfully.",
+      ...(testMode ? { demoOtp: otp } : {}),
     });
   } catch (error) {
     console.error("SEND_LOGIN_MOBILE_OTP_ERROR:", error);

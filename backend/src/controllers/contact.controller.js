@@ -1,5 +1,5 @@
 const { sendTransactionalEmail } = require("../utils/email");
-const CONTACT_TO_EMAIL = "yashraj.webdesino@gmail.com";
+const CONTACT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || "webdesino.com@gmail.com";
 
 function clean(value) {
   return String(value || "").trim();
