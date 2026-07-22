@@ -140,30 +140,30 @@ export default function Safety() {
 
       <main className="overflow-hidden pt-20">
         <div>
-        <section className="grid min-h-[500px] bg-[#fffaf4] lg:grid-cols-[.82fr_1.18fr]">
-          <div className="order-2 flex items-center px-5 pb-10 pt-32 sm:px-8 sm:py-12 lg:px-12 xl:px-16">
-            <div className="w-full max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#efc5ba] bg-white px-4 py-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#30352f]">
-                <ShieldCheck size={16} className="text-[#e66b4f]" /> Your safety, our priority
+        <section className="grid min-h-[520px] bg-[#fffaf4] lg:grid-cols-[.9fr_1.1fr]">
+          <div className="order-2 flex items-center justify-center px-5 pb-11 pt-32 sm:px-8 sm:py-14 lg:px-10 xl:px-14">
+            <div className="mx-auto w-full max-w-[52rem]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c9c0] bg-white/85 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2b2926] shadow-[0_8px_22px_rgba(43,33,25,.05)]">
+                <ShieldCheck size={16} className="text-[#ff745f]" /> Your safety, our priority
               </div>
-              <h1 className="mt-5 font-sans text-[2.7rem] font-extrabold leading-[.98] tracking-[-.05em] text-[#1d1d1b] sm:text-6xl xl:text-[4.5rem]">
-                Meet confidently.<br /><span className="text-[#e76872]">Stay in control.</span>
+              <h1 className="mt-6 max-w-[48rem] font-sans text-[2.7rem] font-extrabold leading-[.96] tracking-[-.055em] text-[#1d1d1b] sm:text-6xl xl:text-[4.7rem]">
+                Meet confidently.<br /><span className="text-[#ff745f]">Stay in control.</span>
               </h1>
-              <p className="mt-5 max-w-xl text-sm font-medium leading-6 text-black/60 sm:text-base sm:leading-7">BuddyBook is designed for platonic companionship and public social activities. Respect boundaries, communicate clearly and follow the safety rules before, during and after every meetup.</p>
-              <div className="mt-6 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-6">
+              <p className="mt-5 max-w-[44rem] text-sm font-medium leading-6 text-black/58 sm:text-base sm:leading-7">BuddyBook is designed for platonic companionship and public social activities. Respect boundaries, communicate clearly and follow the safety rules before, during and after every meetup.</p>
+              <div className="mt-7 grid max-w-[47rem] grid-cols-3 gap-x-3 gap-y-5 border-y border-black/8 py-5 sm:grid-cols-6 sm:gap-x-5">
                 {[
                   [UserCheck, "Adults only", "18+"], [BadgeCheck, "Identity", "checks"], [MessageCircle, "In-app", "chat"],
                   [CircleDollarSign, "Secure", "payments"], [Ban, "Report &", "block"], [ShieldCheck, "Safety", "support"],
                 ].map(([Icon, lineOne, lineTwo]) => (
                   <div key={lineOne} className="text-center">
-                    <span className="mx-auto grid h-9 w-9 place-items-center rounded-full border border-[#efcfc7] bg-white text-[#e66b4f]"><Icon size={16} /></span>
-                    <p className="mt-2 text-[10px] font-extrabold leading-4 text-black/65">{lineOne}<br />{lineTwo}</p>
+                    <span className="mx-auto grid h-10 w-10 place-items-center rounded-full border border-[#f1c9c0] bg-white text-[#ff745f] shadow-[0_7px_18px_rgba(43,33,25,.05)]"><Icon size={17} /></span>
+                    <p className="mt-2 text-[10px] font-extrabold leading-4 text-black/62">{lineOne}<br />{lineTwo}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 flex gap-3 rounded-lg border border-[#edd9ce] bg-white p-3 text-xs font-semibold leading-5 text-black/55">
-                <AlertTriangle size={18} className="shrink-0 text-[#dd6d55]" /> BuddyBook is not a dating, escort, medical, transport or accommodation platform.
+              <div className="mt-6 flex max-w-[47rem] items-center gap-3 rounded-xl border border-[#f1c9c0] bg-white/80 px-4 py-3.5 text-xs font-semibold leading-5 text-black/55 shadow-[0_10px_26px_rgba(43,33,25,.04)]">
+                <AlertTriangle size={18} className="shrink-0 text-[#ff745f]" /> BuddyBook is not a dating, escort, medical, transport or accommodation platform.
               </div>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function Safety() {
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fffaf4]/90 to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#fffaf4]/80 to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 w-[4.25rem] bg-gradient-to-l from-[#fffaf4]/90 to-transparent" />
-            <aside className="absolute bottom-0 left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-xs -translate-x-1/2 translate-y-1/2 rounded-lg border border-black/10 bg-white/95 p-3.5 text-[#1d1d1b] shadow-[0_14px_40px_rgba(0,0,0,.14)] backdrop-blur sm:bottom-4 sm:translate-y-0 sm:p-4">
+            <aside className="absolute bottom-0 left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 translate-y-1/2 rounded-xl border border-black/8 bg-[#fffdf9]/96 p-3.5 text-[#1d1d1b] shadow-[0_18px_48px_rgba(35,27,20,.16)] backdrop-blur sm:bottom-5 sm:translate-y-0 sm:p-5">
               <p className="text-sm font-extrabold">Before every meetup</p>
                 <ol className="mt-3 space-y-2 sm:mt-4 sm:space-y-2.5">
                 {["Review the complete profile", "Keep communication in BuddyBook", "Select a public location", "Share the plan with someone you trust", "Leave immediately if uncomfortable"].map((item, index) => (

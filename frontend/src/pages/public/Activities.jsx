@@ -63,7 +63,7 @@ export default function Activities() {
                 <Sparkles size={15} className="text-[#d85f48]" /> Made for real life
               </div>
               <h1 className="mt-6 text-5xl font-extrabold leading-[.94] tracking-[-.055em] sm:text-7xl lg:text-[6.25rem]">
-                Explore all plans.<br /><span className="text-[#d85f48]">choose what suits you best.</span>
+                Explore all plans.<br /><span className="text-[#e08c4c]">choose what suits you best.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-black/60 sm:text-lg sm:leading-8">From one-hour coffee plans to full weekend afternoons, discover simple ways to enjoy your city with good company.</p>
             </div>
@@ -79,19 +79,19 @@ export default function Activities() {
               <p className="hidden text-sm font-bold text-black/45 sm:block">24 everyday possibilities</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
               {activities.map((activity) => {
                 const Icon = activity.icon;
                 return (
-                  <article key={activity.title} className="group relative min-h-[280px] overflow-hidden rounded-[1.35rem] bg-[#1d1d1b] shadow-[0_14px_35px_rgba(35,26,20,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(35,26,20,.16)] sm:min-h-[310px] sm:rounded-[1.5rem] lg:min-h-[300px]">
+                  <article key={activity.title} className="group relative min-h-[220px] overflow-hidden rounded-[1.1rem] bg-[#1d1d1b] shadow-[0_14px_35px_rgba(35,26,20,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(35,26,20,.16)] sm:min-h-[310px] sm:rounded-[1.5rem] lg:min-h-[300px]">
                     <img src={activity.image} alt={`${activity.title} in India`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.05]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
-                      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/20 backdrop-blur">
-                        <Icon size={17} className="text-[#ffad9c]" />
+                    <div className="absolute inset-x-0 bottom-0 p-3.5 text-white sm:p-6">
+                      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/20 backdrop-blur sm:mb-3 sm:h-9 sm:w-9">
+                        <Icon size={15} className="text-[#ffad9c] sm:h-[17px] sm:w-[17px]" />
                       </div>
-                      <p className="text-xs font-semibold text-white/65">{activity.note}</p>
-                      <h3 className="mt-1 text-2xl font-extrabold leading-tight tracking-[-.03em]">{activity.title}</h3>
+                      <p className="line-clamp-2 text-[10px] font-semibold leading-4 text-white/65 sm:text-xs">{activity.note}</p>
+                      <h3 className="mt-1 text-base font-extrabold leading-tight tracking-[-.03em] sm:text-2xl">{activity.title}</h3>
                     </div>
                   </article>
                 );
