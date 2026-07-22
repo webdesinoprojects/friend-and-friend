@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Clock3,
   CreditCard,
+  Copy,
+  KeyRound,
   MapPin,
   Search,
   Star,
@@ -12,7 +14,7 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import { formatRupees } from "../../utils/format";
-import { cancelBookingApi, completeBookingApi, listBookings } from "../../api/bookings";
+import { cancelBookingApi, listBookings } from "../../api/bookings";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
 import {
@@ -21,13 +23,13 @@ import {
   getBookings,
   getReviewForBooking,
   subscribeToUserData,
-  updateBooking,
 } from "../../utils/userFlowStorage";
 
 const statusStyles = {
   CONFIRMED: "bg-[#ffeedd] text-black",
   PAID: "bg-[#ffeedd] text-black",
   ACCEPTED: "bg-[#fffaf3] text-black",
+  ACTIVE: "bg-emerald-100 text-emerald-800",
   PENDING: "bg-amber-50 text-amber-700",
   COMPLETED: "bg-[#111111] text-[#fffaf3]",
   CANCELLED: "bg-rose-50 text-rose-700",
@@ -61,18 +63,6 @@ export default function UserBookings() {
       unsubscribe();
     };
   }, []);
-
-  const markCompleted = async (booking) => {
-    const completedAt = new Date().toISOString();
-    setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, status: "COMPLETED", completedAt } : item));
-    updateBooking(booking.id, { status: "COMPLETED", completedAt });
-    try {
-      const saved = await completeBookingApi(booking.id);
-      setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, ...saved, status: "COMPLETED", completedAt } : item));
-    } catch {
-      setBookings(getBookings());
-    }
-  };
 
   const cancelSelectedBooking = async (reason) => {
     const target = cancelTarget;
@@ -153,7 +143,7 @@ export default function UserBookings() {
             <div className="grid gap-4 xl:grid-cols-2">
               {visibleBookings.map((booking) => {
                 const status = String(booking.status || "PENDING").toUpperCase();
-                const canShareLocation = ["CONFIRMED", "PAID", "ACCEPTED"].includes(status);
+                const canShareLocation = ["CONFIRMED", "PAID", "ACCEPTED", "ACTIVE"].includes(status);
                 const completed = status === "COMPLETED";
                 const userReview = getReviewForBooking(booking.id, "USER");
 
@@ -208,28 +198,27 @@ export default function UserBookings() {
                             className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]"
                           >
                             <MapPin size={15} />
-                            Meetup location
+                            {status === "ACTIVE" ? "Open active meeting" : "Meetup details"}
                           </Link>
-                          {status !== "COMPLETED" && (
-                            <button
-                              type="button"
-                              onClick={() => markCompleted(booking)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black"
-                            >
-                              <CheckCircle2 size={15} />
-                              Mark completed
-                            </button>
-                          )}
-                          <button
+                          {status !== "ACTIVE" ? <button
                             type="button"
                             onClick={() => setCancelTarget(booking)}
                             className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"
                           >
                             Cancel booking
-                          </button>
+                          </button> : null}
                         </div>
                       )}
                     </div>
+
+                    {status === "CONFIRMED" && booking.startPin ? (
+                      <div className="mt-4 rounded-2xl border-2 border-[#e08c4c] bg-[#fff5e9] p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2 text-[#bc6e36]"><KeyRound size={17}/><p className="text-xs font-black uppercase tracking-[.15em]">Your private meeting PIN</p></div><p className="mt-2 text-xs font-bold leading-5 text-black/55">Give this code to the provider only when you meet in person. It expires {formatPinExpiry(booking.startPinExpiresAt)} and works once.</p></div><button type="button" onClick={()=>navigator.clipboard?.writeText(booking.startPin).then(()=>notify("PIN copied.","success"))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white shadow-sm" aria-label="Copy meeting PIN"><Copy size={16}/></button></div>
+                        <div className="mt-4 rounded-xl bg-[#171b30] px-4 py-4 text-center text-3xl font-black tracking-[.35em] text-[#ffd49f]">{booking.startPin}</div>
+                      </div>
+                    ) : null}
+
+                    {status === "ACTIVE" ? <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><span className="font-black">Meeting timer is running.</span> Open the active meeting panel to enter the provider's end code, finish, or extend.</div> : null}
 
                     {completed ? (
                       userReview ? (
@@ -395,4 +384,9 @@ function Detail({ label, value }) {
       <p className="mt-1 truncate font-extrabold text-black">{value}</p>
     </div>
   );
+}
+
+function formatPinExpiry(value) {
+  if (!value) return "14 days after payment";
+  return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }

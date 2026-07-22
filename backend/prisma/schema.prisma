@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -46,47 +46,47 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  otpTokens       OtpToken[]
-  kycVerification KycVerification?
-  userProfile     UserProfile?
-  providerProfile ProviderProfile?
-  loginAttempts   LoginAttempt[]
-  bookings         Booking[]      @relation("BookingUser")
-  providerBookings Booking[]      @relation("BookingProviderUser")
-  sentMessages     ChatMessage[]  @relation("MessageSender")
+  otpTokens        OtpToken[]
+  kycVerification  KycVerification?
+  userProfile      UserProfile?
+  providerProfile  ProviderProfile?
+  loginAttempts    LoginAttempt[]
+  bookings         Booking[]        @relation("BookingUser")
+  providerBookings Booking[]        @relation("BookingProviderUser")
+  sentMessages     ChatMessage[]    @relation("MessageSender")
   reviewReports    ReviewReport[]
 
   @@index([disabledUntil])
 }
 
 model RegistrationApplication {
-  id               String             @id @default(cuid())
-  fullName         String
-  email            String             @unique
-  phone            String             @unique
-  passwordHash     String
-  dob              String?
-  gender           String?
-  city             String?
-  state            String?
-  role              UserRole
-  mobileVerified   Boolean            @default(false)
-  emailVerified    Boolean            @default(false)
-  profileImage     String?
-  referenceSelfie  String?
-  documentType     String
-  documentNumber   String
-  documentLast4    String?
-  documentUrl      String
-  consentAccepted  Boolean            @default(false)
-  userProfile      Json?
-  providerProfile  Json?
-  status           VerificationStatus @default(PENDING)
-  rejectionReason  String?
-  decisionAt       DateTime?
-  approvedUserId   String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  fullName        String
+  email           String             @unique
+  phone           String             @unique
+  passwordHash    String
+  dob             String?
+  gender          String?
+  city            String?
+  state           String?
+  role            UserRole
+  mobileVerified  Boolean            @default(false)
+  emailVerified   Boolean            @default(false)
+  profileImage    String?
+  referenceSelfie String?
+  documentType    String
+  documentNumber  String
+  documentLast4   String?
+  documentUrl     String
+  consentAccepted Boolean            @default(false)
+  userProfile     Json?
+  providerProfile Json?
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
+  decisionAt      DateTime?
+  approvedUserId  String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@index([status, createdAt])
 }
@@ -159,15 +159,15 @@ model ProviderProfile {
   height     String?
   hobbies    String?
 
-  hourlyPrice      String?
-  availableCity    String?
-  languages        String?
-  availabilityDays String?
+  hourlyPrice       String?
+  availableCity     String?
+  languages         String?
+  availabilityDays  String?
   availabilitySlots Json?
-  activities       String?
-  bio              String?
-  profileImages    Json?
-  profileQuestions Json?
+  activities        String?
+  bio               String?
+  profileImages     Json?
+  profileQuestions  Json?
 
   providerSafetyAgreement Boolean @default(false)
   approved                Boolean @default(false)
@@ -175,7 +175,7 @@ model ProviderProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
 }
 
@@ -193,43 +193,76 @@ model LoginAttempt {
 }
 
 model Booking {
-  id             String   @id @default(cuid())
-  code           String   @unique
-  userId         String
-  providerId     String
-  providerUserId String
-  service        String
-  date           String
-  time           String
-  durationHours  Int      @default(1)
-  amount         Int      @default(0)
-  paymentMethod  String?
-  paymentStatus  String   @default("PAID")
-  razorpayOrderId   String? @unique
-  razorpayPaymentId String? @unique
+  id                String    @id @default(cuid())
+  code              String    @unique
+  userId            String
+  providerId        String
+  providerUserId    String
+  service           String
+  date              String
+  time              String
+  durationHours     Int       @default(1)
+  amount            Int       @default(0)
+  paymentMethod     String?
+  paymentStatus     String    @default("PAID")
+  razorpayOrderId   String?   @unique
+  razorpayPaymentId String?   @unique
   razorpaySignature String?
-  status         String   @default("CONFIRMED")
-  cancelReason   String?
-  cancelledAt    DateTime?
+  status            String    @default("CONFIRMED")
+  cancelReason      String?
+  cancelledAt       DateTime?
+  startPin          String?
+  startPinExpiresAt DateTime?
+  startPinUsedAt    DateTime?
+  meetingStartedAt  DateTime?
+  scheduledEndAt    DateTime?
+  meetingEndedAt    DateTime?
+  endOtp            String?
+  endOtpCreatedAt   DateTime?
+  endOtpVerifiedAt  DateTime?
+  extensionCount    Int       @default(0)
+  lastHourlyPrice   Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user         User            @relation("BookingUser", fields: [userId], references: [id], onDelete: Cascade)
-  provider     ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  providerUser User            @relation("BookingProviderUser", fields: [providerUserId], references: [id], onDelete: Cascade)
+  user         User               @relation("BookingUser", fields: [userId], references: [id], onDelete: Cascade)
+  provider     ProviderProfile    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerUser User               @relation("BookingProviderUser", fields: [providerUserId], references: [id], onDelete: Cascade)
   chatThread   ChatThread?
+  extensions   BookingExtension[]
+}
+
+model BookingExtension {
+  id                String    @id @default(cuid())
+  bookingId         String
+  sequence          Int
+  hours             Int       @default(1)
+  discountPercent   Int       @default(10)
+  amount            Int
+  status            String    @default("PENDING")
+  razorpayOrderId   String    @unique
+  razorpayPaymentId String?   @unique
+  razorpaySignature String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, sequence])
+  @@index([bookingId, status])
 }
 
 model ChatThread {
-  id        String   @id @default(cuid())
-  bookingId String   @unique
-  userId    String
-  providerId String
-  providerUserId String
-  closed    Boolean  @default(false)
-  closedReason String?
-  hiddenForUser Boolean @default(false)
+  id                String  @id @default(cuid())
+  bookingId         String  @unique
+  userId            String
+  providerId        String
+  providerUserId    String
+  closed            Boolean @default(false)
+  closedReason      String?
+  hiddenForUser     Boolean @default(false)
   hiddenForProvider Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -244,19 +277,19 @@ model ChatThread {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  threadId  String
-  senderId  String?
-  senderRole String
-  type      String   @default("TEXT")
-  text      String?
-  mediaUrl  String?
-  mediaFileId String?
+  id              String    @id @default(cuid())
+  threadId        String
+  senderId        String?
+  senderRole      String
+  type            String    @default("TEXT")
+  text            String?
+  mediaUrl        String?
+  mediaFileId     String?
   durationSeconds Int?
-  system    Boolean  @default(false)
-  readAt    DateTime?
-  editedAt  DateTime?
-  deletedAt DateTime?
+  system          Boolean   @default(false)
+  readAt          DateTime?
+  editedAt        DateTime?
+  deletedAt       DateTime?
 
   createdAt DateTime @default(now())
 
@@ -267,7 +300,7 @@ model ChatMessage {
 }
 
 model ReviewReport {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   reviewId       String?
   bookingId      String?
   reporterId     String
@@ -279,7 +312,7 @@ model ReviewReport {
   rating         Int?
   reviewText     String?
   reason         String
-  status         String   @default("OPEN")
+  status         String  @default("OPEN")
   adminAction    String?
   adminNote      String?
   reviewSnapshot Json?
@@ -306,17 +339,19 @@ model KycReviewHistory {
   status    String
   reason    String?
   createdAt DateTime @default(now())
+
   @@index([userId, createdAt])
 }
 
 model Notification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   type      String
   title     String
   message   String
   link      String?
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+
   @@index([userId, createdAt])
 }

@@ -1,194 +1,130 @@
-import { ArrowRight, CheckCircle2, MapPin, Sparkles, Star } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getCachedProviders, listProviders } from "../../api/providers";
+import {
+  Bike,
+  BookOpen,
+  Camera,
+  Coffee,
+  Dumbbell,
+  Gamepad2,
+  Heart,
+  MapPin,
+  Music2,
+  Palette,
+  PartyPopper,
+  ShoppingBag,
+  Sparkles,
+  Ticket,
+  Trees,
+  Utensils,
+  Waves,
+} from "lucide-react";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
+import heroImage from "../../assets/explore-hero.png";
 
-function buildActivities(providers) {
-  const names = [...new Set((Array.isArray(providers) ? providers : []).flatMap((provider) =>
-    Array.isArray(provider.activities) ? provider.activities : String(provider.activities || "").split(",")
-  ).map((item) => String(item).trim()).filter(Boolean))];
-  const icons = ["☕", "🎬", "🍽️", "🎮", "🚶", "📸"];
-  return names.map((name, index) => ({ name, tag: "Live provider activity", icon: icons[index % icons.length] }));
-}
+const activities = [
+  { title: "Coffee & conversation", note: "An easy hello over chai or coffee", icon: Coffee, image: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=85", size: "feature" },
+  { title: "Neighbourhood walks", note: "Stories hidden in familiar lanes", icon: MapPin, image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+  { title: "Street food trail", note: "One more plate to share", icon: Utensils, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+  { title: "Movie evening", note: "Good stories, better company", icon: Ticket, image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Morning cycling", note: "Quiet roads and an early start", icon: Bike, image: "https://images.unsplash.com/photo-1528629297340-d1d466945dc5?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Local market day", note: "Browse, bargain and discover", icon: ShoppingBag, image: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=85", size: "wide" },
+  { title: "Live music night", note: "Share the front-row feeling", icon: Music2, image: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+  { title: "Museum afternoon", note: "Art without awkward silence", icon: Palette, image: "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Gym partner", note: "Show up and stay motivated", icon: Dumbbell, image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Bookstore browsing", note: "Swap stories and recommendations", icon: BookOpen, image: "https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=900&q=85", size: "medium" },
+  { title: "Street photography", note: "Chase light through the city", icon: Camera, image: "https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&w=1000&q=85", size: "wide" },
+  { title: "Sunday brunch", note: "Slow plates and easy laughs", icon: Utensils, image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Board game café", note: "Friendly competition included", icon: Gamepad2, image: "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Park picnic", note: "Blanket, snacks and no rush", icon: Trees, image: heroImage, size: "feature" },
+  { title: "Yoga together", note: "A calmer start to the day", icon: Heart, image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=85", size: "medium" },
+  { title: "Concert buddy", note: "Never miss the encore alone", icon: PartyPopper, image: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=85", size: "wide" },
+  { title: "Pool day", note: "Swim, unwind, repeat", icon: Waves, image: "https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Shopping companion", note: "A second opinion you can trust", icon: ShoppingBag, image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Pottery workshop", note: "Make something imperfectly yours", icon: Palette, image: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+  { title: "Weekend wander", note: "See your city with fresh eyes", icon: Sparkles, image: "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1200&q=85", size: "wide" },
+  { title: "Lakeside sunset", note: "A slower end to the day", icon: Waves, image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+  { title: "Cricket evening", note: "Cheer for every boundary", icon: PartyPopper, image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1000&q=85", size: "compact" },
+  { title: "Garden stroll", note: "Fresh air and unhurried conversation", icon: Trees, image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85", size: "compact" },
+  { title: "Creative sketch day", note: "Bring a notebook and notice more", icon: Palette, image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=1000&q=85", size: "medium" },
+];
 
 export default function Activities() {
-  const [activities,setActivities]=useState(() => buildActivities(getCachedProviders()));
-  useEffect(()=>{let mounted=true;listProviders({verified:true}).then((providers)=>{if(mounted)setActivities(buildActivities(providers));}).catch(()=>{});return()=>{mounted=false;};},[]);
-  const marqueeActivities = [
-    ...activities.slice(0, 10),
-    ...activities.slice(0, 10),
-  ];
-
   return (
-    <div className="min-h-screen bg-[#fffaf3] text-[#2b211b]">
+    <div className="min-h-screen bg-[#f6f1e8] text-[#1d1d1b]">
       <PublicNavbar />
-
-      <main className="pt-20">
-        <section
-          id="explore"
-          className="relative overflow-hidden bg-[#f5efe7] px-4 py-12 sm:px-5 lg:py-16"
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(255,250,243,0.84)_42%,rgba(255,210,183,0.30))]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/75 to-transparent" />
-          <div className="pointer-events-none absolute -right-28 top-24 h-72 w-72 rounded-full bg-[#ff745f]/12 blur-3xl" />
-          <div className="pointer-events-none absolute -left-20 bottom-16 h-72 w-72 rounded-full bg-white/80 blur-3xl" />
-
-          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.2rem] bg-white/72 shadow-[0_35px_100px_rgba(93,70,50,0.14)] backdrop-blur-xl">
-            <div className="px-4 py-6 sm:px-6">
-              <div className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full bg-[#fffaf3] px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-[#b8644d] shadow-sm">
-                <Sparkles size={15} />
-                Popular activities
+      <main className="overflow-hidden bg-[#f6f1e8] pt-20">
+        <div>
+          <section className="relative min-h-[560px] overflow-hidden sm:min-h-[650px]">
+            <img src={heroImage} alt="Indian friends sharing a relaxed picnic" className="absolute inset-0 h-full w-full object-cover object-[66%_center]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(246,241,232,.94)_0%,rgba(246,241,232,.78)_38%,rgba(246,241,232,.18)_72%)] max-sm:bg-[linear-gradient(180deg,rgba(246,241,232,.2)_0%,rgba(246,241,232,.88)_66%,rgba(246,241,232,.98)_100%)]" />
+            <div className="relative mx-auto flex min-h-[560px] max-w-7xl items-end px-4 pb-12 pt-20 sm:min-h-[650px] sm:items-center sm:px-6 sm:py-20 lg:px-8">
+            <div className="max-w-4xl text-[#1d1d1b]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-[#fffaf2]/80 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[.2em] backdrop-blur">
+                <Sparkles size={15} className="text-[#d85f48]" /> Made for real life
               </div>
+              <h1 className="mt-6 text-5xl font-extrabold leading-[.94] tracking-[-.055em] sm:text-7xl lg:text-[6.25rem]">
+                Explore all plans.<br /><span className="text-[#d85f48]">choose what suits you best.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-black/60 sm:text-lg sm:leading-8">From one-hour coffee plans to full weekend afternoons, discover simple ways to enjoy your city with good company.</p>
+            </div>
+            </div>
+          </section>
 
-              <div className="activity-marquee-perspective relative overflow-x-auto overflow-y-hidden rounded-[2rem] bg-[#fffaf3]/78 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_24px_70px_rgba(93,70,50,0.12)] [transform-style:preserve-3d] before:pointer-events-none before:absolute before:inset-2 before:rounded-[1.6rem] before:bg-[linear-gradient(135deg,rgba(255,255,255,0.82),transparent_45%,rgba(255,116,95,0.10))] before:content-['']">
-                <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-[#fffaf3] to-transparent sm:w-32" />
-                <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-[#fffaf3] to-transparent sm:w-32" />
-
-                <div className="activity-marquee-3d relative z-10 flex w-max gap-4 px-6 py-2">
-                  {marqueeActivities.map((activity, index) => (
-                    <div
-                      key={`${activity.name}-${index}`}
-                      className="activity-pill-3d group flex min-w-[215px] items-center gap-3 rounded-[1.35rem] bg-white/82 px-4 py-3 text-[#3a3029] shadow-[0_18px_44px_rgba(93,70,50,0.12)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-[#fffaf3] hover:shadow-[0_24px_60px_rgba(255,116,95,0.16)]"
-                    >
-                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-xl text-[#b8644d] shadow-[inset_0_0_0_1px_rgba(255,116,95,0.12),0_12px_24px_rgba(93,70,50,0.10)] transition group-hover:scale-110 group-hover:bg-[#fff0e8]">
-                        {activity.icon}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b58a78]">
-                          {activity.tag}
-                        </p>
-                        <h3 className="mt-0.5 truncate text-[15px] font-black tracking-tight text-[#3a3029]">
-                          {activity.name}
-                        </h3>
-                      </div>
-
-                      <ArrowRight
-                        size={16}
-                        className="ml-auto shrink-0 text-[#d86f55] opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100"
-                      />
-                    </div>
-                  ))}
-                </div>
+          <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+            <div className="mb-7 flex items-end justify-between gap-6 border-b border-black/15 pb-5">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d85f48]">Explore together</p>
+                <h2 className="mt-2 text-3xl font-extrabold tracking-[-.04em] sm:text-5xl">Choose your kind of day</h2>
               </div>
+              <p className="hidden text-sm font-bold text-black/45 sm:block">24 everyday possibilities</p>
             </div>
 
-            <div className="grid gap-9 px-5 py-9 sm:px-7 md:px-10 lg:grid-cols-[0.92fr_1.08fr] lg:px-12 lg:py-14">
-              <div className="flex flex-col justify-center">
-                <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full bg-[#fffaf3] px-4 py-2 text-sm font-black text-[#6f6158] shadow-sm">
-                  <Star size={16} className="text-[#d86f55]" />
-                  Real plans, real people
-                </div>
-
-                <h2 className="max-w-3xl text-4xl font-black leading-tight tracking-tight text-[#2b211b] md:text-6xl">
-                  Choose an activity.
-                  <span className="block text-[#8a7468]">
-                    Find your right buddy.
-                  </span>
-                </h2>
-
-                <p className="mt-5 max-w-xl text-base font-semibold leading-8 text-[#75665b] md:text-lg">
-                  BuddyBOOK turns everyday plans into safer, verified social
-                  experiences with clear booking flow and public meetup signals.
-                </p>
-
-                <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  {[
-                    "Verified activity partners",
-                    "Safe public meetup flow",
-                    "In-app chat before booking",
-                    "Live location during meetup",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="group flex items-center gap-3 rounded-2xl bg-white/72 p-3.5 text-sm font-black text-[#4f4037] shadow-sm transition hover:-translate-y-1 hover:bg-[#fffaf3] hover:shadow-[0_18px_42px_rgba(93,70,50,0.12)]"
-                    >
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#fffaf3] text-[#d86f55] transition group-hover:bg-[#fff0e8]">
-                        <CheckCircle2 size={17} />
-                      </span>
-                      {item}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+              {activities.map((activity) => {
+                const Icon = activity.icon;
+                return (
+                  <article key={activity.title} className="group relative min-h-[280px] overflow-hidden rounded-[1.35rem] bg-[#1d1d1b] shadow-[0_14px_35px_rgba(35,26,20,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(35,26,20,.16)] sm:min-h-[310px] sm:rounded-[1.5rem] lg:min-h-[300px]">
+                    <img src={activity.image} alt={`${activity.title} in India`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.05]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/20 backdrop-blur">
+                        <Icon size={17} className="text-[#ffad9c]" />
+                      </div>
+                      <p className="text-xs font-semibold text-white/65">{activity.note}</p>
+                      <h3 className="mt-1 text-2xl font-extrabold leading-tight tracking-[-.03em]">{activity.title}</h3>
                     </div>
-                  ))}
-                </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
 
-                 <div className="mt-8 flex flex-wrap gap-3">
-                  
+          <section className="border-t border-black/10 bg-[#fffaf2]/92 px-4 py-14 backdrop-blur-sm sm:px-6 sm:py-20 lg:px-8">
+            <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+              <div className="max-w-xl">
+                <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d85f48]">The plans you remember</p>
+                <h2 className="mt-3 text-4xl font-extrabold leading-[1.02] tracking-[-.045em] sm:text-6xl">Ordinary days can become your favourite stories.</h2>
+                <p className="mt-5 text-base font-medium leading-7 text-black/55">A shared plate. A neighbourhood walk. A concert you nearly skipped. The plan does not need to be extraordinary—the company can make it matter.</p>
+                <div className="mt-7 flex items-center gap-4 border-t border-black/10 pt-5">
+                  <div className="flex -space-x-3">
+                    {["photo-1494790108377-be9c29b29330", "photo-1500648767791-00dcc994a43e", "photo-1534528741775-53994a69daeb"].map((photo) => (
+                      <img key={photo} src={`https://images.unsplash.com/${photo}?auto=format&fit=crop&w=100&q=80`} alt="BuddyBook community member" className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover" />
+                    ))}
+                  </div>
+                  <p className="text-xs font-extrabold leading-5 text-black/55">Real people.<br />Plans at your pace.</p>
                 </div>
               </div>
 
-              <div className="relative flex items-center justify-center overflow-visible">
-                <div className="pointer-events-none absolute -right-6 top-8 h-52 w-52 rounded-full bg-[#ff745f]/15 blur-3xl" />
-                <div className="pointer-events-none absolute -left-6 bottom-8 h-52 w-52 rounded-full bg-[#ffcf33]/20 blur-3xl" />
-
-                <div className="activity-showcase-3d relative w-full max-w-xl rounded-[2rem] bg-gradient-to-br from-[#fff5ee] to-[#fffaf3] p-4 shadow-[0_35px_90px_rgba(93,70,50,0.18)] ring-1 ring-[#ffcf33]/60 transition duration-500 hover:-translate-y-2 hover:shadow-[0_45px_110px_rgba(255,116,95,0.18)]">
-                  <div className="rounded-[1.55rem] bg-white p-4 shadow-inner shadow-[#ffcf33]/40">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#b8644d]">
-                          Activity board
-                        </p>
-
-                        <h3 className="mt-1 text-2xl font-black text-[#2b211b]">
-                          Trending this week
-                        </h3>
-                      </div>
-
-                      <div className="rounded-full bg-[#ff745f] px-4 py-2 text-xs font-black text-white shadow-lg shadow-[#ff745f]/30">
-                        Verified
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {activities.slice(0, 5).map((activity, index) => (
-                        <div
-                          key={activity.name}
-                          className="group flex items-center justify-between gap-3 rounded-2xl bg-[#fff5ee] p-3 transition hover:translate-x-1 hover:bg-white hover:shadow-[0_16px_36px_rgba(255,116,95,0.18)]"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#fffaf3] text-xl text-[#b8644d] shadow-[inset_0_0_0_1px_rgba(255,116,95,0.25),0_10px_20px_rgba(93,70,50,0.10)] transition group-hover:bg-[#fff0e8]">
-                              {activity.icon}
-                            </div>
-
-                            <div className="min-w-0">
-                              <h4 className="truncate text-sm font-black text-[#2b211b]">
-                                {activity.name}
-                              </h4>
-
-                              <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-bold text-[#75665b]">
-                                <MapPin size={12} className="shrink-0 text-[#d86f55]" />
-                                {index + 2} nearby verified plans
-                              </p>
-                            </div>
-                          </div>
-
-                           <Link
-                            to="/#providers"
-                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-[#d86f55] transition hover:bg-[#ff745f] hover:text-white shadow-sm"
-                          >
-                            Book
-                            <ArrowRight size={12} />
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="absolute -bottom-5 left-7 rounded-2xl bg-[#ff745f] px-5 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(93,70,50,0.18)]">
-                    10+ meetup plans
-                  </div>
-
-                  <div className="absolute -right-3 top-3 rounded-2xl bg-[#171b30] px-4 py-2.5 text-xs font-black text-[#ffcf33] shadow-[0_14px_32px_rgba(93,70,50,0.14)]">
-                    Safe companionship
-                  </div>
-                </div>
+              <div className="relative overflow-hidden rounded-[2rem] bg-[#1d1d1b]">
+                <img src={heroImage} alt="Indian friends sharing a relaxed picnic" loading="lazy" className="h-[360px] w-full object-cover object-[68%_center] opacity-80 sm:h-[470px]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                <p className="absolute bottom-6 left-6 right-6 max-w-md text-2xl font-extrabold leading-tight text-white sm:bottom-8 sm:left-8 sm:text-3xl">Make room for the plans you keep saying “someday” to.</p>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+        </div>
       </main>
-
       <PublicFooter />
     </div>
   );

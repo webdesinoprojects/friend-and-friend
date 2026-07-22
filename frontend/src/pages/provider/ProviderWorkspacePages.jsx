@@ -22,8 +22,10 @@ import {
   Clock3,
   CreditCard,
   IndianRupee,
+  KeyRound,
   MapPin,
   Plus,
+  Play,
   Save,
   Star,
   TrendingUp,
@@ -34,7 +36,7 @@ import {
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
 import { getMyProviderProfile, saveMyProviderProfile } from "../../api/providers";
-import { completeBookingApi, listBookings } from "../../api/bookings";
+import { listBookings, startBookingMeeting } from "../../api/bookings";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
 import {
@@ -42,11 +44,15 @@ import {
   getBookings,
   getReviewForBooking,
   subscribeToUserData,
-  updateBooking,
 } from "../../utils/userFlowStorage";
 
 const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const palette = ["#e08c4c", "#111111", "#ffeedd", "#16815f"];
+
+function formatMeetingTime(value) {
+  if (!value) return "after the booked duration";
+  return new Date(value).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
 
 export function ProviderServices() {
   const { provider, bookings, loading, error, retry } = useProviderWorkspace();
@@ -175,6 +181,8 @@ export function ProviderAvailability() {
 export function ProviderBookings() {
   const { stats } = useProviderWorkspace();
   const [bookings, setBookings] = useState(() => getBookings());
+  const [pins, setPins] = useState({});
+  const [startingId, setStartingId] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -193,27 +201,31 @@ export function ProviderBookings() {
     };
   }, []);
 
-  const completeBooking = async (booking) => {
-    const completedAt = new Date().toISOString();
-    setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, status: "COMPLETED", completedAt } : item));
-    updateBooking(booking.id, { status: "COMPLETED", completedAt });
+  const startMeeting = async (booking) => {
+    const pin = String(pins[booking.id] || "");
+    if (pin.length !== 6) return notify("Enter the six-digit PIN shared by the user.", "error");
+    setStartingId(booking.id);
     try {
-      const saved = await completeBookingApi(booking.id);
-      setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, ...saved, status: "COMPLETED", completedAt } : item));
-    } catch {
-      setBookings(getBookings());
+      const saved = await startBookingMeeting(booking.id, pin);
+      setBookings((rows) => rows.map((item) => item.id === booking.id ? { ...item, ...saved } : item));
+      setPins((current) => ({ ...current, [booking.id]: "" }));
+      notify("Meeting timer started. Share the end code with the user when ready.", "success");
+    } catch (error) {
+      notify(error.response?.data?.message || "The meeting could not be started.", "error");
+    } finally {
+      setStartingId("");
     }
   };
 
   return (
-    <ProviderPageShell title="Bookings" subtitle="Complete meetings and review users after the plan is over." action={null}>
+    <ProviderPageShell title="Bookings" subtitle="Start meetings securely with the user's PIN and manage the live handoff." action={null}>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="flex min-h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] shadow-sm">
           <header className="border-b border-[#eddac7] bg-white p-5">
             <div>
               <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#e08c4c]">Booking management</p>
               <h2 className="mt-1 text-2xl font-black text-black">Provider bookings</h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">Mark meetings complete and review users from the same panel.</p>
+              <p className="mt-1 text-sm font-semibold text-slate-500">Enter the user's start PIN, run the timer, and share the private end code.</p>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <BookingStat icon={CalendarCheck} label="Total" value={bookings.length} />
@@ -258,17 +270,26 @@ export function ProviderBookings() {
                           <CreditCard size={15} />
                           Payment: {booking.paymentStatus || "PAID"}
                         </span>
-                        {!completed ? (
-                          <button
-                            type="button"
-                            onClick={() => completeBooking(booking)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]"
-                          >
-                            <CheckCircle2 size={15} />
-                            Mark completed
-                          </button>
-                        ) : null}
                       </div>
+
+                      {status === "CONFIRMED" ? (
+                        <div className="mt-4 rounded-2xl border border-[#edc8a8] bg-[#fff5e9] p-4">
+                          <div className="flex items-center gap-2"><KeyRound size={17} className="text-[#c97031]" /><p className="text-sm font-black">Start meeting with user PIN</p></div>
+                          <p className="mt-1 text-xs font-bold leading-5 text-black/50">Ask the user for the six-digit PIN shown after payment. It can be used once within 14 days.</p>
+                          <div className="mt-3 flex gap-2">
+                            <input value={pins[booking.id] || ""} onChange={(event)=>setPins((current)=>({...current,[booking.id]:event.target.value.replace(/\D/g,"").slice(0,6)}))} inputMode="numeric" maxLength={6} placeholder="000000" className="min-w-0 flex-1 rounded-xl border-2 border-black bg-white px-4 py-3 text-center text-xl font-black tracking-[.28em] outline-none" />
+                            <button type="button" disabled={startingId===booking.id || String(pins[booking.id]||"").length!==6} onClick={()=>startMeeting(booking)} className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-3 text-xs font-black text-white disabled:opacity-40"><Play size={15}/>{startingId===booking.id?"Starting...":"Start"}</button>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {status === "ACTIVE" ? (
+                        <div className="mt-4 overflow-hidden rounded-2xl bg-[#171b30] p-5 text-white">
+                          <div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-[#f4ad75]">Meeting in progress</p><p className="mt-1 text-sm font-bold text-white/60">Ends {formatMeetingTime(booking.scheduledEndAt)}</p></div><span className="h-3 w-3 animate-pulse rounded-full bg-emerald-400" /></div>
+                          {booking.endOtp ? <div className="mt-4 rounded-xl border border-white/10 bg-white/10 p-4 text-center"><p className="text-[10px] font-black uppercase tracking-[.16em] text-white/55">Give this end code to the user</p><p className="mt-2 text-3xl font-black tracking-[.28em] text-[#ffd49f]">{booking.endOtp}</p></div> : <div className="mt-4 rounded-xl bg-emerald-500/15 p-4 text-sm font-black text-emerald-200">End code verified. Waiting for the user to end or extend the meeting.</div>}
+                          {booking.extensionCount ? <p className="mt-3 text-xs font-bold text-white/50">Extended {booking.extensionCount} time{booking.extensionCount===1?"":"s"} · {booking.durationHours} total hours</p> : null}
+                        </div>
+                      ) : null}
 
                       {completed ? (
                         providerReview ? (

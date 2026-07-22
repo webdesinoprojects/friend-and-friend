@@ -121,7 +121,7 @@ export default function UserBookingPayment() {
               provider: { ...provider, id: booking.providerId || provider.id, name: booking.providerName || provider.name, image: booking.providerImage || provider.image },
               service, date, time, duration, paymentMethod: "RAZORPAY", user, bookingOverride: booking,
             });
-            navigate("/app/user/dashboard", { replace: true, state: { paymentSuccess: true } });
+            navigate("/app/user/bookings", { replace: true, state: { paymentSuccess: true, bookingId: booking.id } });
           } catch (error) {
             setPaymentError(error.response?.data?.message || error.message || "Payment verification failed. Please contact support with your Razorpay payment ID.");
             setProcessing(false);

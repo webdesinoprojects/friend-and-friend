@@ -26,6 +26,41 @@ export async function cancelBookingApi(bookingId, reason) {
 }
 
 export async function completeBookingApi(bookingId) {
-  const { data } = await api.post(`/bookings/${bookingId}/complete`);
+  const { data } = await api.post(`/bookings/${bookingId}/end`);
+  return data?.booking || data?.data || data;
+}
+
+export async function revealBookingStartPin(bookingId) {
+  const { data } = await api.get(`/bookings/${bookingId}/start-pin`);
+  return data?.booking || data?.data || data;
+}
+
+export async function startBookingMeeting(bookingId, pin) {
+  const { data } = await api.post(`/bookings/${bookingId}/start`, { pin });
+  return data?.booking || data?.data || data;
+}
+
+export async function getBookingEndCode(bookingId) {
+  const { data } = await api.get(`/bookings/${bookingId}/end-code`);
+  return data?.booking || data?.data || data;
+}
+
+export async function verifyBookingEndCode(bookingId, otp) {
+  const { data } = await api.post(`/bookings/${bookingId}/end-code/verify`, { otp });
+  return data?.booking || data?.data || data;
+}
+
+export async function endBookingMeeting(bookingId) {
+  const { data } = await api.post(`/bookings/${bookingId}/end`);
+  return data?.booking || data?.data || data;
+}
+
+export async function createExtensionOrder(bookingId) {
+  const { data } = await api.post(`/bookings/${bookingId}/extensions/razorpay/order`);
+  return data;
+}
+
+export async function verifyExtensionPayment(bookingId, payload) {
+  const { data } = await api.post(`/bookings/${bookingId}/extensions/razorpay/verify`, payload);
   return data?.booking || data?.data || data;
 }

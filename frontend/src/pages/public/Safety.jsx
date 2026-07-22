@@ -1,106 +1,357 @@
-import friendsHero from "../../assets/buddybook-friends-hero.webp";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Ban,
+  Check,
+  CircleDollarSign,
+  Clock3,
+  FileText,
+  HeartHandshake,
+  Mail,
+  Navigation,
+  LockKeyhole,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  Siren,
+  UserCheck,
+  Users,
+  WalletCards,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import PublicNavbar from "../../components/layout/PublicNavbar";
+import PublicFooter from "../../components/layout/PublicFooter";
+import safetyHero from "../../assets/safety-cafe-hero.png";
 
-const tips = [
+const essentials = [
+  [UserCheck, "Adults only", "BuddyBook is strictly for people aged 18+."],
+  [BadgeCheck, "Verified identity", "Review the complete profile before booking."],
+  [MessageCircle, "In-app planning", "Keep timing, place and expectations in chat."],
+  [CircleDollarSign, "Platform payments", "Never send money or accept side deals."],
+  [Siren, "Report quickly", "Leave and report whenever something feels wrong."],
+];
+
+const sharedRules = [
+  "Use your real identity and accurate details.",
+  "Choose a visible, public meeting place.",
+  "Keep conversation and planning in BuddyBook.",
+  "Respect personal, physical and emotional boundaries.",
+  "Never share passwords, OTPs or private documents.",
+];
+
+const userRules = [
+  "Review photos, verification, activities and reviews.",
+  "Book and pay only through BuddyBook.",
+  "Share the plan with someone you trust.",
+  "Do not request services outside the listed activity.",
+  "Report pressure, misconduct or suspicious requests.",
+  "Set clear boundaries before confirming the plan.",
+  "Stay sober and alert throughout the meetup.",
+  "Do not bring an unapproved guest.",
+  "Protect the provider's personal information.",
+  "End the meetup if identity details do not match.",
+];
+
+const providerRules = [
+  "Keep your profile, photos and services truthful.",
+  "Accept only clearly agreed platonic activities.",
+  "Never request tips, gifts or off-platform payment.",
+  "Do not move the chat away from BuddyBook.",
+  "End and report unsafe or disrespectful bookings.",
+  "Meet only at the agreed public location.",
+  "Respect physical and emotional boundaries.",
+  "Protect the user's privacy and personal details.",
+  "Never discriminate, threaten or intimidate.",
+  "Deliver only the activity shown on your profile.",
+];
+
+const prohibited = [
+  [HeartHandshake, "Romantic or sexual services"],
+  [Ban, "Threats or harassment"],
+  [Users, "Anyone under 18"],
+  [CircleDollarSign, "Fraud or side payments"],
+  [LockKeyhole, "Recording without consent"],
+  [AlertTriangle, "Drugs or illegal activity"],
+  [MapPin, "Stalking or unwanted contact"],
+  [ShieldCheck, "Hate or discrimination"],
+  [Ban, "Blackmail or exploitation"],
+  [Users, "Human trafficking"],
+];
+
+const risks = [
+  [UserCheck, "Identity mismatch", "Profile details do not match the person."],
+  [AlertTriangle, "Boundary violations", "Pressure, harassment or unsafe conduct."],
+  [CircleDollarSign, "Financial scams", "Requests for transfers or side payments."],
+  [MapPin, "Unsafe locations", "Private or isolated meeting places."],
+  [WalletCards, "Property risk", "Loss, theft or damage to belongings."],
+  [Ban, "Substance risk", "Alcohol or drugs affecting judgement."],
+  [LockKeyhole, "Digital privacy", "Photos, chats or data shared without consent."],
+  [Siren, "Medical emergency", "Illness, injury or allergic reactions."],
+  [Navigation, "Transport risk", "Unverified or unsafe travel arrangements."],
+  [HeartHandshake, "Expectation mismatch", "Different assumptions about the activity."],
+];
+
+const commitments = [
+  [UserCheck, "Identity checks", "Selected account details may be verified before access."],
+  [FileText, "In-app records", "Chats, bookings and payments create a clear activity record."],
+  [ShieldCheck, "Reporting tools", "Users can report, block and flag concerning behaviour."],
+  [Ban, "Account action", "Serious or repeated violations may lead to removal."],
+  [Mail, "Grievance support", "Safety concerns are reviewed through a documented process."],
+];
+
+const meetupStages = [
   {
-    number: "01",
-    title: "Check the profile first",
-    text: "Look at verification, photos, city, activity details and profile completeness before you book.",
-    className: "lg:left-[48%] lg:top-[26%]",
-    accent: "bg-[#f5efe7]",
+    label: "Before",
+    title: "Prepare the plan",
+    tone: "bg-[#f1f7ef] text-[#3e6849]",
+    items: ["Check the profile and reviews", "Agree on activity, time and cost", "Pick a public location", "Tell someone where you are going"],
   },
   {
-    number: "02",
-    title: "Meet only in public",
-    text: "Choose cafes, malls, events, parks or other visible places where people are around.",
-    className: "lg:left-[18%] lg:top-[42%]",
-    accent: "bg-[#d8c9bb]",
+    label: "During",
+    title: "Stay in control",
+    tone: "bg-[#eef3f8] text-[#3d5f7a]",
+    items: ["Confirm they match the profile", "Keep your belongings with you", "Communicate boundaries clearly", "Leave whenever you feel uncomfortable"],
   },
   {
-    number: "03",
-    title: "Keep chat inside BuddyBOOK",
-    text: "Use in-app chat for planning so activity, timing and expectations stay clear.",
-    className: "lg:right-[10%] lg:top-[50%]",
-    accent: "bg-[#fffaf5]",
-  },
-  {
-    number: "04",
-    title: "Never send extra money",
-    text: "Pay through the platform flow only. Avoid cash transfers or side deals.",
-    className: "lg:left-[24%] lg:top-[64%]",
-    accent: "bg-[#c9b8a7]",
-  },
-  {
-    number: "05",
-    title: "Trust your comfort",
-    text: "If something feels wrong, cancel, report it, or leave the meetup. Your comfort comes first.",
-    className: "lg:right-[13%] lg:top-[75%]",
-    accent: "bg-[#f5efe7]",
+    label: "After",
+    title: "Close the loop",
+    tone: "bg-[#fff0ed] text-[#a84e3e]",
+    items: ["Return using safe transport", "Block contact if necessary", "Report unsafe behaviour", "Leave a fair, honest review"],
   },
 ];
 
+function RuleList({ items, accent }) {
+  return (
+    <ul className="mt-4 space-y-2">
+      {items.map((item) => (
+        <li key={item} className="flex gap-2.5 text-xs font-semibold leading-5 text-black/65 sm:text-sm">
+          <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${accent}`}><Check size={11} strokeWidth={3} /></span>
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function Safety() {
   return (
-    <div className="min-h-screen bg-[#fffaf3] text-[#17120f]">
+    <div className="min-h-screen bg-[#f6f1e8] text-[#1d1d1b]">
       <PublicNavbar />
 
-      <main className="pt-20">
-        <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden">
-          <img
-            src={friendsHero}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-[#f5efe7]/38" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(245,239,231,0.88)_0%,rgba(245,239,231,0.58)_45%,rgba(245,239,231,0.18)_100%)]" />
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#f5efe7]/90 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#f5efe7]/85 to-transparent" />
-
-          <div className="relative mx-auto min-h-[calc(100vh-5rem)] max-w-7xl px-5 py-7 sm:px-7 lg:px-8">
-            <div className="max-w-4xl">
-              <h1 className="text-[clamp(3rem,8vw,7.6rem)] font-black uppercase leading-[0.95] tracking-tight text-[#050403]">
-                5 safe meetup tips
+      <main className="overflow-hidden pt-20">
+        <div>
+        <section className="grid min-h-[500px] bg-[#fffaf4] lg:grid-cols-[.82fr_1.18fr]">
+          <div className="order-2 flex items-center px-5 pb-10 pt-32 sm:px-8 sm:py-12 lg:px-12 xl:px-16">
+            <div className="w-full max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#efc5ba] bg-white px-4 py-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#30352f]">
+                <ShieldCheck size={16} className="text-[#e66b4f]" /> Your safety, our priority
+              </div>
+              <h1 className="mt-5 font-sans text-[2.7rem] font-extrabold leading-[.98] tracking-[-.05em] text-[#1d1d1b] sm:text-6xl xl:text-[4.5rem]">
+                Meet confidently.<br /><span className="text-[#e76872]">Stay in control.</span>
               </h1>
+              <p className="mt-5 max-w-xl text-sm font-medium leading-6 text-black/60 sm:text-base sm:leading-7">BuddyBook is designed for platonic companionship and public social activities. Respect boundaries, communicate clearly and follow the safety rules before, during and after every meetup.</p>
+              <div className="mt-6 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-6">
+                {[
+                  [UserCheck, "Adults only", "18+"], [BadgeCheck, "Identity", "checks"], [MessageCircle, "In-app", "chat"],
+                  [CircleDollarSign, "Secure", "payments"], [Ban, "Report &", "block"], [ShieldCheck, "Safety", "support"],
+                ].map(([Icon, lineOne, lineTwo]) => (
+                  <div key={lineOne} className="text-center">
+                    <span className="mx-auto grid h-9 w-9 place-items-center rounded-full border border-[#efcfc7] bg-white text-[#e66b4f]"><Icon size={16} /></span>
+                    <p className="mt-2 text-[10px] font-extrabold leading-4 text-black/65">{lineOne}<br />{lineTwo}</p>
+                  </div>
+                ))}
+              </div>
 
-
+              <div className="mt-6 flex gap-3 rounded-lg border border-[#edd9ce] bg-white p-3 text-xs font-semibold leading-5 text-black/55">
+                <AlertTriangle size={18} className="shrink-0 text-[#dd6d55]" /> BuddyBook is not a dating, escort, medical, transport or accommodation platform.
+              </div>
             </div>
+          </div>
+          <div className="order-1 relative min-h-[430px] overflow-visible sm:min-h-[390px] lg:min-h-full lg:overflow-hidden">
+            <img src={safetyHero} alt="Two adults meeting safely in a busy public cafe" className="absolute inset-0 h-full w-full object-cover object-[76%_center] [mask-image:radial-gradient(ellipse_82%_82%_at_center,#000_52%,transparent_100%)] sm:object-[74%_center]" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[4.25rem] bg-gradient-to-b from-[#fffaf4]/85 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fffaf4]/90 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#fffaf4]/80 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-[4.25rem] bg-gradient-to-l from-[#fffaf4]/90 to-transparent" />
+            <aside className="absolute bottom-0 left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-xs -translate-x-1/2 translate-y-1/2 rounded-lg border border-black/10 bg-white/95 p-3.5 text-[#1d1d1b] shadow-[0_14px_40px_rgba(0,0,0,.14)] backdrop-blur sm:bottom-4 sm:translate-y-0 sm:p-4">
+              <p className="text-sm font-extrabold">Before every meetup</p>
+                <ol className="mt-3 space-y-2 sm:mt-4 sm:space-y-2.5">
+                {["Review the complete profile", "Keep communication in BuddyBook", "Select a public location", "Share the plan with someone you trust", "Leave immediately if uncomfortable"].map((item, index) => (
+                  <li key={item} className="flex items-center gap-3 text-[11px] font-semibold text-black/65"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#fff0ed] text-[9px] font-black text-[#d85f48]">{index + 1}</span>{item}</li>
+                ))}
+              </ol>
+            </aside>
+          </div>
+        </section>
 
-            <div className="mt-8 grid gap-5 pb-8 lg:absolute lg:inset-0 lg:mt-0 lg:block lg:pb-0">
-              {tips.map((tip) => (
-                <article
-                  key={tip.number}
-                  className={`group relative max-w-sm bg-[#fffaf5]/56 p-3 shadow-[0_16px_38px_rgba(41,38,34,0.08)] backdrop-blur-sm lg:absolute lg:bg-white/12 lg:p-1.5 lg:shadow-none lg:backdrop-blur-[2px] ${tip.className}`}
-                >
-                  <div className="absolute -left-3 top-5 h-3 w-3 bg-[#17120f]" />
-                  <div className="absolute -left-3 top-[1.65rem] h-px w-16 bg-[#17120f]/35" />
-                  <div className="absolute left-12 top-[1.65rem] h-16 w-px bg-[#17120f]/18" />
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">The essentials</p>
+            <h2 className="mt-2 font-sans text-3xl font-extrabold tracking-[-.04em] sm:text-5xl">Five things to remember</h2>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            {essentials.map(([Icon, title, copy], index) => (
+              <article key={title} className={`rounded-xl border border-black/8 bg-white p-4 shadow-[0_10px_28px_rgba(48,35,24,.04)] ${index === essentials.length - 1 ? "col-span-2 flex min-h-0 items-center gap-4 sm:col-span-1 sm:block" : ""}`}>
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#fff0ed] text-[#df644d]"><Icon size={18} /></span>
+                    <h3 className="text-sm font-extrabold">{title}</h3>
+                  </div>
+                  <p className="mt-1.5 text-xs font-semibold leading-5 text-black/50">{copy}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
-                  <div className="pl-7">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`grid h-8 w-8 place-items-center text-xs font-black text-[#17120f] ${tip.accent}`}
-                      >
-                        {tip.number}
-                      </span>
-                      <h2 className="text-[clamp(1.25rem,2vw,1.8rem)] font-black leading-tight text-[#050403]">
-                        {tip.title}
-                      </h2>
+        <section id="rules" className="bg-[#fffaf2] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">Clear expectations</p>
+              <h2 className="mt-2 font-sans text-3xl font-extrabold leading-[1.02] tracking-[-.04em] sm:text-5xl">Respect works both ways.</h2>
+              <p className="mt-4 text-base font-medium leading-7 text-black/55">Everyone follows the shared rules. Users and providers also have a few responsibilities of their own.</p>
+            </div>
+            <div className="mt-7 flex snap-x gap-0 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-3 md:divide-x md:divide-black/10 md:overflow-visible md:pb-0">
+              <article className="min-w-[82vw] snap-start px-4 py-5 md:min-w-0 md:px-6 md:last:pr-0">
+                <BadgeCheck size={22} className="mb-4 text-[#d85f48]" />
+                <span className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">Provider rules</span>
+                <h3 className="mt-2 text-2xl font-black">What every provider must follow</h3>
+                <RuleList items={providerRules} accent="bg-[#fff0ed] text-[#d85f48]" />
+              </article>
+              <article className="min-w-[82vw] snap-start border-r border-black/10 px-4 py-5 md:min-w-0 md:border-r-0 md:px-6">
+                <UserCheck size={22} className="mb-4 text-[#d85f48]" />
+                <span className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">For users</span>
+                <h3 className="mt-2 text-2xl font-black">Book thoughtfully</h3>
+                <RuleList items={userRules} accent="bg-[#fff0ed] text-[#d85f48]" />
+              </article>
+                 <article className="min-w-[82vw] snap-start border-r border-black/10 px-4 py-5 first:pl-0 md:min-w-0 md:border-r-0 md:px-6 md:first:pl-0">
+                <Users size={22} className="mb-4 text-[#d85f48]" />
+                <span className="text-xs font-black uppercase tracking-[.18em] text-[#796652]">Member rules</span>
+                <h3 className="mt-2 text-2xl font-black">What every member must follow</h3>
+                <RuleList items={sharedRules} accent="bg-[#ded3c2] text-[#4c4036]" />
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#18241d] px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff947f]">Zero tolerance</p>
+              <h2 className="mt-2 text-3xl font-extrabold tracking-[-.035em] sm:text-4xl">Never acceptable on BuddyBook</h2>
+              <p className="mt-3 max-w-2xl text-xs font-medium leading-6 text-white/55">These behaviours can lead to immediate restriction or permanent removal.</p>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
+              {prohibited.map(([Icon, title]) => (
+                <article key={title} className="flex min-w-0 items-center gap-2.5 py-1.5">
+                  <Icon size={17} className="shrink-0 text-[#ff947f]" />
+                  <h3 className="text-[10px] font-extrabold leading-4 sm:text-xs">{title}</h3>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#fffaf2] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">Stay aware</p>
+              <h2 className="mt-2 font-sans text-3xl font-extrabold tracking-[-.04em] sm:text-5xl">Safety concerns to recognise</h2>
+              <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-black/50">Knowing the warning signs makes it easier to pause, leave or report early.</p>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+              {risks.map(([Icon, title, copy]) => (
+                <article key={title} className="rounded-xl border border-[#efdcd5] bg-white p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#df604b]"><Icon size={18} /></span>
+                    <h3 className="text-sm font-black">{title}</h3>
+                  </div>
+                  <p className="mt-1 text-[11px] font-semibold leading-5 text-black/45">{copy}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">Simple safety rhythm</p>
+            <h2 className="mt-2 font-sans text-3xl font-extrabold tracking-[-.04em] sm:text-5xl">Before, during and after</h2>
+          </div>
+          <div className="mt-5 flex snap-x gap-0 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:divide-x sm:divide-black/10 sm:overflow-visible sm:pb-0">
+            {meetupStages.map((stage) => (
+              <article key={stage.label} className="min-w-[78vw] snap-start border-r border-black/10 px-4 py-3 text-[#d85f48] first:pl-0 last:border-r-0 sm:min-w-0 sm:border-r-0 sm:px-6 sm:py-4 sm:first:pl-0 sm:last:pr-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="rounded-full bg-white/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.18em]">{stage.label}</span>
+                  <Clock3 size={20} />
+                </div>
+                <h3 className="mt-6 text-2xl font-black text-[#1d1d1b]">{stage.title}</h3>
+                <RuleList items={stage.items} accent="bg-white/80 text-black/65" />
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-[#fffaf2] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="max-w-3xl">
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={27} className="text-[#e66b4f]" />
+                <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">What BuddyBook does</p>
+              </div>
+              <h2 className="mt-3 max-w-3xl text-3xl font-extrabold leading-tight tracking-[-.04em] sm:text-5xl">Safety tools from us. Safe choices from you.</h2>
+              <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-black/55">We provide identity checks, activity records, reporting and account enforcement. You remain responsible for checking profiles, choosing public places, protecting your information and leaving any unsafe situation.</p>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+              {commitments.map(([Icon, title, copy], index) => (
+                <article key={title} className={`rounded-xl border border-black/8 bg-white p-4 ${index === commitments.length - 1 ? "col-span-2 flex min-h-0 items-center gap-4 sm:col-span-1 sm:block" : ""}`}>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <Icon size={18} className="shrink-0 text-[#e66b4f]" />
+                      <h3 className="text-sm font-extrabold">{title}</h3>
                     </div>
-
-                    <p className="mt-2 max-w-[22rem] text-sm font-semibold leading-6 text-[#292622]">
-                      {tip.text}
-                    </p>
+                    <p className="mt-1.5 text-[11px] font-semibold leading-5 text-black/45">{copy}</p>
                   </div>
                 </article>
               ))}
             </div>
 
-            <p className="relative z-10 pb-6 text-xs font-black uppercase tracking-[0.22em] text-[#4b4038] lg:absolute lg:bottom-7 lg:left-8 lg:pb-0">
-              Public plans • verified profiles • in-app safety flow
-            </p>
+            <div className="mt-6 grid gap-3 lg:grid-cols-[.9fr_1.1fr]">
+              <article className="rounded-xl bg-[#1d1d1b] p-5 text-white sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[.18em] text-[#ff947f]">Responsibility & legal notice</p>
+                <p className="mt-3 rounded-lg border border-white/10 bg-white/[.06] p-3 text-xs font-extrabold leading-5 text-white/85">Your personal safety remains in your hands. BuddyBook supplies platform tools but cannot guarantee another member's identity, intentions, behaviour or actions outside reasonable platform controls.</p>
+                <ul className="mt-5 space-y-3 text-xs font-semibold leading-5 text-white/60">
+                  <li>• BuddyBook helps independent adults discover, communicate and arrange lawful platonic activities.</li>
+                  <li>• Verification confirms information at a point in time and is not a guarantee of future conduct.</li>
+                  <li>• BuddyBook is not an emergency service and does not provide transport, accommodation, escort or medical services.</li>
+                  <li>• Members remain responsible for personal judgement, boundaries and lawful behaviour.</li>
+                  <li>• Serious violations may lead to restriction or permanent account removal.</li>
+                </ul>
+              </article>
+
+              <article className="rounded-xl border border-[#efdcd5] bg-white p-5 sm:p-6">
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">Grievance contact</p>
+                    <p className="mt-4 text-sm font-black">Safety and account concerns</p>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-black/50">Use BuddyBook’s Contact page and include your booking or report reference. For immediate danger, call emergency services first.</p>
+                    <Link to="/contact" className="mt-4 inline-flex rounded-full bg-[#e66b4f] px-4 py-2.5 text-xs font-black text-white">Open contact support</Link>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">Safety acknowledgement</p>
+                    <ul className="mt-4 space-y-2 text-[11px] font-semibold leading-5 text-black/55">
+                      {["I am 18 or older.", "I will use BuddyBook only for lawful platonic activities.", "I will respect boundaries, privacy and consent.", "I will meet in public and report unsafe behaviour."].map((item) => <li key={item} className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#e66b4f]" />{item}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            </div>
           </div>
         </section>
+        </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }
