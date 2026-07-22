@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -134,6 +135,9 @@ function RuleList({ items, accent }) {
 }
 
 export default function Safety() {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
   return (
     <div className="min-h-screen bg-[#f6f1e8] text-[#1d1d1b]">
       <PublicNavbar />

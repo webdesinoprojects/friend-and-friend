@@ -1028,7 +1028,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
   const heroImage = heroProfile.image || heroProfile.avatar || heroProfile.profileImage || "";
   const heroLink = heroProfile.id ? `/providers/${heroProfile.id}` : "#community";
   const totalBookings = Number(heroProfile.totalBookings || heroProfile.completedBookings || 0);
-  const totalSpending = Number(heroProfile.totalSpending || heroProfile.amountSpent || 0);
+  const heroRating = Number(heroProfile.rating || heroProfile.averageRating || 0);
 
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
@@ -1053,7 +1053,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
         </div>
       </div>
 
-      <div className="animate-float absolute right-0 top-[23%] z-20 rounded-lg bg-[#171b30] px-4 py-3 text-white shadow-xl [animation-delay:700ms]">
+      <div className="animate-float absolute right-0 top-[17%] z-20 rounded-lg bg-[#171b30] px-4 py-3 text-white shadow-xl [animation-delay:700ms] sm:top-[23%]">
         <div className="flex items-center gap-3">
           <MapPin size={17} className="text-[#f4ad75]" />
           <div>
@@ -1071,7 +1071,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-white/10 p-2"><p className="text-lg font-black">{totalBookings}</p><p className="text-[9px] font-bold text-white/55">Total bookings</p></div>
-            <div className="rounded-xl bg-white/10 p-2"><p className="text-lg font-black">{formatRupees(totalSpending)}</p><p className="text-[9px] font-bold text-white/55">Total spending</p></div>
+            <div className="rounded-xl bg-white/10 p-2"><p className="text-lg font-black">{heroRating > 0 ? heroRating.toFixed(1) : "New"}</p><p className="text-[9px] font-bold text-white/55">Provider rating</p></div>
           </div>
         </div>
         <div className="flex items-start gap-3">
@@ -1089,13 +1089,15 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
             </div>
           </div>
         </div>
-        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-black/30 sm:mt-4">Upcoming plan</p>
-        <div className="mt-1.5 flex items-end justify-between gap-4 sm:mt-2">
-          <div>
-            <p className="text-sm font-black sm:text-base">Coffee · 2 hours</p>
-            <p className="mt-1 text-xs font-bold text-black/38">Saturday, 5:30 PM</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-black/10 pt-3 sm:mt-4 sm:gap-3 sm:pt-4">
+          <div className="rounded-lg bg-[#fff5ea] px-3 py-2 text-center">
+            <p className="text-base font-black text-black sm:text-lg">{totalBookings}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-black/35">Total bookings</p>
           </div>
-          <p className="text-base font-black text-[#e08c4c] sm:text-lg">{formatRupees(800)}</p>
+          <div className="rounded-lg bg-[#fff5ea] px-3 py-2 text-center">
+            <p className="text-base font-black text-[#e08c4c] sm:text-lg">{heroRating > 0 ? heroRating.toFixed(1) : "New"}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-black/35">Provider rating</p>
+          </div>
         </div>
       </Link>
 
@@ -1240,29 +1242,38 @@ function PublicServiceExploreSection({
       <div className="mx-auto max-w-[1520px]">
         <div className="flex flex-wrap items-center gap-3 border-b border-black/10 pb-5">
           <p className="mr-2 text-xl font-black text-black">{content.serviceTypeLabel || "Service Type"}</p>
-          <span className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black">
+          <Link
+            to="/activities"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white sm:hidden"
+          >
+            {content.serviceMoreLabel || "View more services"} <ArrowRight size={14} />
+          </Link>
+          <span className="hidden rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black sm:inline-flex">
             {content.serviceTypePrimary || "Meet up"}
           </span>
           {servicePills.map((label) => (
             <span
               key={label}
-              className={`cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black ${["Events", "Cafe meet", "Gaming", "Dinner", "Shopping", "Sports"].includes(label) ? "hidden sm:inline-flex" : ""}`}
+              className={`cursor-default rounded-full bg-[#f8f8f8] px-5 py-3 text-sm font-black text-black ${["City tour", "Events", "Cafe meet", "Gaming", "Dinner", "Shopping", "Sports"].includes(label) ? "hidden sm:inline-flex" : ""}`}
             >
               {label}
             </span>
           ))}
           <Link
             to="/activities"
-            className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white"
+            className="hidden items-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white sm:inline-flex"
           >
             {content.serviceMoreLabel || "View more services"} ({activities.length || 0}) <ArrowRight size={16} />
           </Link>
         </div>
 
         <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <button type="button" onClick={() => setShowFilters(true)} className="inline-flex w-max items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md lg:hidden">
-            <SlidersHorizontal size={16} /> {content.filterButtonLabel || "Filter"}
-          </button>
+          <div className="flex items-center gap-3 lg:hidden">
+            <button type="button" onClick={() => setShowFilters(true)} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md">
+              <SlidersHorizontal size={16} /> {content.filterButtonLabel || "Filter"}
+            </button>
+            <h2 className="min-w-0 text-lg font-black leading-tight text-black">{title}</h2>
+          </div>
           {showFilters ? <button type="button" aria-label="Close filters" onClick={() => setShowFilters(false)} className="fixed inset-x-0 bottom-0 top-[76px] z-[9998] bg-black/40 lg:hidden" /> : null}
           <aside className={`fixed bottom-0 left-0 top-[76px] z-[9999] w-[min(86vw,340px)] overflow-y-auto border-r border-black/10 bg-white p-6 shadow-2xl transition-transform duration-300 lg:sticky lg:top-28 lg:z-auto lg:h-max lg:w-auto lg:translate-x-0 lg:overflow-visible lg:border lg:shadow-none ${showFilters ? "translate-x-0" : "-translate-x-full"}`}>
             <button
@@ -1317,7 +1328,7 @@ function PublicServiceExploreSection({
           </aside>
 
           <div className="min-w-0">
-            <h2 className="text-3xl font-black text-black">
+            <h2 className="hidden text-3xl font-black text-black lg:block">
               {title}
             </h2>
             <p className="mt-2 text-sm font-bold text-black/45">

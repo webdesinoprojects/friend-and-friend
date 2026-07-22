@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -55,6 +55,9 @@ const emergencyContacts = [
 ];
 
 export default function Contact() {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
   const [form, setForm] = useState({
     name: "",
     email: "",
