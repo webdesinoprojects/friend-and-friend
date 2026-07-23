@@ -2,6 +2,7 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { listBookings } from "../../api/bookings";
 import Logo from "../../components/common/Logo";
 import {
   ArrowRight,
@@ -50,6 +51,7 @@ export default function Login() {
     localStorage.setItem("buddybook_auth_user", JSON.stringify(data.user));
     localStorage.removeItem("buddybook_application_token");
     localStorage.removeItem("buddybook_pending_application");
+    if (data.user?.role === "USER" || data.user?.role === "PROVIDER") listBookings().catch(() => {});
     goToDashboard(data.user);
   };
 

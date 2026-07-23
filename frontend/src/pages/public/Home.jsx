@@ -100,7 +100,7 @@ export default function Home() {
   );
   const [publicFilters, setPublicFilters] = useState(publicSearchDefaults);
   const [providerPage, setProviderPage] = useState(1);
-  const [siteContent, setSiteContent] = useState(() => readPreviewContent());
+  const [siteContent, setSiteContent] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -141,10 +141,8 @@ export default function Home() {
       .then(({ data }) => {
         if (!mounted) return;
         const remote = data?.data || {};
-        const preview = readPreviewContent();
-        const remoteTime = new Date(remote.updatedAt || 0).getTime();
-        const previewTime = Number(preview._previewUpdatedAt || new Date(preview.updatedAt || 0).getTime());
-        setSiteContent(previewTime > remoteTime ? preview : remote);
+        setSiteContent(remote);
+        localStorage.setItem("buddybook_site_content_preview", JSON.stringify(remote));
       })
       .catch(() => {});
     return () => {

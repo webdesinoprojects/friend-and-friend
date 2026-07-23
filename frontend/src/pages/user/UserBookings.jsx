@@ -6,8 +6,8 @@ import {
   Clock3,
   CreditCard,
   Copy,
+  Flag,
   KeyRound,
-  MapPin,
   Search,
   Star,
   XCircle,
@@ -17,6 +17,7 @@ import { formatRupees } from "../../utils/format";
 import { cancelBookingApi, listBookings } from "../../api/bookings";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
+import MeetingReportDialog from "../../components/common/MeetingReportDialog";
 import {
   addReview,
   cancelBooking,
@@ -47,17 +48,20 @@ function getBookingGroup(booking) {
 
 export default function UserBookings() {
   const [bookings, setBookings] = useState(() => getBookings());
+  const [loadingBookings, setLoadingBookings] = useState(() => getBookings().length === 0);
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
 
   useEffect(() => {
     let mounted = true;
     const refresh = () => {
       listBookings()
         .then((rows) => mounted && setBookings(rows))
-        .catch(() => mounted && setBookings(getBookings()));
+        .catch(() => mounted && setBookings(getBookings()))
+        .finally(() => mounted && setLoadingBookings(false));
     };
     refresh();
-    const unsubscribe = subscribeToUserData(refresh);
+    const unsubscribe = subscribeToUserData(() => setBookings(getBookings()));
     return () => {
       mounted = false;
       unsubscribe();
@@ -127,7 +131,9 @@ export default function UserBookings() {
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">
-          {visibleBookings.length === 0 ? (
+          {loadingBookings ? (
+            <div className="grid gap-4 xl:grid-cols-2">{[1, 2].map((item) => <div key={item} className="h-72 animate-pulse rounded-2xl border border-[#eddac7] bg-white" />)}</div>
+          ) : visibleBookings.length === 0 ? (
             <div className="grid min-h-[18rem] place-items-center rounded-2xl border border-dashed border-[#d9bfaa] bg-white p-8 text-center">
               <div>
                 <CalendarCheck className="mx-auto text-[#e08c4c]" size={42} />
@@ -193,13 +199,7 @@ export default function UserBookings() {
                       </span>
                       {canShareLocation && (
                         <div className="flex flex-wrap gap-2">
-                          <Link
-                            to={`/app/user/active-meet/${booking.id}`}
-                            className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]"
-                          >
-                            <MapPin size={15} />
-                            {status === "ACTIVE" ? "Open active meeting" : "Meetup details"}
-                          </Link>
+                          {status === "ACTIVE" ? <Link to={`/app/user/active-meet/${booking.id}`} className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]">Open active meeting</Link> : null}
                           {status !== "ACTIVE" ? <button
                             type="button"
                             onClick={() => setCancelTarget(booking)}
@@ -212,23 +212,22 @@ export default function UserBookings() {
                     </div>
 
                     {status === "CONFIRMED" && booking.startPin ? (
-                      <div className="mt-4 rounded-2xl border-2 border-[#e08c4c] bg-[#fff5e9] p-4 sm:p-5">
-                        <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2 text-[#bc6e36]"><KeyRound size={17}/><p className="text-xs font-black uppercase tracking-[.15em]">Your private meeting PIN</p></div><p className="mt-2 text-xs font-bold leading-5 text-black/55">Give this code to the provider only when you meet in person. It expires {formatPinExpiry(booking.startPinExpiresAt)} and works once.</p></div><button type="button" onClick={()=>navigator.clipboard?.writeText(booking.startPin).then(()=>notify("PIN copied.","success"))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white shadow-sm" aria-label="Copy meeting PIN"><Copy size={16}/></button></div>
-                        <div className="mt-4 rounded-xl bg-[#171b30] px-4 py-4 text-center text-3xl font-black tracking-[.35em] text-[#ffd49f]">{booking.startPin}</div>
+                      <div className="mt-4 overflow-hidden rounded-xl border border-[#e08c4c] bg-[#fff5e9]">
+                        <div className="flex items-center gap-3 px-3 py-2.5"><KeyRound size={15} className="shrink-0 animate-pulse text-[#bc6e36]"/><p className="min-w-0 flex-1 truncate text-[11px] font-black uppercase tracking-[.1em] text-[#bc6e36]">Private PIN · share in person · expires {formatPinExpiry(booking.startPinExpiresAt)}</p><span className="animate-pulse font-mono text-lg font-black tracking-[.22em] text-[#171b30]">{booking.startPin}</span><button type="button" onClick={()=>navigator.clipboard?.writeText(booking.startPin).then(()=>notify("PIN copied.","success"))} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white shadow-sm" aria-label="Copy meeting PIN"><Copy size={14}/></button></div>
                       </div>
                     ) : null}
 
                     {status === "ACTIVE" ? <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><span className="font-black">Meeting timer is running.</span> Open the active meeting panel to enter the provider's end code, finish, or extend.</div> : null}
 
                     {completed ? (
-                      userReview ? (
+                      <><button type="button" onClick={() => setReportTarget(booking)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"><Flag size={15}/>Report provider</button>{userReview ? (
                         <div className="mt-4 rounded-2xl bg-[#fffaf3] p-4">
                           <p className="text-xs font-black text-[#e08c4c]">Review submitted</p>
                           <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{userReview.description}</p>
                         </div>
                       ) : (
                         <ReviewForm booking={booking} onSubmitted={() => setBookings(getBookings())} />
-                      )
+                      )}</>
                     ) : null}
                   </article>
                 );
@@ -244,6 +243,7 @@ export default function UserBookings() {
           onConfirm={cancelSelectedBooking}
         />
       ) : null}
+      {reportTarget ? <MeetingReportDialog booking={reportTarget} onClose={() => setReportTarget(null)} /> : null}
     </UserAppLayout>
   );
 }

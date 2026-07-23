@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
+  Flag,
   Heart,
   Home,
   LayoutDashboard,
@@ -14,7 +15,8 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMyReportSummary } from "../../api/reports";
 import { NotificationBell } from "../common/HeaderActions";
 import Logo from "../common/Logo";
 
@@ -25,6 +27,7 @@ const userLinks = [
   { label: "Chat", to: "/app/user/chat", icon: MessageCircle },
   { label: "Payments", to: "/app/user/wallet", icon: Wallet },
   { label: "Reviews", to: "/app/user/reviews", icon: Star },
+  { label: "Reports", to: "/app/user/reports", icon: Flag },
   { label: "Profile", to: "/app/user/profile", icon: User },
   { label: "Settings", to: "/app/user/settings", icon: Settings },
 ];
@@ -43,6 +46,13 @@ export default function UserAppLayout({
   const pageName = getPageName(location.pathname, title);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
+  const [reportCount, setReportCount] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    const load = () => getMyReportSummary().then((data) => mounted && setReportCount(data.received || 0)).catch(() => {});
+    load();
+    return () => { mounted = false; };
+  }, []);
   const searchResults = userLinks.filter((item) =>
     item.label.toLowerCase().includes(navSearch.trim().toLowerCase())
   );
@@ -79,6 +89,7 @@ export default function UserAppLayout({
                 >
                   <Icon size={22} />
                   {label}
+                  {label === "Reports" ? <span className="ml-auto rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">{reportCount}</span> : null}
                 </Link>
               );
             })}
@@ -245,6 +256,7 @@ export default function UserAppLayout({
                     >
                       <Icon size={18} />
                       {label}
+                      {label === "Reports" ? <span className="ml-auto rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">{reportCount}</span> : null}
                     </Link>
                   ))}
                 </nav>

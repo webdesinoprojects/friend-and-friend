@@ -33,7 +33,7 @@ export default function AdminReports() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.14em] text-[#e08c4c]">Moderation</p>
-            <h2 className="mt-1 text-2xl font-black">Review reports</h2>
+            <h2 className="mt-1 text-2xl font-black">Meeting reports</h2>
           </div>
           <Flag className="text-[#e08c4c]" />
         </div>
@@ -62,24 +62,20 @@ export default function AdminReports() {
                 <p className="flex items-center gap-1 text-xs font-black text-[#e08c4c]">
                   <Star size={14} fill="currentColor" /> {report.rating || "-"} / 5
                 </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-[#5d4a3c]">{report.reviewText || "No review text included."}</p>
+                <p className="mt-2 text-sm font-bold leading-6 text-[#5d4a3c]">{report.reviewText || "No details included."}</p>
                 <div className="mt-3 grid gap-2 text-xs font-bold text-[#6b5d52] sm:grid-cols-2">
                   <p>Booking: {report.bookingId || "Not linked"}</p>
-                  <p>Review ID: {report.reviewId || "Not linked"}</p>
+                  <p>Meeting ID: {report.reviewSnapshot?.meetingCode || report.bookingId || "Not linked"}</p>
                   <p>Reporter ID: {report.reporterId}</p>
                   <p>Reported User ID: {report.reportedUserId || "Unknown"}</p>
+                  <p>Reporter: {report.reporterName} ({report.reporterRole})</p>
+                  <p>Reported: {report.reportedName} ({report.targetRole})</p>
                 </div>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => act(report, "DELETE_REVIEW")} className="rounded-xl bg-black px-4 py-2.5 text-xs font-black text-white">
-                  Delete review
-                </button>
                 <button type="button" onClick={() => act(report, "BLOCK_REPORTED_ACCOUNT")} className="rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white">
-                  Block review writer
-                </button>
-                <button type="button" onClick={() => act(report, "DECREASE_REVIEWER_RATING")} className="rounded-xl bg-[#ffeedd] px-4 py-2.5 text-xs font-black text-black">
-                  Decrease writer rating
+                  Block reported account
                 </button>
                 <button type="button" onClick={() => act(report, "NO_ACTION", "CLOSED")} className="rounded-xl border border-black/10 bg-white px-4 py-2.5 text-xs font-black text-black">
                   Close

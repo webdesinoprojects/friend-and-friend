@@ -1,5 +1,6 @@
 import {
   CalendarCheck,
+  Flag,
   Home,
   LayoutDashboard,
   Menu,
@@ -13,7 +14,8 @@ import {
   X,
 } from "lucide-react";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getMyReportSummary } from "../../api/reports";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import Logo from "../common/Logo";
 import { NotificationBell } from "../common/HeaderActions";
@@ -25,6 +27,7 @@ const providerLinks = [
   { label: "Chat", to: "/app/provider/chat", icon: MessageCircle },
   { label: "Earnings", to: "/app/provider/earnings", icon: Wallet },
   { label: "Reviews", to: "/app/provider/reviews", icon: Star },
+  { label: "Reports", to: "/app/provider/reports", icon: Flag },
   { label: "Settings", to: "/app/provider/settings", icon: Settings },
 ];
 
@@ -46,6 +49,14 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
   const storedUser = readStoredUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
+  const [reportCount, setReportCount] = useState(0);
+  useEffect(() => {
+    if (type !== "provider") return undefined;
+    let mounted = true;
+    const load = () => getMyReportSummary().then((data) => mounted && setReportCount(data.received || 0)).catch(() => {});
+    load();
+    return () => { mounted = false; };
+  }, [type]);
   const inputValue = searchValue || localSearch;
   const searchMatches = useMemo(() => {
     const query = inputValue.trim().toLowerCase();
@@ -81,6 +92,7 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
                 >
                   <Icon size={22} />
                   {label}
+                  {label === "Reports" ? <span className="ml-auto rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">{reportCount}</span> : null}
                 </Link>
               );
             })}

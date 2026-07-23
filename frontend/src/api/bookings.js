@@ -1,4 +1,5 @@
 import api from "./api";
+import { cacheBookings } from "../utils/userFlowStorage";
 
 export async function createBooking(payload) {
   const { data } = await api.post("/bookings", payload);
@@ -17,7 +18,7 @@ export async function verifyRazorpayPayment(payload) {
 
 export async function listBookings() {
   const { data } = await api.get("/bookings");
-  return Array.isArray(data?.data) ? data.data : [];
+  return cacheBookings(Array.isArray(data?.data) ? data.data : []);
 }
 
 export async function cancelBookingApi(bookingId, reason) {

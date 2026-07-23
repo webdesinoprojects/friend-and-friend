@@ -21,6 +21,12 @@ function writeList(key, value) {
   window.dispatchEvent(new CustomEvent("buddybook:data-changed", { detail: key }));
 }
 
+export function cacheBookings(bookings) {
+  const next = Array.isArray(bookings) ? bookings : [];
+  if (JSON.stringify(getBookings()) !== JSON.stringify(next)) writeList(KEYS.bookings, next);
+  return next;
+}
+
 export const getBookings = () => readList(KEYS.bookings);
 export const getPayments = () => readList(KEYS.payments);
 export const getReviews = () => readList(KEYS.reviews);

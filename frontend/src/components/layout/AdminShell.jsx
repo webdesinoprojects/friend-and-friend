@@ -21,9 +21,9 @@ const navItems = [
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Providers", to: "/admin/providers", icon: UserCheck },
   { label: "KYC Reviews", to: "/admin/kyc", icon: ShieldCheck },
+  { label: "Reports", to: "/admin/reports", icon: Flag, child: true },
   { label: "Bookings", to: "/admin/bookings", icon: CalendarCheck },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
-  { label: "Reports", to: "/admin/reports", icon: Flag },
   { label: "Website Content", to: "/admin/content", icon: FileText },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];
@@ -69,7 +69,7 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
                 key={item.label}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-4 rounded-2xl px-5 py-4 text-[15px] font-semibold transition ${
+                  `flex items-center gap-4 rounded-2xl px-5 py-4 text-[15px] font-semibold transition ${item.child ? "ml-7 border-l-2 border-[#f6b800]" : ""} ${
                     isActive
                       ? "bg-[#fff3d8] text-[#08285c]"
                       : "text-[#101828] hover:bg-[#f7f5ef]"

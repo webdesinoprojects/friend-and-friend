@@ -20,6 +20,7 @@ import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import { formatRs, formatRupees } from "../../utils/format";
+import { listBookings } from "../../api/bookings";
 
 export default function UserDashboard() {
   const [search, setSearch] = useState("");
@@ -57,6 +58,7 @@ export default function UserDashboard() {
       } finally {
         if (mounted) setProvidersLoading(false);
       }
+      if (hasAuthToken()) listBookings().then((rows) => mounted && setBookings(rows)).catch(() => {});
     };
 
     loadDashboard();
@@ -85,14 +87,12 @@ export default function UserDashboard() {
     window.addEventListener("buddybook:data-changed", refreshBookings);
     window.addEventListener("buddybook:providers-changed", refreshProviders);
     window.addEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
-    window.addEventListener("buddybook:data-changed", refreshProviders);
 
     return () => {
       window.removeEventListener("storage", refreshBookings);
       window.removeEventListener("buddybook:data-changed", refreshBookings);
       window.removeEventListener("buddybook:providers-changed", refreshProviders);
       window.removeEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
-      window.removeEventListener("buddybook:data-changed", refreshProviders);
     };
   }, []);
 

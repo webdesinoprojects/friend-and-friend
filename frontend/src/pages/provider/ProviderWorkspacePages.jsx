@@ -21,6 +21,7 @@ import {
   Clock,
   Clock3,
   CreditCard,
+  Flag,
   IndianRupee,
   KeyRound,
   MapPin,
@@ -39,6 +40,7 @@ import { getMyProviderProfile, saveMyProviderProfile } from "../../api/providers
 import { listBookings, startBookingMeeting } from "../../api/bookings";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
+import MeetingReportDialog from "../../components/common/MeetingReportDialog";
 import {
   addReview,
   getBookings,
@@ -183,6 +185,7 @@ export function ProviderBookings() {
   const [bookings, setBookings] = useState(() => getBookings());
   const [pins, setPins] = useState({});
   const [startingId, setStartingId] = useState("");
+  const [reportTarget, setReportTarget] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -192,11 +195,9 @@ export function ProviderBookings() {
         .catch(() => mounted && setBookings(getBookings()));
     };
     refresh();
-    const timer = window.setInterval(refresh, 8000);
-    const unsubscribe = subscribeToUserData(refresh);
+    const unsubscribe = subscribeToUserData(() => setBookings(getBookings()));
     return () => {
       mounted = false;
-      window.clearInterval(timer);
       unsubscribe();
     };
   }, []);
@@ -292,14 +293,14 @@ export function ProviderBookings() {
                       ) : null}
 
                       {completed ? (
-                        providerReview ? (
+                        <><button type="button" onClick={() => setReportTarget(booking)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"><Flag size={15}/>Report user</button>{providerReview ? (
                           <div className="mt-4 rounded-2xl bg-[#fffaf3] p-4">
                             <p className="text-xs font-black text-[#e08c4c]">Review submitted</p>
                             <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{providerReview.description}</p>
                           </div>
                         ) : (
                           <ProviderReviewForm booking={booking} onSubmitted={() => setBookings((rows) => [...rows])} />
-                        )
+                        )}</>
                       ) : null}
                     </article>
                   );
@@ -331,6 +332,7 @@ export function ProviderBookings() {
           </div>
         </Panel>
       </div>
+      {reportTarget ? <MeetingReportDialog booking={reportTarget} onClose={() => setReportTarget(null)} /> : null}
     </ProviderPageShell>
   );
 }

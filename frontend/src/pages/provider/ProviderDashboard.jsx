@@ -83,11 +83,8 @@ export default function ProviderDashboard() {
       .finally(() => mounted && setLoading(false));
 
     loadProvider();
-    const refreshTimer = window.setInterval(loadProvider, 8000);
-
     return () => {
       mounted = false;
-      window.clearInterval(refreshTimer);
     };
   }, []);
 

@@ -10,6 +10,16 @@ export async function createReview(payload) {
   return data?.data || data;
 }
 
+export async function createMeetingReport(payload) {
+  const { data } = await api.post("/reports/meetings", payload, { timeout: 30000 });
+  return data;
+}
+
+export async function getMyReportSummary() {
+  const { data } = await api.get("/reports/me");
+  return data?.data || { received: 0, limit: 10, submitted: [] };
+}
+
 export async function listMyReviews() {
   const { data } = await api.get("/reports/reviews", { timeout: 30000 });
   return Array.isArray(data?.data) ? data.data : [];
