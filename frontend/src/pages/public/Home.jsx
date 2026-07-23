@@ -30,6 +30,11 @@ import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import { formatRs, formatRupees } from "../../utils/format";
 import friendsHero from "../../assets/buddybook-friends-hero.webp";
+import heroHome1 from "../../assets/hero-home-1-arch.jpg";
+import heroHome2 from "../../assets/hero-home-2-arch.jpg";
+import heroHome3 from "../../assets/hero-home-3-arch.jpg";
+import heroHome4 from "../../assets/hero-home-4-arch.jpg";
+import heroHome5 from "../../assets/hero-home-5-arch.jpg";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
 import ProviderCard from "../../components/users/ProviderCard";
@@ -83,6 +88,14 @@ const publicSearchDefaults = {
   rating: "All",
 };
 const PROVIDERS_PER_PAGE = 8;
+const heroSlides = [
+  { src: friendsHero, alt: "Friends enjoying a relaxed cafe meetup" },
+  { src: heroHome1, alt: "Friends enjoying a city walk together" },
+  { src: heroHome2, alt: "Friends sharing food and laughing together" },
+  { src: heroHome3, alt: "Friends enjoying a movie together" },
+  { src: heroHome4, alt: "Friends enjoying a live concert together" },
+  { src: heroHome5, alt: "Friends looking at photos together" },
+];
 
 export default function Home() {
   const heroLayerRef = useRef(null);
@@ -1008,6 +1021,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
     return withActivity.length ? withActivity : ranked;
   }, [publicProviders]);
   const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
 
   useEffect(() => {
     if (popularProfiles.length < 2) return undefined;
@@ -1021,6 +1035,13 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
     return () => window.clearInterval(interval);
   }, [popularProfiles]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const heroProfile = popularProfiles[featuredIndex % Math.max(popularProfiles.length, 1)] || { name: "Verified Buddy", image: "" };
   const heroName = heroProfile.name?.split(" ")[0] || "Buddy";
   const heroImage = heroProfile.image || heroProfile.avatar || heroProfile.profileImage || "";
@@ -1031,12 +1052,40 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
   return (
     <div className="relative min-h-[490px] animate-rise sm:min-h-[650px] lg:min-h-[690px]">
       <div className="absolute inset-x-[4%] bottom-24 top-4 overflow-hidden rounded-t-[45%] rounded-b-lg sm:inset-x-[10%] sm:bottom-16 lg:inset-x-[8%]">
-        <img
-          src={siteContent.heroImage || friendsHero}
-          alt={siteContent.heroImageAlt || "Verified companions enjoying a public meetup"}
-          className="h-full w-full object-cover object-[82%_center] transition duration-700 hover:scale-[1.025] sm:object-[78%_center] lg:object-[86%_center]"
-        />
-        <div className="absolute inset-0 bg-[#efb37f]/10" />
+        {heroSlides.map((slide, index) => (
+          <img
+            key={slide.src}
+            src={slide.src}
+            alt={index === activeHeroSlide ? slide.alt : ""}
+            aria-hidden={index !== activeHeroSlide}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out ${
+              index === 0 ? "object-[90%_center]" : "object-center"
+            } ${
+              index === activeHeroSlide ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          />
+        ))}
+
+        <div
+          className="absolute bottom-4 right-4 z-40 flex flex-col items-center gap-2"
+          role="group"
+          aria-label="Hero image carousel"
+        >
+          {heroSlides.map((slide, index) => (
+            <button
+              key={slide.src}
+              type="button"
+              onClick={() => setActiveHeroSlide(index)}
+              className={`h-2.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#171b30] focus:ring-offset-2 ${
+                index === activeHeroSlide
+                  ? "h-7 w-2.5 bg-[#e08c4c]"
+                  : "w-2.5 bg-[#171b30]/30 hover:bg-[#171b30]/55"
+              }`}
+              aria-label={`Show hero image ${index + 1}`}
+              aria-current={index === activeHeroSlide ? "true" : undefined}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="animate-float absolute left-0 top-[8%] z-20 rounded-lg bg-white px-4 py-3 shadow-[0_18px_45px_rgba(66,42,27,0.15)] sm:left-[2%]">
@@ -1061,7 +1110,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
         </div>
       </div>
 
-      <Link to={heroLink} className="group absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3.5 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(66,42,27,0.28)] focus:outline-none focus:ring-4 focus:ring-[#e08c4c]/30 sm:left-auto sm:right-[1%] sm:w-[320px] sm:translate-x-0 sm:p-5">
+      <Link to={heroLink} className="group absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(66,42,27,0.28)] focus:outline-none focus:ring-4 focus:ring-[#e08c4c]/30 sm:w-[320px] sm:p-4">
         <div className="pointer-events-none absolute bottom-[calc(100%-0.35rem)] right-[calc(100%-0.75rem)] hidden w-56 rounded-2xl border border-[#e08c4c]/40 bg-[#171b30] p-4 text-white shadow-[0_24px_60px_rgba(23,27,48,0.3)] group-hover:block group-focus-visible:block sm:w-64">
           <div className="flex items-center gap-3">
             {heroImage ? <img src={heroImage} alt="" className="h-12 w-12 rounded-full border-2 border-[#f4ad75] object-cover" /> : null}
