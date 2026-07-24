@@ -38,6 +38,7 @@ import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
 import { getMyProviderProfile, saveMyProviderProfile } from "../../api/providers";
 import { listBookings, startBookingMeeting } from "../../api/bookings";
+import { listChats } from "../../api/chats";
 import { createReview } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
 import MeetingReportDialog from "../../components/common/MeetingReportDialog";
@@ -181,8 +182,8 @@ export function ProviderAvailability() {
 }
 
 export function ProviderBookings() {
-  const { stats } = useProviderWorkspace();
   const [bookings, setBookings] = useState(() => getBookings());
+  const [userImages, setUserImages] = useState({});
   const [pins, setPins] = useState({});
   const [startingId, setStartingId] = useState("");
   const [reportTarget, setReportTarget] = useState(null);
@@ -190,8 +191,12 @@ export function ProviderBookings() {
   useEffect(() => {
     let mounted = true;
     const refresh = () => {
-      listBookings()
-        .then((rows) => mounted && setBookings(rows))
+      Promise.all([listBookings(), listChats()])
+        .then(([rows, chats]) => {
+          if (!mounted) return;
+          setBookings(rows);
+          setUserImages(Object.fromEntries(chats.map((chat) => [chat.userId, chat.userImage || ""])));
+        })
         .catch(() => mounted && setBookings(getBookings()));
     };
     refresh();
@@ -220,37 +225,21 @@ export function ProviderBookings() {
 
   return (
     <ProviderPageShell title="Bookings" subtitle="Start meetings securely with the user's PIN and manage the live handoff." action={null}>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="flex min-h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-[1.5rem] border border-[#eddac7] bg-[#fffaf3] shadow-sm">
-          <header className="border-b border-[#eddac7] bg-white p-5">
-            <div>
-              <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#e08c4c]">Booking management</p>
-              <h2 className="mt-1 text-2xl font-black text-black">Provider bookings</h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">Enter the user's start PIN, run the timer, and share the private end code.</p>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <BookingStat icon={CalendarCheck} label="Total" value={bookings.length} />
-              <BookingStat icon={Clock3} label="Upcoming" value={bookings.filter((item) => ["CONFIRMED", "PAID", "ACCEPTED"].includes(String(item.status || "").toUpperCase())).length} />
-              <BookingStat icon={CheckCircle2} label="Completed" value={bookings.filter((item) => String(item.status || "").toUpperCase() === "COMPLETED").length} />
-              <BookingStat icon={Users} label="Users" value={new Set(bookings.map((item) => item.userId || item.userName).filter(Boolean)).size} />
-            </div>
-          </header>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <div>
+        <section className="min-h-[calc(100vh-13rem)] bg-white">
+          <div className="p-1 sm:p-2">
             {bookings.length ? (
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className="grid gap-5 xl:grid-cols-2">
                 {bookings.map((booking) => {
                   const status = String(booking.status || "PENDING").toUpperCase();
                   const completed = status === "COMPLETED";
                   const providerReview = getReviewForBooking(booking.id, "PROVIDER");
 
                   return (
-                    <article key={booking.id} className="rounded-2xl border border-[#eddac7] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <article key={booking.id} className="border border-slate-200 bg-white p-5 shadow-[0_10px_32px_rgba(15,23,42,0.07)] transition hover:border-slate-300 sm:p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-xl font-black text-black">
-                            {(booking.userName || "U").charAt(0).toUpperCase()}
-                          </div>
+                          {userImages[booking.userId] ? <img src={userImages[booking.userId]} alt={booking.userName || "User"} className="h-14 w-14 shrink-0 border border-slate-200 object-cover" /> : <div className="grid h-14 w-14 shrink-0 place-items-center bg-slate-100 text-xl font-black text-slate-700">{(booking.userName || "U").charAt(0).toUpperCase()}</div>}
                           <div className="min-w-0">
                             <h3 className="truncate text-lg font-black text-black">{booking.service || booking.activity || "Buddy meetup"}</h3>
                             <p className="truncate text-sm font-bold text-slate-500">with {booking.userName || booking.customerName || "BuddyBOOK user"}</p>
@@ -259,7 +248,7 @@ export function ProviderBookings() {
                         <Status value={status} />
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf3] p-4 text-sm">
+                      <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-slate-100 bg-slate-50 p-4 text-sm">
                         <Detail label="Date" value={booking.date || "To be confirmed"} />
                         <Detail label="Time" value={booking.time || "To be confirmed"} />
                         <Detail label="Duration" value={booking.duration || `${booking.durationHours || 1} hour`} />
@@ -274,12 +263,11 @@ export function ProviderBookings() {
                       </div>
 
                       {status === "CONFIRMED" ? (
-                        <div className="mt-4 rounded-2xl border border-[#edc8a8] bg-[#fff5e9] p-4">
-                          <div className="flex items-center gap-2"><KeyRound size={17} className="text-[#c97031]" /><p className="text-sm font-black">Start meeting with user PIN</p></div>
-                          <p className="mt-1 text-xs font-bold leading-5 text-black/50">Ask the user for the six-digit PIN shown after payment. It can be used once within 14 days.</p>
-                          <div className="mt-3 flex gap-2">
-                            <input value={pins[booking.id] || ""} onChange={(event)=>setPins((current)=>({...current,[booking.id]:event.target.value.replace(/\D/g,"").slice(0,6)}))} inputMode="numeric" maxLength={6} placeholder="000000" className="min-w-0 flex-1 rounded-xl border-2 border-black bg-white px-4 py-3 text-center text-xl font-black tracking-[.28em] outline-none" />
-                            <button type="button" disabled={startingId===booking.id || String(pins[booking.id]||"").length!==6} onClick={()=>startMeeting(booking)} className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-3 text-xs font-black text-white disabled:opacity-40"><Play size={15}/>{startingId===booking.id?"Starting...":"Start"}</button>
+                        <div className="mt-4 border border-amber-200 bg-amber-50 p-3">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex min-w-[180px] flex-1 items-center gap-2"><KeyRound size={16} className="text-amber-700" /><div><p className="text-xs font-black">User start PIN</p><p className="text-[10px] font-semibold text-slate-500">Ask the user for the code shown after payment.</p></div></div>
+                            <input aria-label="Six-digit user start PIN" value={pins[booking.id] || ""} onChange={(event)=>setPins((current)=>({...current,[booking.id]:event.target.value.replace(/\D/g,"").slice(0,6)}))} inputMode="numeric" maxLength={6} placeholder="000000" className="h-10 w-36 border border-slate-900 bg-white px-3 text-center font-mono text-base font-black tracking-[.2em] outline-none focus:ring-2 focus:ring-amber-300" />
+                            <button type="button" disabled={startingId===booking.id || String(pins[booking.id]||"").length!==6} onClick={()=>startMeeting(booking)} className="inline-flex h-10 items-center gap-2 bg-slate-950 px-4 text-xs font-black text-white disabled:opacity-40"><Play size={14}/>{startingId===booking.id?"Starting...":"Start meeting"}</button>
                           </div>
                         </div>
                       ) : null}
@@ -318,19 +306,7 @@ export function ProviderBookings() {
           </div>
         </section>
 
-        <Panel title="Weekly bookings" subtitle="Accepted and completed volume">
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.weeklyViews}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eddac7" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Bar dataKey="bookings" fill="#111111" radius={[10, 10, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
+
       </div>
       {reportTarget ? <MeetingReportDialog booking={reportTarget} onClose={() => setReportTarget(null)} /> : null}
     </ProviderPageShell>

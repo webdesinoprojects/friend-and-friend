@@ -80,9 +80,27 @@ exports.deletePermanently = async (req, res) => {
     ].filter(Boolean));
 
     await prisma.$transaction(async (tx) => {
+      const registrationApplications = await tx.registrationApplication.findMany({
+        where: {
+          OR: [
+            { approvedUserId: user.id },
+            { phone: user.phone },
+            ...(user.email ? [{ email: user.email }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      const registrationApplicationIds = registrationApplications.map((item) => item.id);
+
       await tx.accountDeletionAudit.create({ data: { originalUserId: user.id, role: user.role } });
       await tx.notification.deleteMany({ where: { userId: user.id } });
-      await tx.kycReviewHistory.deleteMany({ where: { userId: user.id } });
+      await tx.kycReviewHistory.deleteMany({
+        where: {
+          userId: {
+            in: [user.id, ...registrationApplicationIds],
+          },
+        },
+      });
       await tx.reviewReport.deleteMany({ where: { reportedUserId: user.id } });
       await tx.loginAttempt.deleteMany({ where: { OR: [{ userId: user.id }, ...(user.email ? [{ email: user.email }] : [])] } });
       await tx.otpToken.deleteMany({
@@ -94,6 +112,11 @@ exports.deletePermanently = async (req, res) => {
           ],
         },
       });
+      if (registrationApplicationIds.length) {
+        await tx.registrationApplication.deleteMany({
+          where: { id: { in: registrationApplicationIds } },
+        });
+      }
       await tx.user.delete({ where: { id: user.id } });
     });
 
