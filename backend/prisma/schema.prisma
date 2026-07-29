@@ -42,6 +42,8 @@ model User {
   disabledAt      DateTime?
   disabledUntil   DateTime?
   aadhaarLast4    String?
+  ageConfirmed    Boolean            @default(false)
+  safetyAccepted  Boolean            @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,6 +81,8 @@ model RegistrationApplication {
   documentLast4   String?
   documentUrl     String
   consentAccepted Boolean            @default(false)
+  ageConfirmed    Boolean            @default(false)
+  safetyAccepted  Boolean            @default(false)
   userProfile     Json?
   providerProfile Json?
   status          VerificationStatus @default(PENDING)
@@ -210,6 +214,9 @@ model Booking {
   razorpaySignature String?
   status            String    @default("CONFIRMED")
   cancelReason      String?
+  cancelCategory    String?
+  cancellationFee  Int?
+  refundAmount      Int?
   cancelledAt       DateTime?
   startPin          String?
   startPinExpiresAt DateTime?

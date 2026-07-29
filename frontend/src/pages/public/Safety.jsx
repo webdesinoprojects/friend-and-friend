@@ -22,7 +22,7 @@ import {
 import { Link } from "react-router-dom";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
-import safetyHero from "../../assets/safety-cafe-hero.png";
+import safetyHero from "../../assets/safety-cafe-hero.jpg";
 
 const essentials = [
   [UserCheck, "Adults only", "BuddyBook is strictly for people aged 18+."],

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, LoaderCircle, Power, Trash2, TriangleAlert } from "lucide-react";
+import { CheckCircle2, LoaderCircle, Power, Trash2, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { deleteAccountPermanently, disableAccount, getAccountStatus, reactivateAccount } from "../../api/account";
 import { clearProviderCaches } from "../../api/providers";
@@ -29,24 +29,13 @@ function updateStoredAccount(status) {
   }
 }
 
-function durationLabel(milliseconds) {
-  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
 export default function AccountLifecyclePanel() {
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
-  const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState("");
   const [deleteText, setDeleteText] = useState("");
   const [animation, setAnimation] = useState("");
-  const disabledUntil = status?.disabledUntil ? new Date(status.disabledUntil).getTime() : 0;
-  const disabled = Boolean(status?.accountDisabled && disabledUntil > now);
-  const remaining = Math.max(0, disabledUntil - now);
+  const disabled = Boolean(status?.accountDisabled);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -63,20 +52,6 @@ export default function AccountLifecyclePanel() {
     return () => window.clearTimeout(initial);
   }, [refreshStatus]);
 
-  useEffect(() => {
-    if (!disabled) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [disabled]);
-
-  useEffect(() => {
-    if (!status?.accountDisabled || !disabledUntil || disabledUntil > now) return;
-    const timer = window.setTimeout(() => {
-      refreshStatus().then(() => setAnimation("enabled"));
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [disabledUntil, now, refreshStatus, status?.accountDisabled]);
-
   const runAnimation = (name) => {
     setAnimation(name);
     window.setTimeout(() => setAnimation(""), 1800);
@@ -85,11 +60,11 @@ export default function AccountLifecyclePanel() {
   const toggleAccount = async () => {
     const action = disabled ? "reactivate" : "disable";
     const accepted = await confirmAction({
-      title: disabled ? "Reactivate account now?" : "Disable account for 24 hours?",
+      title: disabled ? "Reactivate account now?" : "Disable account?",
       message: disabled
         ? "Your account and profile will become visible and usable immediately."
-        : "Your account will be inaccessible and your profile will disappear from the platform for up to 24 hours. You can reactivate early from this page.",
-      confirmLabel: disabled ? "Reactivate" : "Disable for 24 hours",
+        : "Your account will remain inaccessible and hidden until you choose to reactivate it.",
+      confirmLabel: disabled ? "Reactivate" : "Disable account",
       danger: !disabled,
     });
     if (!accepted) return;
@@ -97,11 +72,10 @@ export default function AccountLifecyclePanel() {
     try {
       const next = disabled ? await reactivateAccount() : await disableAccount();
       setStatus(next);
-      setNow(Date.now());
       updateStoredAccount(next);
       clearProviderCaches();
       runAnimation(disabled ? "enabled" : "disabled");
-      notify(disabled ? "Account reactivated immediately." : "Account disabled and profile hidden for 24 hours.", "success");
+      notify(disabled ? "Account reactivated immediately." : "Account disabled until you reactivate it.", "success");
     } catch (error) {
       notify(error?.response?.data?.message || `Could not ${action} your account.`, "error");
     } finally {
@@ -135,7 +109,7 @@ export default function AccountLifecyclePanel() {
   };
 
   const animationContent = useMemo(() => {
-    if (animation === "disabled") return { icon: Clock3, text: "Profile hidden for 24 hours", color: "bg-rose-600" };
+    if (animation === "disabled") return { icon: Power, text: "Profile hidden until reactivated", color: "bg-rose-600" };
     if (animation === "enabled") return { icon: CheckCircle2, text: "Account active immediately", color: "bg-emerald-600" };
     if (animation === "deleted") return { icon: Trash2, text: "Deleting account securely", color: "bg-black" };
     return null;
@@ -149,17 +123,17 @@ export default function AccountLifecyclePanel() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-black">Temporary account disable</h2>
-          <p className="mt-1 text-sm font-semibold text-[#6b5d52]">Hide your account and profile everywhere for 24 hours. Reactivation is available at any time.</p>
+          <p className="mt-1 text-sm font-semibold text-[#6b5d52]">Hide your account and profile until you choose to reactivate it.</p>
         </div>
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${disabled ? "bg-rose-600 text-white" : "bg-emerald-50 text-emerald-700"}`}><Power size={20} /></span>
       </div>
       <div className={`mt-4 rounded-2xl p-4 ${disabled ? "bg-rose-600 text-white" : "bg-emerald-50 text-emerald-900"}`}>
         <p className="text-sm font-black">{disabled ? "Account disabled — profile is hidden" : "Account active — profile is visible"}</p>
-        {disabled ? <p className="mt-1 font-mono text-xl font-black">Auto-reactivates in {durationLabel(remaining)}</p> : <p className="mt-1 text-xs font-bold opacity-75">You can use every available account feature.</p>}
+        {disabled ? <p className="mt-1 text-sm font-black">It will stay disabled until you reactivate it.</p> : <p className="mt-1 text-xs font-bold opacity-75">You can use every available account feature.</p>}
       </div>
       <button type="button" disabled={Boolean(busy)} onClick={toggleAccount} className={`mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-black text-white disabled:opacity-50 ${disabled ? "bg-emerald-600" : "bg-rose-600"}`}>
         {busy === "disable" || busy === "reactivate" ? <LoaderCircle className="animate-spin" size={16} /> : <Power size={16} />}
-        {disabled ? "Reactivate immediately" : "Disable for 24 hours"}
+        {disabled ? "Reactivate immediately" : "Disable account"}
       </button>
     </section>
 

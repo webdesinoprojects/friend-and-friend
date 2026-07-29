@@ -428,6 +428,8 @@ const register = async (req, res) => {
       kycConsent,
       referenceSelfie,
       profileImage,
+      ageConfirmed,
+      safetyAccepted,
 
       userProfile,
       providerProfile,
@@ -446,6 +448,9 @@ const register = async (req, res) => {
         success: false,
         message: "Invalid role selected.",
       });
+    }
+    if (!ageConfirmed || !safetyAccepted) {
+      return res.status(400).json({ success: false, message: "You must confirm that you are 18+ and accept the Safety page." });
     }
 
     if (!/^\d{10}$/.test(String(phone))) {
@@ -574,6 +579,8 @@ const register = async (req, res) => {
         documentType, documentNumber: fullDocumentNumber,
         documentLast4: resolvedDocumentLast4 || null, documentUrl,
         consentAccepted: Boolean(kycConsent),
+        ageConfirmed: Boolean(ageConfirmed),
+        safetyAccepted: Boolean(safetyAccepted),
         userProfile: role === "USER" ? (userProfile || {}) : undefined,
         providerProfile: role === "PROVIDER" ? (providerProfile || {}) : undefined,
         status: "PENDING",

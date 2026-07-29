@@ -4,10 +4,12 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock3,
+  ChevronDown,
   CreditCard,
   Copy,
   Flag,
   KeyRound,
+  MessageCircle,
   Search,
   Star,
   XCircle,
@@ -51,6 +53,7 @@ export default function UserBookings() {
   const [loadingBookings, setLoadingBookings] = useState(() => getBookings().length === 0);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
+  const [openReviewId, setOpenReviewId] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -68,17 +71,17 @@ export default function UserBookings() {
     };
   }, []);
 
-  const cancelSelectedBooking = async (reason) => {
+  const cancelSelectedBooking = async ({ category, description }) => {
     const target = cancelTarget;
     if (!target) return;
-    cancelBooking(target.id, reason);
-    setBookings((rows) => rows.map((item) => item.id === target.id ? { ...item, status: "CANCELLED", cancelReason: reason, cancelledAt: new Date().toISOString() } : item));
-    setCancelTarget(null);
     try {
-      const saved = await cancelBookingApi(target.id, reason);
+      const saved = await cancelBookingApi(target.id, description, category);
+      cancelBooking(target.id, description);
       setBookings((rows) => rows.map((item) => item.id === target.id ? { ...item, ...saved } : item));
-    } catch {
-      setBookings(getBookings());
+      setCancelTarget(null);
+      notify("Booking cancelled. The 20% fee was deducted and the remaining amount is being refunded.", "success");
+    } catch (error) {
+      notify(error?.response?.data?.message || "Could not cancel this booking.", "error");
     }
   };
 
@@ -146,17 +149,18 @@ export default function UserBookings() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {visibleBookings.map((booking) => {
                 const status = String(booking.status || "PENDING").toUpperCase();
-                const canShareLocation = ["CONFIRMED", "PAID", "ACCEPTED", "ACTIVE"].includes(status);
+                const canManage = ["CONFIRMED", "PAID", "ACCEPTED", "ACTIVE"].includes(status);
+                const canChat = String(booking.paymentStatus || "").toUpperCase() === "PAID";
                 const completed = status === "COMPLETED";
                 const userReview = getReviewForBooking(booking.id, "USER");
 
                 return (
                   <article
                     key={booking.id}
-                    className="rounded-2xl border border-[#eddac7] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="min-w-0 self-start rounded-2xl border border-[#eddac7] bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3">
@@ -164,15 +168,15 @@ export default function UserBookings() {
                           <img
                             src={booking.providerImage}
                             alt=""
-                            className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                            className="h-11 w-11 shrink-0 rounded-xl object-cover"
                           />
                         ) : (
-                          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-xl font-black text-black">
+                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#ffeedd] text-lg font-black text-black">
                             {(booking.providerName || "B").charAt(0)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <h3 className="truncate text-lg font-black text-black">
+                          <h3 className="truncate text-base font-black text-black">
                             {booking.service || "Buddy meetup"}
                           </h3>
                           <p className="truncate text-sm font-bold text-slate-500">
@@ -185,7 +189,7 @@ export default function UserBookings() {
                       </span>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf3] p-4 text-sm">
+                    <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-[#fffaf3] p-3 text-xs">
                       <Detail label="Date" value={booking.date || "To be confirmed"} />
                       <Detail label="Time" value={booking.time || "To be confirmed"} />
                       <Detail label="Duration" value={booking.duration || "1 hour"} />
@@ -197,8 +201,9 @@ export default function UserBookings() {
                         <CreditCard size={15} />
                         Payment: {booking.paymentStatus || (status === "PAID" ? "PAID" : "PENDING")}
                       </span>
-                      {canShareLocation && (
+                      {canManage && (
                         <div className="flex flex-wrap gap-2">
+                          {canChat ? <Link to={`/app/user/chat?booking=${booking.id}`} className="inline-flex items-center gap-2 rounded-xl bg-[#fff0df] px-3 py-2 text-xs font-black text-[#a65d28]"><MessageCircle size={15}/>Chat</Link> : null}
                           {status === "ACTIVE" ? <Link to={`/app/user/active-meet/${booking.id}`} className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-[#fffaf3]">Open active meeting</Link> : null}
                           {status !== "ACTIVE" ? <button
                             type="button"
@@ -209,6 +214,7 @@ export default function UserBookings() {
                           </button> : null}
                         </div>
                       )}
+                      {status === "ACCEPTED" && booking.paymentStatus === "PENDING" ? <Link to={`/app/user/provider/${booking.providerId}/book?bookingId=${booking.id}&service=${encodeURIComponent(booking.service || "")}&date=${booking.date}&time=${booking.time}&duration=${booking.durationHours || 1}`} className="rounded-xl bg-[#2563eb] px-4 py-2.5 text-xs font-black text-white">Complete payment</Link> : null}
                     </div>
 
                     {status === "CONFIRMED" && booking.startPin ? (
@@ -218,16 +224,17 @@ export default function UserBookings() {
                     ) : null}
 
                     {status === "ACTIVE" ? <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><span className="font-black">Meeting timer is running.</span> Open the active meeting panel to enter the provider's end code, finish, or extend.</div> : null}
+                    {status === "CANCELLED" ? <div className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-800"><span className="font-black">Cancellation note: {booking.cancelCategory || "Other"}</span><p className="mt-1">{booking.cancelReason}</p>{booking.refundAmount != null ? <p className="mt-2 text-xs">20% fee: {formatRupees(booking.cancellationFee)} · Refund: {formatRupees(booking.refundAmount)}</p> : null}</div> : null}
 
                     {completed ? (
-                      <><button type="button" onClick={() => setReportTarget(booking)} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700"><Flag size={15}/>Report provider</button>{userReview ? (
-                        <div className="mt-4 rounded-2xl bg-[#fffaf3] p-4">
+                      <><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => setReportTarget(booking)} className="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-700"><Flag size={15}/>Report</button><button type="button" onClick={() => setOpenReviewId((current) => current === booking.id ? "" : booking.id)} className="inline-flex flex-1 items-center justify-between gap-2 rounded-xl bg-[#fffaf3] px-3 py-2 text-xs font-black">Review <ChevronDown size={15} className={`transition ${openReviewId === booking.id ? "rotate-180" : ""}`}/></button></div>{openReviewId === booking.id ? (userReview ? (
+                        <div className="mt-3 rounded-2xl bg-[#fffaf3] p-3">
                           <p className="text-xs font-black text-[#e08c4c]">Review submitted</p>
                           <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{userReview.description}</p>
                         </div>
                       ) : (
                         <ReviewForm booking={booking} onSubmitted={() => setBookings(getBookings())} />
-                      )}</>
+                      )) : null}</>
                     ) : null}
                   </article>
                 );
@@ -249,15 +256,18 @@ export default function UserBookings() {
 }
 
 function CancelBookingDialog({ onClose, onConfirm }) {
+  const [category, setCategory] = useState("");
   const [reason, setReason] = useState("");
+  const options = ["Schedule changed", "Personal emergency", "Provider concern", "Travel or location issue", "Booked by mistake", "Other"];
 
   return (
     <div className="fixed inset-0 z-[10000] grid place-items-center bg-black/45 p-4" onClick={onClose}>
       <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
         <h2 className="text-2xl font-black text-black">Cancel booking</h2>
         <p className="mt-3 rounded-2xl bg-[#fffaf3] p-4 text-sm font-bold leading-6 text-[#6b5d52]">
-          If you cancel within 6 hours of the meeting time, 10% cancellation charges may be deducted. Your chat with the provider will be closed after cancellation.
+          Cancellation is allowed only until 2 hours before the meeting. A 20% cancellation fee will be deducted and the remaining 80% refunded. The chat will remain visible but messaging will stop permanently.
         </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">{options.map((option) => <label key={option} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#eddac7] p-3 text-sm font-bold"><input type="radio" name="cancel-category" checked={category === option} onChange={() => setCategory(option)}/>{option}</label>)}</div>
         <label className="mt-4 block">
           <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8b7563]">Reason</span>
           <textarea
@@ -273,8 +283,8 @@ function CancelBookingDialog({ onClose, onConfirm }) {
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(reason)}
-            disabled={!reason.trim()}
+            onClick={() => onConfirm({ category, description: reason.trim() })}
+            disabled={!category || !reason.trim()}
             className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
           >
             Confirm cancel

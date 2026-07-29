@@ -1,6 +1,6 @@
 const prisma = require("../config/prisma");
 const { deleteImageKitFile } = require("../utils/imagekit");
-const { DISABLE_DURATION_MS, isAccountDisabled, publicAccountState } = require("../utils/accountLifecycle");
+const { isAccountDisabled, publicAccountState } = require("../utils/accountLifecycle");
 const { clearProviderListCache } = require("./provider.controller");
 
 function accountResponse(user) {
@@ -21,16 +21,15 @@ exports.disableFor24Hours = async (req, res) => {
       return res.json({ success: true, message: "Account is already temporarily disabled.", data: accountResponse(req.user) });
     }
     const disabledAt = new Date();
-    const disabledUntil = new Date(disabledAt.getTime() + DISABLE_DURATION_MS);
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { disabledAt, disabledUntil },
+      data: { disabledAt, disabledUntil: null },
       select: { id: true, role: true, disabledAt: true, disabledUntil: true },
     });
     clearProviderListCache();
     return res.json({
       success: true,
-      message: "Your account is hidden for 24 hours. You can reactivate it at any time.",
+      message: "Your account is hidden until you reactivate it.",
       data: accountResponse(user),
     });
   } catch (error) {

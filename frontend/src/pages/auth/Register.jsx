@@ -97,10 +97,18 @@ const emptyQuestions = [
   { question: "", answer: "" },
   { question: "", answer: "" },
 ];
+const REGISTRATION_DRAFT_KEY = "buddybook_registration_draft";
+const identityOptions = [
+  "Lesbian", "Gay", "Bisexual", "Transgender", "Queer", "Non-binary",
+  "Genderfluid", "Agender", "Bigender", "Genderqueer", "Gender non-conforming",
+  "Trans man", "Trans woman", "Intersex",
+];
 
 export default function Register() {
   const navigate = useNavigate();
   const webcamRef = useRef(null);
+  const formScrollRef = useRef(null);
+  const draftReadyRef = useRef(false);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [mobileOtpSent, setMobileOtpSent] = useState(false);
@@ -152,6 +160,8 @@ export default function Register() {
     height: "",
     hobbies: "",
     providerSafetyAgreement: false,
+    ageConfirmed: false,
+    safetyAccepted: false,
   });
 
   const notify = (message, type = "info") => {
@@ -167,6 +177,36 @@ export default function Register() {
 
   const activeStep = steps.find((step) => step.id === currentStep);
   const ActiveIcon = activeStep?.icon || User;
+
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem(REGISTRATION_DRAFT_KEY) || "null");
+      if (!draft) return;
+      setForm((current) => ({ ...current, ...draft.form, profileImage: draft.form?.profileImage || null, kycFile: null }));
+      setCurrentStep(draft.currentStep || 1);
+      setSelectedActivities(draft.selectedActivities || []);
+      setUserQuestionAnswers(draft.userQuestionAnswers || emptyQuestions);
+      setProviderQuestionAnswers(draft.providerQuestionAnswers || emptyQuestions);
+      setSelfie(draft.selfie || null);
+    } catch {
+      localStorage.removeItem(REGISTRATION_DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftReadyRef.current) {
+      draftReadyRef.current = true;
+      return;
+    }
+    const safeForm = { ...form, kycFile: null };
+    localStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify({
+      form: safeForm, currentStep, selectedActivities, userQuestionAnswers, providerQuestionAnswers, selfie,
+    }));
+  }, [form, currentStep, selectedActivities, userQuestionAnswers, providerQuestionAnswers, selfie]);
+
+  useEffect(() => {
+    formScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentStep]);
 
   const selectedKyc =
     kycTypes.find((item) => item.value === form.documentType) || kycTypes[0];
@@ -494,6 +534,10 @@ export default function Register() {
       }
 
       if (!validateQuestionAnswers()) return false;
+      if (!form.ageConfirmed || !form.safetyAccepted) {
+        notify("Confirm that you are 18+ and that you have read the Safety page.");
+        return false;
+      }
 
       if (form.role === "USER") {
         if (selectedActivities.length === 0 || !form.emergencyContact) {
@@ -574,6 +618,8 @@ export default function Register() {
         kycConsent: form.kycConsent,
         referenceSelfie: selfie,
         profileImage: form.profileImage?.url || null,
+        ageConfirmed: form.ageConfirmed,
+        safetyAccepted: form.safetyAccepted,
 
         userProfile: {
           interests: selectedActivities.join(", "),
@@ -602,6 +648,7 @@ export default function Register() {
         : await api.post("/auth/register", payload);
 
       notify(res.data.message || "Registration successful");
+      localStorage.removeItem(REGISTRATION_DRAFT_KEY);
       if (res.data.applicationToken) localStorage.setItem("buddybook_application_token", res.data.applicationToken);
 
       const nextUser = {
@@ -657,7 +704,7 @@ export default function Register() {
           </div>
         </div>
       ) : null}
-      <main className="grid min-h-screen lg:h-screen lg:overflow-hidden lg:grid-cols-[0.92fr_84px_1.08fr]">
+      <main className="grid min-h-screen lg:h-screen lg:overflow-hidden lg:grid-cols-[0.92fr_1.08fr]">
         {/* LEFT SIDE FIXED IMAGE */}
         <aside className="relative hidden h-screen overflow-hidden bg-black lg:block">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1400&auto=format&fit=crop')] bg-cover bg-center opacity-80" />
@@ -702,41 +749,16 @@ export default function Register() {
           </div>
         </aside>
 
-        {/* CENTER PROGRESS FIXED */}
-        <div className="hidden h-screen border-x border-black/10 bg-[#fbfaf7] lg:flex lg:flex-col lg:items-center">
-          <p className="mt-8 text-[10px] font-black uppercase tracking-[0.28em] text-black/35">
-            Progress
-          </p>
-
-          <div className="flex flex-1 flex-col items-center justify-center">
-            <div className="relative flex h-[390px] w-4 items-end overflow-hidden rounded-none bg-black/10">
-              <div
-                className="w-full rounded-none bg-black transition-all duration-500"
-                style={{ height: `${progress}%` }}
-              />
-            </div>
-
-            <div className="mt-6 grid h-12 w-12 place-items-center rounded-none bg-black text-white shadow-lg">
-              <ActiveIcon size={20} />
-            </div>
-
-            <p className="mt-3 text-sm font-black">{progress}%</p>
-          </div>
-        </div>
-
         {/* RIGHT SIDE FIXED CARD, INNER CONTENT SCROLLS */}
-        <section className="flex min-h-screen items-start justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-4 md:items-center md:h-screen md:px-6">
-          <div className="flex min-h-0 w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)] md:h-full">
+        <section className="flex min-h-screen items-start justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-4 md:items-center md:h-screen md:px-6 lg:overflow-hidden lg:px-[4.5rem] lg:py-4 xl:px-[6.75rem] 2xl:px-36">
+          <div className="flex min-h-0 w-full max-w-[640px] flex-col border border-black/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.10)] md:h-full lg:h-[calc(100vh-2rem)] lg:max-w-[780px]">
             {/* CARD HEADER FIXED */}
             <div className="shrink-0 border-b border-black/10 p-5 md:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-none bg-[#f5f3ee] px-4 py-2 text-xs font-black text-black">
-                    <Sparkles size={15} />
-                    BuddyBOOK registration
-                  </div>
 
-                  <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight text-black">
+
+                  <h1 className=" text-4xl font-black leading-tight tracking-tight text-black">
                     Create account
                   </h1>
 
@@ -776,16 +798,30 @@ export default function Register() {
                   </button>
                 ))}
               </div>
+
+              <div className="mt-5 hidden lg:block">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-black/45">
+                    Registration progress
+                  </p>
+                  <p className="text-xs font-black text-black">{progress}% complete</p>
+                </div>
+                <div className="relative h-3 overflow-hidden rounded-full bg-black/10 shadow-inner">
+                  <div
+                    className="registration-progress relative h-full overflow-hidden rounded-full bg-black shadow-[0_4px_14px_rgba(0,0,0,0.22)] transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  >
+                    <span className="absolute inset-y-0 w-16 -skew-x-12 bg-white/35 blur-[1px]" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* ONLY THIS PART SCROLLS */}
-            <div className="custom-scrollbar flex-1 overflow-y-auto p-5 md:p-7">
+            <div ref={formScrollRef} className="custom-scrollbar flex-1 overflow-y-auto p-5 md:p-7 lg:pb-10">
               {currentStep === 1 && (
                 <div>
-                  <SectionHeading
-                    title="Basic details"
-                    text="Create a password you can use later with email or phone login. Mobile verification is compulsory."
-                  />
+
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Input
@@ -799,8 +835,14 @@ export default function Register() {
                       label="Gender"
                       value={form.gender}
                       onChange={(v) => updateField("gender", v)}
-                      options={["Male", "Female", "Others"]}
+                      options={["Male", "Female", "Others", ...(identityOptions.includes(form.gender) ? [form.gender] : [])]}
                     />
+                    {form.gender === "Others" ? (
+                      <div className="sm:col-span-2 rounded-none border border-black/10 bg-[#fbfaf7] p-4">
+                        <p className="mb-3 text-sm font-black">Choose your identity</p>
+                        <PillMultiSelect options={identityOptions} selected={identityOptions.includes(form.gender) ? [form.gender] : []} onToggle={(value) => updateField("gender", value)} />
+                      </div>
+                    ) : null}
 
                     <Input
                       label="City"
@@ -1171,6 +1213,11 @@ export default function Register() {
                     </div>
                   )}
 
+                  {form.role ? <div className="mt-5 rounded-none border border-black/10 bg-[#fbfaf7] p-5">
+                    <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.ageConfirmed} onChange={(event) => updateField("ageConfirmed", event.target.checked)} className="mt-1"/><span className="text-sm font-semibold">I confirm that I am 18 years of age or older.</span></label>
+                    <label className="mt-4 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.safetyAccepted} onChange={(event) => updateField("safetyAccepted", event.target.checked)} className="mt-1"/><span className="text-sm font-semibold">I have read and agree to the BuddyBOOK <Link to="/safety" target="_blank" className="font-black underline">Safety page</Link>.</span></label>
+                  </div> : null}
+
                   {form.role === "USER" && (
                     <div className="mt-5 grid gap-5">
                       <div className="rounded-none border border-black/10 bg-[#fbfaf7] p-5">
@@ -1252,13 +1299,13 @@ export default function Register() {
             </div>
 
             {/* CARD FOOTER FIXED */}
-            <div className="shrink-0 border-t border-black/10 p-5 md:p-7">
+            <div className="shrink-0 border-t border-black/10 p-5 md:p-7 lg:p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
                   onClick={prevStep}
                   disabled={currentStep === 1}
-                  className="inline-flex items-center justify-center gap-2 rounded-none border border-black/10 bg-white px-6 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 rounded-none border border-black/10 bg-white px-6 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-40 lg:py-2.5"
                 >
                   <ArrowLeft size={16} />
                   Back
@@ -1268,7 +1315,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20"
+                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20 lg:py-2.5"
                   >
                     Continue
                     <ArrowRight size={16} />
@@ -1278,7 +1325,7 @@ export default function Register() {
                     type="button"
                     onClick={handleRegister}
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-none bg-black px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-black/20 disabled:cursor-not-allowed disabled:opacity-60 lg:py-2.5"
                   >
                     {isSubmitting ? "Creating account..." : "Register Securely"}
                     <CheckCircle2 size={16} />
@@ -1286,7 +1333,7 @@ export default function Register() {
                 )}
               </div>
 
-              <p className="mt-5 text-center text-sm font-semibold text-black/55">
+              <p className="mt-5 text-center text-sm font-semibold text-black/55 lg:mt-3">
                 Already registered?{" "}
                 <Link to="/login" className="font-black text-black underline">
                   Login here
@@ -1296,6 +1343,20 @@ export default function Register() {
           </div>
         </section>
       </main>
+      <style>{`
+        @media (min-width: 1024px) {
+          .registration-progress > span {
+            animation: registrationProgressShine 2.2s ease-in-out infinite;
+          }
+        }
+        @keyframes registrationProgressShine {
+          from { left: -5rem; }
+          to { left: calc(100% + 1rem); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .registration-progress > span { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -43,6 +43,7 @@ router.patch("/:threadId/messages/:messageId/location", chatController.updateLiv
 router.post("/:threadId/read", chatController.markRead);
 router.patch("/:threadId/messages/:messageId", chatController.editMessage);
 router.delete("/:threadId/messages/:messageId", chatController.deleteMessage);
+router.delete("/:threadId/messages", chatController.clearConversationMessages);
 router.delete("/:threadId", chatController.hideConversation);
 
 module.exports = router;

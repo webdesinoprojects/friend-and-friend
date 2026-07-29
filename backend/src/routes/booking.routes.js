@@ -9,7 +9,9 @@ router.use(protect);
 router.get("/", bookingController.listMyBookings);
 router.post("/razorpay/order", bookingController.createRazorpayOrder);
 router.post("/razorpay/verify", bookingController.verifyRazorpayPayment);
+router.post("/request", bookingController.createBookingRequest);
 router.post("/", bookingController.createBooking);
+router.post("/:id/accept", bookingController.acceptBooking);
 router.post("/:id/cancel", bookingController.cancelBooking);
 router.post("/:id/complete", bookingController.endMeeting);
 

@@ -43,6 +43,7 @@ function serializeBooking(booking, viewerId) {
     code: booking.code,
     userId: booking.userId,
     userName: userUnavailable ? "Account unavailable" : booking.user?.fullName || "BuddyBOOK user",
+    userImage: userUnavailable ? "" : booking.user?.profileImage || "",
     providerId: booking.providerId,
     providerUserId: booking.providerUserId,
     providerName: providerUnavailable ? "Account unavailable" : provider?.user?.fullName || "BuddyBOOK provider",
@@ -63,6 +64,9 @@ function serializeBooking(booking, viewerId) {
     razorpayOrderId: booking.razorpayOrderId || null,
     status: booking.status,
     cancelReason: booking.cancelReason,
+    cancelCategory: booking.cancelCategory,
+    cancellationFee: booking.cancellationFee,
+    refundAmount: booking.refundAmount,
     cancelledAt: booking.cancelledAt,
     startPin: isUser && startPinAvailable ? booking.startPin : null,
     startPinExpiresAt: booking.startPinExpiresAt,
@@ -193,6 +197,45 @@ exports.createBooking = async (req, res) => {
   }
 };
 
+exports.createBookingRequest = async (req, res) => {
+  try {
+    const { providerId, service, date, time, durationHours, duration } = req.body;
+    if (!providerId || !service || !date || !time) return res.status(400).json({ success: false, message: "Provider, activity, date and time are required." });
+    const provider = await prisma.providerProfile.findUnique({ where: { id: providerId }, include: { user: true } });
+    if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) return res.status(404).json({ success: false, message: "This provider profile is currently unavailable." });
+    const hours = Math.min(6, Math.max(1, toInt(durationHours || duration, 1)));
+    const amount = toInt(provider.hourlyPrice, 0) * hours;
+    const booking = await prisma.$transaction(async (tx) => {
+      const created = await tx.booking.create({
+        data: { code: `BBK-${Date.now()}`, userId: req.user.id, providerId, providerUserId: provider.userId, service: String(service), date: String(date), time: String(time), durationHours: hours, amount, paymentStatus: "PENDING", status: "PENDING", lastHourlyPrice: toInt(provider.hourlyPrice, 0) },
+        include: bookingInclude,
+      });
+      await tx.chatThread.create({ data: { bookingId: created.id, userId: req.user.id, providerId, providerUserId: provider.userId, messages: { create: { senderRole: "SYSTEM", system: true, text: `Booking request sent for ${service}. Payment opens after the provider accepts.` } } } });
+      return created;
+    });
+    return res.status(201).json({ success: true, booking: serializeBooking(booking, req.user.id) });
+  } catch (error) {
+    console.error("CREATE_BOOKING_REQUEST_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not send booking request." });
+  }
+};
+
+exports.acceptBooking = async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id }, include: { ...bookingInclude, chatThread: true } });
+    if (!booking || booking.providerUserId !== req.user.id) return res.status(404).json({ success: false, message: "Booking request not found." });
+    if (booking.status !== "PENDING") return res.status(400).json({ success: false, message: "Only pending booking requests can be accepted." });
+    const updated = await prisma.$transaction(async (tx) => {
+      const next = await tx.booking.update({ where: { id: booking.id }, data: { status: "ACCEPTED" }, include: bookingInclude });
+      if (booking.chatThread) await tx.chatMessage.create({ data: { threadId: booking.chatThread.id, senderRole: "SYSTEM", system: true, text: "Provider accepted this request. The user can now complete payment." } });
+      return next;
+    });
+    return res.json({ success: true, booking: serializeBooking(updated, req.user.id) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Could not accept booking." });
+  }
+};
+
 function getRazorpay() {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return null;
   return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
@@ -202,7 +245,14 @@ exports.createRazorpayOrder = async (req, res) => {
   try {
     const razorpay = getRazorpay();
     if (!razorpay) return res.status(503).json({ success: false, message: "Razorpay test credentials are not configured." });
-    const { providerId, service, date, time, durationHours, duration } = req.body;
+    const { providerId, service, date, time, durationHours, duration, bookingId } = req.body;
+    if (bookingId) {
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { provider: { include: { user: true } } } });
+      if (!booking || booking.userId !== req.user.id) return res.status(404).json({ success: false, message: "Booking request not found." });
+      if (booking.status !== "ACCEPTED" || booking.paymentStatus !== "PENDING") return res.status(400).json({ success: false, message: "Payment opens only after the provider accepts." });
+      const order = await razorpay.orders.create({ amount: booking.amount * 100, currency: "INR", receipt: `bbk_${Date.now()}`, notes: { userId: req.user.id, bookingId: booking.id, providerId: booking.providerId, service: booking.service, date: booking.date, time: booking.time, durationHours: String(booking.durationHours) } });
+      return res.status(201).json({ success: true, keyId: process.env.RAZORPAY_KEY_ID, order: { id: order.id, amount: order.amount, currency: order.currency }, providerName: booking.provider.user.fullName });
+    }
     if (!providerId || !service || !date || !time) return res.status(400).json({ success: false, message: "Provider, activity, date and time are required." });
     const provider = await prisma.providerProfile.findUnique({ where: { id: providerId }, include: { user: true } });
     if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) return res.status(404).json({ success: false, message: "This provider profile is currently unavailable." });
@@ -234,6 +284,13 @@ exports.verifyRazorpayPayment = async (req, res) => {
     const [order, payment] = await Promise.all([razorpay.orders.fetch(razorpay_order_id), razorpay.payments.fetch(razorpay_payment_id)]);
     if (String(order.notes?.userId) !== String(req.user.id) || payment.order_id !== razorpay_order_id || !["authorized", "captured"].includes(payment.status)) {
       return res.status(400).json({ success: false, message: "The Razorpay payment could not be validated." });
+    }
+    if (order.notes?.bookingId) {
+      const pending = await prisma.booking.findUnique({ where: { id: order.notes.bookingId }, include: bookingInclude });
+      if (!pending || pending.userId !== req.user.id || pending.status !== "ACCEPTED") return res.status(409).json({ success: false, message: "This booking is no longer payable." });
+      const startPin = generateOtp();
+      const updated = await prisma.booking.update({ where: { id: pending.id }, data: { status: "CONFIRMED", paymentStatus: "PAID", paymentMethod: "RAZORPAY", razorpayOrderId: razorpay_order_id, razorpayPaymentId: razorpay_payment_id, razorpaySignature: razorpay_signature, startPin, startPinExpiresAt: addDays(new Date(), 14) }, include: bookingInclude });
+      return res.json({ success: true, booking: serializeBooking(updated, req.user.id) });
     }
     const duplicate = await prisma.booking.findFirst({ where: { OR: [{ razorpayOrderId: razorpay_order_id }, { razorpayPaymentId: razorpay_payment_id }] }, include: bookingInclude });
     if (duplicate) return res.json({ success: true, booking: serializeBooking(duplicate, req.user.id) });
@@ -273,7 +330,7 @@ exports.listMyBookings = async (req, res) => {
 
 exports.cancelBooking = async (req, res) => {
   try {
-    const { reason } = req.body;
+    const { reason, category } = req.body;
     const booking = await prisma.booking.findUnique({
       where: { id: req.params.id },
       include: { chatThread: true },
@@ -286,13 +343,40 @@ exports.cancelBooking = async (req, res) => {
     if (["ACTIVE", "COMPLETED"].includes(booking.status)) {
       return res.status(400).json({ success: false, message: "An active or completed meeting cannot be cancelled." });
     }
+    const scheduledAt = new Date(`${booking.date}T${booking.time}:00`);
+    if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() - Date.now() < 2 * 60 * 60 * 1000) {
+      return res.status(400).json({ success: false, message: "Bookings can only be cancelled at least 2 hours before the meeting." });
+    }
+    const cleanCategory = String(category || "").trim();
+    const cleanReason = String(reason || "").trim();
+    if (!cleanCategory || !cleanReason) {
+      return res.status(400).json({ success: false, message: "Choose a cancellation reason and add a description." });
+    }
+    const cancellationFee = Math.round(Number(booking.amount || 0) * 0.2);
+    const refundAmount = Math.max(0, Number(booking.amount || 0) - cancellationFee);
+    if (booking.paymentStatus === "PAID" && booking.razorpayPaymentId && refundAmount > 0) {
+      const razorpay = getRazorpay();
+      if (!razorpay) return res.status(503).json({ success: false, message: "Refund service is temporarily unavailable." });
+      try {
+        await razorpay.payments.refund(booking.razorpayPaymentId, {
+          amount: refundAmount * 100,
+          notes: { bookingId: booking.id, cancellationFee: String(cancellationFee) },
+        });
+      } catch (refundError) {
+        return res.status(502).json({ success: false, message: refundError.error?.description || "The refund could not be created. The booking was not cancelled." });
+      }
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       const nextBooking = await tx.booking.update({
         where: { id: booking.id },
         data: {
           status: "CANCELLED",
-          cancelReason: String(reason || "").trim(),
+          cancelCategory: cleanCategory,
+          cancelReason: cleanReason,
+          cancellationFee,
+          refundAmount,
+          paymentStatus: booking.paymentStatus === "PAID" ? "PARTIALLY_REFUNDED" : booking.paymentStatus,
           cancelledAt: new Date(),
         },
         include: bookingInclude,
@@ -301,14 +385,14 @@ exports.cancelBooking = async (req, res) => {
       if (booking.chatThread) {
         await tx.chatThread.update({
           where: { id: booking.chatThread.id },
-          data: { closed: true, closedReason: String(reason || "").trim() || "Booking cancelled" },
+          data: { closed: true, closedReason: `${cleanCategory}: ${cleanReason}` },
         });
         await tx.chatMessage.create({
           data: {
             threadId: booking.chatThread.id,
             senderRole: "SYSTEM",
             system: true,
-            text: `Booking cancelled${reason ? `: ${reason}` : "."}`,
+            text: `Booking cancelled — ${cleanCategory}: ${cleanReason}. A 20% cancellation fee was deducted and ₹${refundAmount} is refundable.`,
           },
         });
       }

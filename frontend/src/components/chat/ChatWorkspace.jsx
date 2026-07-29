@@ -30,6 +30,7 @@ import {
   uploadVoiceMessage,
 } from "../../api/chats";
 import { confirmAction, notify } from "../common/Feedback";
+import { useSearchParams } from "react-router-dom";
 
 const MAX_TEXT_LENGTH = 2000;
 const EmojiPicker = lazy(() => import("emoji-picker-react"));
@@ -75,6 +76,8 @@ function lastMessageLabel(chat) {
 }
 
 export default function ChatWorkspace({ role }) {
+  const [searchParams] = useSearchParams();
+  const requestedBookingId = searchParams.get("booking");
   const [user] = useState(() => storedUser());
   const myId = String(user.id || user._id || "");
   const [chats, setChats] = useState([]);
@@ -127,13 +130,16 @@ export default function ChatWorkspace({ role }) {
     try {
       const rows = await listChats();
       setChats(rows);
-      setActiveId((current) => current && rows.some((row) => row.id === current) ? current : rows[0]?.id || "");
+      setActiveId((current) => {
+        const requested = rows.find((row) => row.bookingId === requestedBookingId);
+        return requested?.id || (current && rows.some((row) => row.id === current) ? current : rows[0]?.id || "");
+      });
     } catch (error) {
       if (!quiet) notify(errorMessage(error, "Could not load your chats."), "error");
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, []);
+  }, [requestedBookingId]);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(refreshChats, 0);
@@ -158,7 +164,13 @@ export default function ChatWorkspace({ role }) {
         setStreamOnline(true);
         return;
       }
-      if (event === "chat") {
+      if (event === "cleared") {
+        setChats((rows) => rows.map((chat) =>
+          (chat.threadIds || [chat.id]).some((id) => payload.threadIds?.includes(id))
+            ? { ...chat, messages: [], unreadCount: 0 }
+            : chat
+        ));
+      } else if (event === "chat") {
         let found = false;
         setChats((rows) => rows.map((chat) => {
           if (!(chat.threadIds || [chat.id]).includes(payload.threadId)) return chat;
@@ -466,11 +478,10 @@ export default function ChatWorkspace({ role }) {
   };
 
   const hideChat = async () => {
-    if (!active || !await confirmAction({ title: "Hide conversation?", message: "This removes the conversation only from your chat list. A new message will make it visible again.", confirmLabel: "Hide", danger: true })) return;
+    if (!active || !await confirmAction({ title: "Delete messages?", message: "Every message in this conversation will be permanently deleted from the database for both people. The empty conversation will remain in the chat list.", confirmLabel: "Delete messages", danger: true })) return;
     try {
       await deleteChat(active.id);
-      setChats((rows) => rows.filter((chat) => chat.id !== active.id));
-      setActiveId("");
+      setChats((rows) => rows.map((chat) => chat.id === active.id ? { ...chat, messages: [], unreadCount: 0 } : chat));
       setMobileOpen(false);
     } catch (error) {
       notify(errorMessage(error, "Could not hide this conversation."), "error");
@@ -510,7 +521,8 @@ export default function ChatWorkspace({ role }) {
             {filtered.map((chat) => {
               const name = role === "PROVIDER" ? chat.userName : chat.providerName;
               const image = role === "PROVIDER" ? chat.userImage : chat.providerImage;
-              return <button key={chat.id} onClick={() => selectChat(chat)} className={`mb-2 flex w-full items-center gap-3 rounded-2xl p-3 text-left transition ${chat.id === activeId ? "bg-black text-white" : "hover:bg-white"}`}>
+              return <button key={chat.id} onClick={() => selectChat(chat)} className={`relative mb-2 flex w-full items-center gap-3 rounded-2xl p-3 text-left transition ${chat.id === activeId ? "bg-black text-white" : "hover:bg-white"}`}>
+                {chat.closed && <span title="Cancelled booking — chat closed" className="absolute left-1 top-1 h-3 w-3 rounded-full bg-red-600 ring-2 ring-white" />}
                 <Avatar name={name} image={image} />
                 <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><strong className="truncate text-sm">{name}</strong><small className={`shrink-0 text-[10px] font-bold ${chat.id === activeId ? "text-white/55" : "text-black/40"}`}>{timeLabel(chat.updatedAt)}</small></span><span className={`mt-1 block truncate text-xs font-semibold ${chat.id === activeId ? "text-white/60" : "text-black/45"}`}>{lastMessageLabel(chat)}</span></span>
                 {chat.unreadCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#df843f] px-1 text-[10px] font-black text-white">{chat.unreadCount}</span>}
@@ -526,7 +538,7 @@ export default function ChatWorkspace({ role }) {
               <Avatar name={peerName} image={peerImage} small />
               <div className="min-w-0 flex-1"><h2 className="truncate font-black">{peerName}</h2><p className={`text-xs font-bold ${peerTyping ? "text-[#df843f]" : "text-black/45"}`}>{active.peerUnavailable ? "Temporarily unavailable" : peerTyping ? "typing…" : peerOnline ? "Online" : active.service || "Conversation"}</p></div>
               {liveSharing && <button onClick={stopLiveLocation} className="rounded-full bg-rose-50 px-3 py-2 text-xs font-black text-rose-600">Stop live</button>}
-              <div className="relative"><button onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 hover:bg-black/5" aria-label="Conversation menu"><MoreVertical /></button>{menuOpen && <div className="absolute right-0 top-11 z-30 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={hideChat} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Hide conversation</button></div>}</div>
+              <div className="relative"><button onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 hover:bg-black/5" aria-label="Conversation menu"><MoreVertical /></button>{menuOpen && <div className="absolute right-0 top-11 z-30 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={hideChat} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete messages</button></div>}</div>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">

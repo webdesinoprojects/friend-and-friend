@@ -46,7 +46,7 @@ export async function signalChat(threadId, type, active = true) {
 }
 
 export async function deleteChat(threadId) {
-  return unwrap(await api.delete(`/chats/${threadId}`));
+  return unwrap(await api.delete(`/chats/${threadId}/messages`));
 }
 
 export async function deleteChatMessage(threadId, messageId) {

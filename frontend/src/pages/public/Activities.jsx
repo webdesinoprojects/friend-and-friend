@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import PublicFooter from "../../components/layout/PublicFooter";
-import heroImage from "../../assets/explore-hero.png";
+import heroImage from "../../assets/explore-hero.jpg";
 
 const activities = [
   { title: "Coffee & conversation", note: "An easy hello over chai or coffee", icon: Coffee, image: "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=85", size: "feature" },

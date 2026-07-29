@@ -11,7 +11,7 @@ import {
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { formatRupees } from "../../utils/format";
-import { createRazorpayOrder, verifyRazorpayPayment } from "../../api/bookings";
+import { createBookingRequest, createRazorpayOrder, listBookings, verifyRazorpayPayment } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
 import { createPaidBooking } from "../../utils/userFlowStorage";
 import { hasAuthToken } from "../../utils/authSession";
@@ -49,6 +49,8 @@ export default function UserBookingPayment() {
   const [time, setTime] = useState(() => bookingParams.get("time") || "17:30");
   const [duration, setDuration] = useState(() => bookingParams.get("duration") || "1");
   const [paymentMethod, setPaymentMethod] = useState("Razorpay Test Checkout");
+  const bookingId = bookingParams.get("bookingId");
+  const [acceptedBooking, setAcceptedBooking] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -79,6 +81,11 @@ export default function UserBookingPayment() {
     };
   }, [providerId, cachedProvider]);
 
+  useEffect(() => {
+    if (!bookingId) return;
+    listBookings().then((rows) => setAcceptedBooking(rows.find((item) => item.id === bookingId) || null)).catch(() => {});
+  }, [bookingId]);
+
   const hourlyRate = useMemo(() => parseHourlyRate(provider?.price), [provider?.price]);
   const amount = useMemo(
     () => hourlyRate * Number(duration || 1),
@@ -96,7 +103,14 @@ export default function UserBookingPayment() {
     try {
       const checkoutLoaded = await loadRazorpayCheckout();
       if (!checkoutLoaded) throw new Error("Razorpay Checkout could not be loaded. Check your internet connection.");
+      if (!bookingId) {
+        const request = await createBookingRequest({ providerId: provider.id, service, date, time, durationHours: Number(duration || 1) });
+        navigate("/app/user/bookings", { replace: true, state: { requestSent: true, bookingId: request.id } });
+        return;
+      }
+      if (acceptedBooking?.status !== "ACCEPTED") throw new Error("Payment opens only after the provider accepts this request.");
       const orderData = await createRazorpayOrder({
+        bookingId,
         providerId: provider.id,
         service,
         date,
@@ -239,7 +253,7 @@ export default function UserBookingPayment() {
             onClick={handlePayment}
             className="mx-auto mt-5 flex w-[92%] items-center justify-center gap-2 rounded-full border-2 border-[#2563eb] bg-[#2563eb] px-6 py-4 text-sm font-black text-white transition hover:bg-[#1d4ed8] disabled:opacity-60"
           >
-            <Lock size={17} /> {processing ? "Processing..." : `Pay ${formatFullRupees(amount)} Securely`}
+            <Lock size={17} /> {processing ? "Processing..." : bookingId ? `Pay ${formatFullRupees(acceptedBooking?.amount ?? amount)} Securely` : "Send booking request"}
           </button>
           {paymentError ? <p role="alert" className="mt-5 border-2 border-[#e08c4c] bg-[#ffeedd] p-3 text-xs font-black text-[#a95820]">Payment notice: {paymentError}</p> : null}
           <div className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-[#171b30]/55"><Lock size={12} /> Razorpay test mode · No real money is charged.</div>

@@ -18,58 +18,50 @@ const steps = [
   {
     icon: UserRoundPlus,
     number: "01",
-    kicker: "Account",
-    title: "Create your BuddyBOOK profile",
-    text: "Start with mobile verification, role selection and public profile details.",
-    drawerTitle: "Profile setup",
-    badge: "2 min setup",
+    kicker: "Join",
+    title: "Create and verify your profile",
+    text: "Sign up with mobile OTP, choose your role and complete the required identity checks.",
     points: [
-      "Register with mobile and optional email verification.",
-      "Choose whether you are joining as a user or provider.",
+      "Verify your mobile number and set up your public profile.",
+      "Providers complete KYC and selfie checks before accepting bookings.",
     ],
-    flow: ["Signup", "Role"],
-  },
-  {
-    icon: BadgeCheck,
-    number: "02",
-    kicker: "Trust",
-    title: "Complete identity checks",
-    text: "KYC, selfie capture and admin review build confidence before anyone meets.",
-    drawerTitle: "Verification layer",
-    badge: "Verified access",
-    points: [
-      "Submit supported identity details for review.",
-      "Complete selfie or face verification when required.",
-    ],
-    flow: ["KYC", "Selfie"],
+    flow: ["Mobile OTP", "Profile"],
   },
   {
     icon: CalendarCheck,
-    number: "03",
-    kicker: "Booking",
-    title: "Choose activity, time and place",
-    text: "Users pick a provider, public activity, schedule and safe meetup location.",
-    drawerTitle: "Booking plan",
-    badge: "Public plan",
+    number: "02",
+    kicker: "Explore",
+    title: "Find and book the right buddy",
+    text: "Browse verified providers, choose an activity, then select your date, time and public meetup place.",
     points: [
-      "Browse providers by city, activity, price and availability.",
-      "View full provider profile before booking.",
+      "Compare profiles by city, activity, price and availability.",
+      "Confirm the plan and complete payment securely.",
     ],
-    flow: ["Explore", "Profile"],
+    flow: ["Explore", "Book & pay"],
+  },
+  {
+    icon: BadgeCheck,
+    number: "03",
+    kicker: "Start PIN",
+    title: "Start the meetup with your PIN",
+    text: "After a paid booking is confirmed, the user shares the six-digit start PIN with the provider at the meetup.",
+    points: [
+      "The provider enters the PIN to securely activate the booking.",
+      "The one-time PIN confirms both people have met before time starts.",
+    ],
+    flow: ["Reveal PIN", "Start meetup"],
   },
   {
     icon: MapPin,
     number: "04",
-    kicker: "Meet",
-    title: "Meet safely with support signals",
-    text: "In-app chat, location cues and reporting tools keep the meetup accountable.",
-    drawerTitle: "Active meetup",
-    badge: "Live support",
+    kicker: "Complete",
+    title: "Meet safely and close with OTP",
+    text: "Use chat and location support during the meetup, then verify the end OTP to complete the booking.",
     points: [
-      "Use in-app chat before and during the booking.",
-      "Share live location during the active booking window.",
+      "Stay connected through in-app chat and active location cues.",
+      "Enter the six-digit end OTP to securely finish the meetup.",
     ],
-    flow: ["Chat", "Location"],
+    flow: ["Safe meetup", "End OTP"],
   },
 ];
 
@@ -155,16 +147,6 @@ export default function HowItWorks() {
         delay: 0.45,
       });
 
-      if (window.matchMedia("(min-width: 1024px)").matches) {
-        gsap.from(".how-step-mobile", {
-          y: 30,
-          opacity: 0,
-          duration: 0.6,
-          ease: "power3.out",
-          stagger: 0.12,
-          delay: 0.2,
-        });
-      }
     }, sectionRef);
 
     return () => context.revert();
@@ -178,12 +160,12 @@ export default function HowItWorks() {
     <div className="min-h-screen overflow-x-hidden bg-[#fffaf3] text-[#1f1a17]">
       <PublicNavbar />
 
-      <main className="pt-20 lg:min-h-[calc(100vh-5rem)]">
+      <main className="pb-24 pt-24 md:pb-0 lg:min-h-[calc(100vh-5rem)] lg:pt-20">
         <section
           ref={sectionRef}
-          className="relative isolate min-h-[calc(100vh-5rem)] overflow-hidden px-4 py-6 sm:px-5 lg:px-8"
+          className="relative isolate min-h-[calc(100vh-5rem)] overflow-hidden px-4 pb-8 pt-6 sm:px-5 lg:px-8"
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.95),transparent_25%),radial-gradient(circle_at_82%_24%,rgba(255,210,183,0.48),transparent_26%),radial-gradient(circle_at_48%_100%,rgba(117,89,255,0.10),transparent_34%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(255,255,255,0.95),transparent_25%),radial-gradient(circle_at_82%_24%,rgba(224,140,76,0.24),transparent_26%),radial-gradient(circle_at_48%_100%,rgba(224,140,76,0.10),transparent_34%)]" />
           <div className="pointer-events-none absolute -right-24 top-16 h-[34rem] w-[34rem] rounded-full bg-[#fff8ef]/75" />
           <div className="pointer-events-none absolute bottom-8 left-10 h-36 w-36 rounded-full bg-white/70 blur-2xl" />
 
@@ -193,10 +175,10 @@ export default function HowItWorks() {
             return (
               <div
                 key={panel.title}
-                className={`support-panel group absolute z-0 hidden w-52 rounded-[1.7rem] bg-white/38 p-4 shadow-[0_24px_70px_rgba(71,52,36,0.12)] backdrop-blur-md transition duration-300 hover:-translate-y-2 hover:bg-white/78 hover:shadow-[0_28px_90px_rgba(255,116,95,0.18)] xl:block ${panel.className}`}
+                className={`support-panel group absolute z-0 hidden w-52 rounded-[1.7rem] bg-white/38 p-4 shadow-[0_24px_70px_rgba(71,52,36,0.12)] backdrop-blur-md transition duration-300 hover:-translate-y-2 hover:bg-white/78 hover:shadow-[0_28px_90px_rgba(224,140,76,0.18)] xl:block ${panel.className}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fff0ec] text-[#ff745f]">
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fff3e8] text-[#e08c4c]">
                     <Icon size={20} />
                   </span>
                   <div>
@@ -213,7 +195,7 @@ export default function HowItWorks() {
               <div className="pointer-events-none absolute -left-16 top-6 h-[24rem] w-[24rem] rounded-full bg-white/45" />
 
               <div className="how-copy relative z-10 max-w-xl">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f26d54] shadow-sm">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#e08c4c] shadow-sm">
                   <ShieldCheck size={15} />
                   Safe operation flow
                 </div>
@@ -223,13 +205,14 @@ export default function HowItWorks() {
                 </h1>
 
                 <p className="mt-4 max-w-md text-sm font-semibold leading-7 text-[#75665b] sm:text-base">
-                  Hover on the zig-zag path. Each number opens transparent step details on the same screen.
+                  <span className="lg:hidden">Tap each step to see how your secure meetup moves forward.</span>
+                  <span className="hidden lg:inline">Hover on the zig-zag path. Each number opens transparent step details on the same screen.</span>
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
                     href="/register"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#ff745f] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(255,116,95,0.28)] transition hover:-translate-y-0.5 hover:bg-[#ef604c]"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#e08c4c] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_rgba(224,140,76,0.28)] transition hover:-translate-y-0.5 hover:bg-[#cc7738]"
                   >
                     Get started
                     <ArrowRight size={16} />
@@ -253,16 +236,19 @@ export default function HowItWorks() {
                       key={step.title}
                       type="button"
                       onClick={() => setActiveIndex(active ? null : index)}
-                    className={`how-step-mobile rounded-[1.5rem] p-3.5 text-left shadow-[0_16px_44px_rgba(71,52,36,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 active:scale-[0.99] ${
-                        active ? "bg-white/80 shadow-[0_22px_60px_rgba(255,116,95,0.16)]" : "bg-white/46"
+                      style={{ animationDelay: `${180 + index * 110}ms` }}
+                    className={`how-step-mobile rounded-[1.5rem] border p-4 text-left opacity-0 shadow-[0_12px_32px_rgba(71,52,36,0.10)] transition duration-300 active:scale-[0.99] ${
+                        active
+                          ? "border-[#e08c4c]/45 bg-[#fffaf5] shadow-[0_18px_44px_rgba(224,140,76,0.16)]"
+                          : "border-[#eadfd4] bg-white"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition-transform duration-300 ${active ? "scale-105 bg-[#ff745f] text-white" : "bg-[#fff0ec] text-[#ff745f]"}`}>
+                        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition-transform duration-300 ${active ? "scale-105 bg-[#e08c4c] text-white" : "bg-[#fff3e8] text-[#e08c4c]"}`}>
                           <Icon size={22} />
                         </span>
                         <div className="min-w-0">
-                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#ff745f]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#e08c4c]">
                             {step.number} / {step.kicker}
                           </p>
                           <h3 className="mt-1 text-base font-black leading-tight text-[#17120f]">
@@ -282,7 +268,7 @@ export default function HowItWorks() {
                                 key={item}
                                 className="min-w-[96px] rounded-xl bg-white/62 px-3 py-2"
                               >
-                                <p className="text-[10px] font-black text-[#ff745f]">
+                                <p className="text-[10px] font-black text-[#e08c4c]">
                                   0{itemIndex + 1}
                                 </p>
                                 <p className="text-xs font-black text-[#251b16]">
@@ -295,7 +281,7 @@ export default function HowItWorks() {
                           <div className="mt-2 grid gap-1.5">
                             {step.points.map((point) => (
                               <div key={point} className="flex items-start gap-2">
-                                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#ff745f]" />
+                                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#e08c4c]" />
                                 <p className="text-xs font-bold leading-5 text-[#65564c]">
                                   {point}
                                 </p>
@@ -326,14 +312,14 @@ export default function HowItWorks() {
                 />
                 <path
                   d="M48 414 C138 498 190 290 294 318 C390 344 420 414 526 242 C602 118 673 220 790 102"
-                  stroke="rgba(255,116,95,0.16)"
+                  stroke="rgba(224,140,76,0.16)"
                   strokeWidth="18"
                   strokeLinecap="round"
                 />
                 <path
                   ref={pathRef}
                   d="M48 414 C138 498 190 290 294 318 C390 344 420 414 526 242 C602 118 673 220 790 102"
-                  stroke="#ff745f"
+                  stroke="#e08c4c"
                   strokeWidth="5"
                   strokeLinecap="round"
                 />
@@ -370,7 +356,7 @@ export default function HowItWorks() {
                       type="button"
                       className={`grid h-14 w-14 place-items-center rounded-full text-base font-black shadow-[0_18px_42px_rgba(73,48,31,0.18)] transition duration-300 group-hover:-translate-y-2 ${
                         active
-                          ? "bg-[#ff745f] text-white"
+                          ? "bg-[#e08c4c] text-white"
                           : "bg-white/88 text-[#211713]"
                       }`}
                     >
@@ -382,11 +368,11 @@ export default function HowItWorks() {
                         className={`step-popup-${index} absolute z-40 w-[min(280px,32vw)] max-w-[280px] animate-[fadeIn_.18s_ease-out] rounded-[1.45rem] bg-white/42 p-3 shadow-[0_22px_60px_rgba(61,42,28,0.14)] backdrop-blur-2xl ${popupPositions[index]}`}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fff0ec] text-[#ff745f]">
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fff3e8] text-[#e08c4c]">
                             <Icon size={19} />
                           </span>
                           <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#ff745f]">
+                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#e08c4c]">
                               {step.number} / {step.kicker}
                             </p>
                             <h3 className="mt-1 text-base font-black leading-tight text-[#17120f]">
@@ -404,7 +390,7 @@ export default function HowItWorks() {
                               key={item}
                               className="min-w-[96px] rounded-xl bg-white/50 px-3 py-2"
                             >
-                              <p className="text-[10px] font-black text-[#ff745f]">
+                              <p className="text-[10px] font-black text-[#e08c4c]">
                                 0{itemIndex + 1}
                               </p>
                               <p className="text-xs font-black text-[#251b16]">
@@ -420,7 +406,7 @@ export default function HowItWorks() {
                               <div key={point} className="flex items-start gap-2">
                                 <CheckCircle2
                                   size={15}
-                                  className="mt-0.5 shrink-0 text-[#ff745f]"
+                                  className="mt-0.5 shrink-0 text-[#e08c4c]"
                                 />
                                 <p className="text-xs font-bold leading-5 text-[#65564c]">
                                   {point}
@@ -435,7 +421,7 @@ export default function HowItWorks() {
                 );
               })}
 
-              <div className="pointer-events-none absolute left-[46%] top-[12%] hidden items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-xs font-black text-[#ff745f] shadow-sm backdrop-blur-md sm:flex">
+              <div className="pointer-events-none absolute left-[46%] top-[12%] hidden items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-xs font-black text-[#e08c4c] shadow-sm backdrop-blur-md sm:flex">
                 <Sparkles size={14} />
                 Hover path steps
               </div>
@@ -448,6 +434,21 @@ export default function HowItWorks() {
         @keyframes hiwFade {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes hiwCardIn {
+          from { opacity: 0; transform: translateY(20px) scale(.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (max-width: 1023px) {
+          .how-step-mobile {
+            animation: hiwCardIn .55s cubic-bezier(.22, 1, .36, 1) forwards;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .how-step-mobile {
+            animation-duration: .01ms;
+            animation-delay: 0ms !important;
+          }
         }
       `}</style>
     </div>

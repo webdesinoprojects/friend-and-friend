@@ -1268,9 +1268,9 @@ function PublicServiceExploreSection({
   content = {},
   onPage,
   onFilter,
-  onReset,
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const [draftFilters, setDraftFilters] = useState(() => ({ ...filters, keyword: "" }));
   const providerRailRef = useRef(null);
   const scrollProviderRail = (direction) => {
     providerRailRef.current?.scrollBy({
@@ -1316,7 +1316,7 @@ function PublicServiceExploreSection({
 
         <div className="grid gap-6 pt-6 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div className="flex items-center gap-3 lg:hidden">
-            <button type="button" onClick={() => setShowFilters(true)} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md">
+            <button type="button" onClick={() => { setDraftFilters({ ...filters, keyword: "" }); setShowFilters(true); }} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#2563eb] px-5 py-3 text-sm font-black text-white shadow-md">
               <SlidersHorizontal size={16} /> {content.filterButtonLabel || "Filter"}
             </button>
             <h2 className="min-w-0 text-lg font-black leading-tight text-black">{title}</h2>
@@ -1336,39 +1336,34 @@ function PublicServiceExploreSection({
               />
             </button>
             <div className="mt-8 grid gap-6">
-              <label>
-                <span className="text-sm font-black text-black">{content.filterUsernameLabel || "Find username"}</span>
-                <input
-                  value={filters.keyword}
-                  onChange={(event) => onFilter("keyword", event.target.value)}
-                  placeholder={content.filterUsernamePlaceholder || "Enter username"}
-                  className="mt-3 h-14 w-full rounded-none border border-black/10 bg-white px-4 text-sm font-bold outline-none focus:border-black"
-                />
-              </label>
-              <DrawerFilter label={content.filterLocationLabel || "Location"} value={filters.city} placeholder={content.filterLocationPlaceholder || "eg. Gurgaon"} options={cities} onChange={(value) => onFilter("city", value)} />
-              <DrawerFilter label={content.filterStateLabel || "State"} value={filters.state} placeholder={content.filterStatePlaceholder || "eg. Haryana"} options={states} onChange={(value) => onFilter("state", value)} />
-              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={filters.activity} placeholder={content.filterActivityPlaceholder || "eg. Cafe meet"} options={activities} onChange={(value) => onFilter("activity", value)} />
+              <DrawerFilter label={content.filterLocationLabel || "Location"} value={draftFilters.city} placeholder={content.filterLocationPlaceholder || "eg. Gurgaon"} options={cities} onChange={(value) => setDraftFilters((current) => ({ ...current, city: value }))} />
+              <DrawerFilter label={content.filterStateLabel || "State"} value={draftFilters.state} placeholder={content.filterStatePlaceholder || "eg. Haryana"} options={states} onChange={(value) => setDraftFilters((current) => ({ ...current, state: value }))} />
+              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={draftFilters.activity} placeholder={content.filterActivityPlaceholder || "eg. Cafe meet"} options={activities} onChange={(value) => setDraftFilters((current) => ({ ...current, activity: value }))} />
               <FilterRadioGroup
                 title={content.filterSortLabel || "Sort By"}
-                value={filters.rating === "4" ? sortOptions[1] : sortOptions[0]}
+                value={draftFilters.rating === "4" ? sortOptions[1] : sortOptions[0]}
                 options={sortOptions}
-                onChange={(value) => onFilter("rating", value === sortOptions[1] ? "4" : "All")}
+                onChange={(value) => setDraftFilters((current) => ({ ...current, rating: value === sortOptions[1] ? "4" : "All" }))}
               />
-              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={filters.gender} placeholder={content.filterGenderPlaceholder || "Any gender"} options={genderOptions} onChange={(value) => onFilter("gender", value)} />
-              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={filters.maxPrice} placeholder={content.filterPricePlaceholder || "eg. Rs 1000"} options={priceOptions} onChange={(value) => onFilter("maxPrice", value)} />
+              <DrawerFilter label={content.filterGenderLabel || "Gender"} value={draftFilters.gender} placeholder={content.filterGenderPlaceholder || "Any gender"} options={genderOptions} onChange={(value) => setDraftFilters((current) => ({ ...current, gender: value }))} />
+              <DrawerFilter label={content.filterMaxPriceLabel || "Max price"} value={draftFilters.maxPrice} placeholder={content.filterPricePlaceholder || "eg. Rs 1000"} options={priceOptions} onChange={(value) => setDraftFilters((current) => ({ ...current, maxPrice: value }))} />
               <div className="grid max-w-[230px] grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={onReset}
+                  onClick={() => setDraftFilters(publicSearchDefaults)}
                   className="rounded-none border border-black/15 bg-white px-3 py-2.5 text-xs font-black"
                 >
                   {content.filterResetLabel || "Reset"}
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    Object.entries({ ...draftFilters, keyword: "" }).forEach(([key, value]) => onFilter(key, value));
+                    setShowFilters(false);
+                  }}
                   className="rounded-none bg-black px-3 py-2.5 text-xs font-black text-white"
                 >
-                  {content.filterApplyLabel || "Apply"}
+                  Apply changes
                 </button>
               </div>
             </div>
@@ -1820,13 +1815,13 @@ function PublicProviderDrawer({
 function DrawerFilter({ label, value, options, onChange, placeholder }) {
   return (
     <label className="relative">
-      <span className="absolute left-3 top-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-black/35">
+      <span className="absolute left-3 top-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-black">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-[54px] w-full appearance-none rounded-none border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d]"
+        className={`h-[54px] w-full appearance-none rounded-none border border-black/10 bg-[#fbfaf7] px-3 pb-1 pt-5 text-sm font-black outline-none transition focus:border-[#d67f3d] ${value === "All" ? "text-black/35" : "text-black"}`}
       >
         {options.map((option) => (
           <option key={option} value={option} className={option === "All" ? "text-black/40" : ""}>

@@ -9,6 +9,7 @@ const MESSAGE_PAGE_SIZE = 50;
 const MESSAGE_PAGE_MAX = 100;
 const VOICE_DURATION_MAX = 120;
 const SENDABLE_TYPES = new Set(["TEXT", "LOCATION", "LIVE_LOCATION"]);
+const CHAT_PAYMENT_STATUSES = ["PAID", "PARTIALLY_REFUNDED"];
 
 function imageFromProvider(provider) {
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
@@ -118,8 +119,8 @@ function groupConversationThreads(threads, viewerId) {
 }
 
 async function getAccessibleThread(threadId, userId) {
-  const thread = await prisma.chatThread.findUnique({ where: { id: threadId } });
-  return canAccessThread(thread, userId) ? thread : null;
+  const thread = await prisma.chatThread.findUnique({ where: { id: threadId }, include: { booking: { select: { paymentStatus: true } } } });
+  return canAccessThread(thread, userId) && CHAT_PAYMENT_STATUSES.includes(thread.booking?.paymentStatus) ? thread : null;
 }
 
 async function isPeerUnavailable(thread, userId) {
@@ -133,7 +134,7 @@ async function isPeerUnavailable(thread, userId) {
 
 async function getConversationThreads(thread, select = { id: true }) {
   return prisma.chatThread.findMany({
-    where: conversationWhere(thread),
+    where: { ...conversationWhere(thread), booking: { paymentStatus: { in: CHAT_PAYMENT_STATUSES } } },
     select,
     orderBy: { updatedAt: "desc" },
   });
@@ -214,10 +215,8 @@ exports.listMyChats = async (req, res) => {
   try {
     const loadThreads = () => prisma.chatThread.findMany({
       where: {
-        OR: [
-          { userId: req.user.id, hiddenForUser: false },
-          { providerUserId: req.user.id, hiddenForProvider: false },
-        ],
+        booking: { paymentStatus: { in: CHAT_PAYMENT_STATUSES } },
+        OR: [{ userId: req.user.id, hiddenForUser: false }, { providerUserId: req.user.id, hiddenForProvider: false }],
       },
       orderBy: { updatedAt: "desc" },
       include: {
@@ -236,7 +235,7 @@ exports.listMyChats = async (req, res) => {
     // the user has no threads so the normal chat path stays one fast query.
     if (!threads.length) {
       const missingThreads = await prisma.booking.findMany({
-        where: { OR: [{ userId: req.user.id }, { providerUserId: req.user.id }], chatThread: null },
+        where: { paymentStatus: { in: CHAT_PAYMENT_STATUSES }, OR: [{ userId: req.user.id }, { providerUserId: req.user.id }], chatThread: null },
         select: { id: true, userId: true, providerId: true, providerUserId: true },
       });
       if (missingThreads.length) {
@@ -401,7 +400,7 @@ exports.streamEvents = async (req, res) => {
   res.write(`event: connected\ndata: ${JSON.stringify({ userId: req.user.id })}\n\n`);
   const unsubscribe = realtime.subscribe(req.user.id, res);
   const peerRows = await prisma.chatThread.findMany({
-    where: { OR: [{ userId: req.user.id }, { providerUserId: req.user.id }] },
+    where: { booking: { paymentStatus: { in: CHAT_PAYMENT_STATUSES } }, OR: [{ userId: req.user.id }, { providerUserId: req.user.id }] },
     select: { userId: true, providerUserId: true },
   }).catch(() => []);
   const peers = new Set(peerRows.map((row) => peerIdFor(row, req.user.id)));
@@ -444,6 +443,30 @@ exports.hideConversation = async (req, res) => {
   } catch (error) {
     console.error("HIDE_CHAT_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not hide conversation." });
+  }
+};
+
+exports.clearConversationMessages = async (req, res) => {
+  try {
+    const thread = await getAccessibleThread(req.params.threadId, req.user.id);
+    if (!thread) return res.status(404).json({ success: false, message: "Chat not found." });
+    const rows = await getConversationThreads(thread);
+    const threadIds = rows.map((row) => row.id);
+    const media = await prisma.chatMessage.findMany({
+      where: { threadId: { in: threadIds }, mediaFileId: { not: null } },
+      select: { mediaFileId: true },
+    });
+    await prisma.chatMessage.deleteMany({ where: { threadId: { in: threadIds } } });
+    await prisma.chatThread.updateMany({
+      where: { id: { in: threadIds } },
+      data: { updatedAt: new Date(), hiddenForUser: false, hiddenForProvider: false },
+    });
+    await Promise.allSettled(media.map((item) => deleteImageKitFile(item.mediaFileId)));
+    publishToParticipants(thread, "cleared", { threadIds });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("CLEAR_CHAT_MESSAGES_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not delete conversation messages." });
   }
 };
 

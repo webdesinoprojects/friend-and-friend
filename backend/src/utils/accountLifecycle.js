@@ -1,19 +1,11 @@
 const prisma = require("../config/prisma");
 
-const DISABLE_DURATION_MS = 24 * 60 * 60 * 1000;
-
-function isAccountDisabled(user, now = new Date()) {
-  if (!user?.disabledUntil) return false;
-  return new Date(user.disabledUntil).getTime() > now.getTime();
+function isAccountDisabled(user) {
+  return Boolean(user?.disabledAt);
 }
 
 async function activateIfExpired(user) {
-  if (!user?.disabledUntil || isAccountDisabled(user)) return user;
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { disabledAt: null, disabledUntil: null },
-  });
-  return { ...user, disabledAt: null, disabledUntil: null };
+  return user;
 }
 
 function publicAccountState(user) {
@@ -25,7 +17,6 @@ function publicAccountState(user) {
 }
 
 module.exports = {
-  DISABLE_DURATION_MS,
   isAccountDisabled,
   activateIfExpired,
   publicAccountState,

@@ -17,7 +17,6 @@ import {
 } from "../../utils/userFlowStorage";
 
 const initialFilters = {
-  keyword: "",
   state: "All",
   gender: "All",
   activity: "All",
@@ -31,21 +30,27 @@ export default function UserSearch() {
   const [user, setUser] = useState(() => readUser());
   const [providers, setProviders] = useState(() => getCachedProviders());
   const [watchlist, setWatchlist] = useState(getWatchlist);
-  const [filters, setFilters] = useState(() => ({
-    ...initialFilters,
-    keyword: searchParams.get("q") || "",
-  }));
+  const [filters, setFilters] = useState(initialFilters);
+  const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setFilters((current) => ({
-        ...current,
-        keyword: searchParams.get("q") || current.keyword || "",
-      }));
+      const state = searchParams.get("state");
+      if (state) {
+        setFilters((current) => ({ ...current, state }));
+        setDraftFilters((current) => ({ ...current, state }));
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!showFilters || !window.matchMedia("(max-width: 767px)").matches) return undefined;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; };
+  }, [showFilters]);
 
   useEffect(() => {
     let mounted = true;
@@ -117,23 +122,10 @@ export default function UserSearch() {
   );
 
   const filteredProviders = useMemo(() => {
-    const keyword = filters.keyword.trim().toLowerCase();
-
     return providers.filter((provider) => {
       const providerActivities = provider.activities || [];
-      const text = [
-        provider.name,
-        provider.profession,
-        provider.city,
-        provider.state,
-        ...providerActivities,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
 
       return (
-        (!keyword || text.includes(keyword)) &&
         (filters.state === "All" || sameText(provider.state, filters.state)) &&
         (filters.gender === "All" ||
           String(provider.gender || "").toLowerCase() ===
@@ -149,13 +141,15 @@ export default function UserSearch() {
     });
   }, [filters, providers]);
 
-  const activeFilters = Object.entries(filters).filter(
-    ([key, value]) =>
-      value && value !== "All" && !(key === "keyword" && !value.trim())
-  ).length;
+  const activeFilters = Object.values(filters).filter((value) => value && value !== "All").length;
 
   const updateFilter = (key, value) =>
-    setFilters((current) => ({ ...current, [key]: value }));
+    setDraftFilters((current) => ({ ...current, [key]: value }));
+
+  const applyFilters = () => {
+    setFilters(draftFilters);
+    setShowFilters(false);
+  };
 
   const handleSave = (provider) => {
     const result = toggleWatchlist(provider);
@@ -195,27 +189,28 @@ export default function UserSearch() {
           </div>
 
           {showFilters ? (
-            <div className="mt-4 border-t border-[#e7edf5] pt-4">
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-7">
-                <label className="relative col-span-2">
+            <div className="fixed inset-x-0 bottom-16 top-16 z-40 overflow-y-auto overscroll-contain border-t border-[#e7edf5] bg-white p-4 md:static md:mt-4 md:overflow-visible md:bg-transparent md:p-0 md:pt-4">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-6">
+                <label className="hidden">
                   <Search
                     size={16}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8794a7]"
                   />
                   <input
-                    value={filters.keyword}
-                    onChange={(event) => updateFilter("keyword", event.target.value)}
+                    value=""
+                    readOnly
                     placeholder="Name, activity, city..."
                     className="h-12 w-full rounded-md border border-[#dce5f2] bg-[#eef4ff] pl-10 pr-3 text-sm font-bold outline-none focus:border-[#3f37ff]"
                   />
                 </label>
 
-                <FilterSelect label="State" value={filters.state} options={states} onChange={(value) => updateFilter("state", value)} />
-                <FilterSelect label="Gender" value={filters.gender} options={["All", "Male", "Female", "Non-binary"]} onChange={(value) => updateFilter("gender", value)} />
-                <FilterSelect label="Activity" value={filters.activity} options={activities} onChange={(value) => updateFilter("activity", value)} />
-                <FilterSelect label="Max ₹/hr" value={filters.maxPrice} options={["All", ...Array.from({ length: 11 }, (_, index) => String(500 + index * 100))]} onChange={(value) => updateFilter("maxPrice", value)} />
-                <FilterSelect label="Highest rating (4 & above)" value={filters.rating} options={["All", "4"]} onChange={(value) => updateFilter("rating", value)} />
+                <FilterSelect label="State" value={draftFilters.state} options={states} onChange={(value) => updateFilter("state", value)} />
+                <FilterSelect label="Gender" value={draftFilters.gender} options={["All", "Male", "Female", "Others", ...(IDENTITY_OPTIONS.includes(draftFilters.gender) ? [draftFilters.gender] : [])]} onChange={(value) => updateFilter("gender", value)} />
+                <FilterSelect label="Activity" value={draftFilters.activity} options={activities} onChange={(value) => updateFilter("activity", value)} />
+                <FilterSelect label="Max ₹/hr" value={draftFilters.maxPrice} options={["All", ...Array.from({ length: 11 }, (_, index) => String(500 + index * 100))]} onChange={(value) => updateFilter("maxPrice", value)} />
+                <FilterSelect label="Highest rating (4 & above)" value={draftFilters.rating} options={["All", "4"]} onChange={(value) => updateFilter("rating", value)} />
               </div>
+              {draftFilters.gender === "Others" ? <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-[#dce5f2] bg-[#eef4ff] p-3 sm:grid-cols-3 lg:grid-cols-5">{IDENTITY_OPTIONS.map((identity) => <button key={identity} type="button" onClick={() => updateFilter("gender", identity)} className="rounded-md border border-[#dce5f2] bg-white px-3 py-2 text-xs font-black text-[#17213a]">{identity}</button>)}</div> : null}
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <label className="flex h-12 min-w-[260px] flex-1 items-center gap-2 rounded-md border border-[#dce5f2] bg-[#eef4ff] px-3">
@@ -225,7 +220,7 @@ export default function UserSearch() {
                     type="date"
                     min={dateValue(0)}
                     max={dateValue(6)}
-                    value={filters.date}
+                    value={draftFilters.date}
                     onChange={(event) => updateFilter("date", event.target.value)}
                     className="ml-auto bg-transparent text-xs font-black outline-none"
                   />
@@ -233,10 +228,16 @@ export default function UserSearch() {
 
                 <button
                   type="button"
-                  onClick={() => setFilters(initialFilters)}
+                  onClick={() => {
+                    setDraftFilters(initialFilters);
+                    setFilters(initialFilters);
+                  }}
                   className="h-12 rounded-md border border-[#dce5f2] px-5 text-xs font-black text-[#3f37ff]"
                 >
                   Reset
+                </button>
+                <button type="button" onClick={applyFilters} className="h-12 rounded-md bg-[#3f37ff] px-7 text-xs font-black text-white">
+                  Apply
                 </button>
               </div>
             </div>
@@ -340,3 +341,9 @@ function readUser() {
 function sameText(left, right) {
   return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
 }
+
+const IDENTITY_OPTIONS = [
+  "Lesbian", "Gay", "Bisexual", "Transgender", "Queer", "Non-binary",
+  "Genderfluid", "Agender", "Bigender", "Genderqueer", "Gender non-conforming",
+  "Trans man", "Trans woman", "Intersex",
+];

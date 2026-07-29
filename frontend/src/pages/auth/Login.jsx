@@ -33,6 +33,13 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [otpNotice, setOtpNotice] = useState("");
+
+  const showOtpNotice = (message) => {
+    setOtpNotice(message);
+    window.clearTimeout(showOtpNotice.timer);
+    showOtpNotice.timer = window.setTimeout(() => setOtpNotice(""), 6000);
+  };
 
   const goToDashboard = (user) => {
     const disabled = Boolean(user?.accountDisabled && user?.disabledUntil && new Date(user.disabledUntil).getTime() > Date.now());
@@ -121,7 +128,8 @@ export default function Login() {
   };
 
   const sendLoginOtp = async () => {
-    if (!form.phone.trim()) {
+    const registeredPhone = form.phone.replace(/\D/g, "");
+    if (!/^\d{10}$/.test(registeredPhone)) {
       alert("Please enter your registered mobile number.");
       return;
     }
@@ -129,10 +137,15 @@ export default function Login() {
     try {
       setIsLoading(true);
       const res = await api.post("/auth/send-login-mobile-otp", {
-        phone: form.phone.trim(),
+        phone: registeredPhone,
       });
+      setForm((prev) => ({ ...prev, phone: registeredPhone, otp: "" }));
       setOtpSent(true);
-      alert(res.data?.message || "OTP sent. Use 1234 for demo login.");
+      showOtpNotice(
+        res.data?.demoOtp
+          ? `New demo OTP: ${res.data.demoOtp}`
+          : res.data?.message || "Login OTP sent to your registered mobile number."
+      );
     } catch (error) {
       console.error("SEND_LOGIN_OTP_FRONTEND_ERROR:", error);
       alert(error.response?.data?.message || "Failed to send login OTP");
@@ -150,7 +163,7 @@ export default function Login() {
     try {
       setIsLoading(true);
       const res = await api.post("/auth/login-mobile-otp", {
-        phone: form.phone.trim(),
+        phone: form.phone.replace(/\D/g, ""),
         otp: form.otp.trim(),
       });
 
@@ -170,6 +183,17 @@ export default function Login() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f7f4ef] text-black">
+      {otpNotice ? (
+        <div
+          role="status"
+          className="fixed right-4 top-4 z-[10000] w-[min(360px,calc(100vw-2rem))] border border-emerald-700 bg-emerald-600 px-5 py-4 text-white shadow-[0_18px_50px_rgba(5,150,105,0.30)]"
+        >
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-100">
+            Registered mobile number
+          </p>
+          <p className="mt-1 text-base font-black">{otpNotice}</p>
+        </div>
+      ) : null}
       <main className="grid min-h-screen lg:grid-cols-[0.92fr_1.08fr]">
         {/* LEFT IMAGE PANEL */}
         <aside className="relative hidden min-h-screen overflow-hidden bg-black lg:block">
@@ -237,11 +261,6 @@ export default function Login() {
                 <h1 className="mt-5 text-3xl font-black leading-tight text-black">
                   Login to your account
                 </h1>
-
-                <p className="mt-3 text-sm font-semibold leading-6 text-black/55">
-                  Login with the password you created during registration, or use
-                  mobile OTP for older accounts.
-                </p>
               </div>
 
               {/* GOOGLE LOGIN */}
@@ -351,11 +370,30 @@ export default function Login() {
                       <input
                         value={form.phone}
                         onChange={(e) =>
-                          setForm((prev) => ({ ...prev, phone: e.target.value }))
+                          setForm((prev) => ({
+                            ...prev,
+                            phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                            otp: "",
+                          }))
                         }
-                        placeholder="+91 9999999999"
-                        className="w-full bg-transparent text-sm font-semibold text-black outline-none placeholder:text-black/25"
+                        disabled={otpSent}
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10-digit registered mobile number"
+                        className="w-full bg-transparent text-sm font-semibold text-black outline-none placeholder:text-black/25 disabled:text-black/55"
                       />
+                      {otpSent ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpSent(false);
+                            setForm((prev) => ({ ...prev, otp: "" }));
+                          }}
+                          className="shrink-0 text-xs font-black text-emerald-700 underline"
+                        >
+                          Change
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 
@@ -369,9 +407,14 @@ export default function Login() {
                         <input
                           value={form.otp}
                           onChange={(e) =>
-                            setForm((prev) => ({ ...prev, otp: e.target.value }))
+                            setForm((prev) => ({
+                              ...prev,
+                              otp: e.target.value.replace(/\D/g, "").slice(0, 6),
+                            }))
                           }
-                          placeholder="Use 1234 for demo"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Enter the new demo OTP"
                           className="w-full bg-transparent text-sm font-semibold text-black outline-none placeholder:text-black/25"
                         />
                       </div>
