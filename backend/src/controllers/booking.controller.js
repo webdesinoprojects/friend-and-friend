@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 const crypto = require("crypto");
 const { isAccountDisabled } = require("../utils/accountLifecycle");
 const Razorpay = require("razorpay");
@@ -310,18 +311,29 @@ exports.listMyBookings = async (req, res) => {
       select: { id: true },
     });
 
-    const bookings = await prisma.booking.findMany({
-      where: {
-        OR: [
-          { userId: req.user.id },
-          providerProfile ? { providerId: providerProfile.id } : { providerUserId: req.user.id },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-      include: bookingInclude,
-    });
+    const where = {
+      OR: [
+        { userId: req.user.id },
+        providerProfile ? { providerId: providerProfile.id } : { providerUserId: req.user.id },
+      ],
+    };
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: bookingInclude,
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      prisma.booking.count({ where }),
+    ]);
 
-    return res.json({ success: true, data: bookings.map((booking) => serializeBooking(booking, req.user.id)) });
+    return res.json({
+      success: true,
+      data: bookings.map((booking) => serializeBooking(booking, req.user.id)),
+      pagination: paginationMeta({ ...pagination, total }),
+    });
   } catch (error) {
     console.error("LIST_BOOKINGS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load bookings." });

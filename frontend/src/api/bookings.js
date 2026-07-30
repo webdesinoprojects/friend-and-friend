@@ -1,18 +1,28 @@
 import api from "./api";
-import { cacheBookings } from "../utils/userFlowStorage";
+import {
+  createQueryKey,
+  fetchQuery,
+  getQueryData,
+  invalidateQueries,
+} from "../utils/queryCache";
+
+const BOOKINGS_CACHE_PREFIX = "bookings:";
 
 export async function createBooking(payload) {
   const { data } = await api.post("/bookings", payload);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
 export async function createBookingRequest(payload) {
   const { data } = await api.post("/bookings/request", payload);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
 export async function acceptBookingApi(bookingId) {
   const { data } = await api.post(`/bookings/${bookingId}/accept`);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
@@ -23,21 +33,35 @@ export async function createRazorpayOrder(payload) {
 
 export async function verifyRazorpayPayment(payload) {
   const { data } = await api.post("/bookings/razorpay/verify", payload);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
-export async function listBookings() {
-  const { data } = await api.get("/bookings");
-  return cacheBookings(Array.isArray(data?.data) ? data.data : []);
+export function getCachedBookings(params = {}) {
+  return getQueryData(createQueryKey("bookings", params), []);
+}
+
+export function listBookings(params = {}, options = {}) {
+  const key = createQueryKey("bookings", params);
+  return fetchQuery(
+    key,
+    async () => {
+      const { data } = await api.get("/bookings", { params });
+      return Array.isArray(data?.data) ? data.data : [];
+    },
+    { staleTime: 30_000, ...options }
+  );
 }
 
 export async function cancelBookingApi(bookingId, reason, category) {
   const { data } = await api.post(`/bookings/${bookingId}/cancel`, { reason, category });
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
 export async function completeBookingApi(bookingId) {
   const { data } = await api.post(`/bookings/${bookingId}/end`);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
@@ -48,6 +72,7 @@ export async function revealBookingStartPin(bookingId) {
 
 export async function startBookingMeeting(bookingId, pin) {
   const { data } = await api.post(`/bookings/${bookingId}/start`, { pin });
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
@@ -58,11 +83,13 @@ export async function getBookingEndCode(bookingId) {
 
 export async function verifyBookingEndCode(bookingId, otp) {
   const { data } = await api.post(`/bookings/${bookingId}/end-code/verify`, { otp });
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
 export async function endBookingMeeting(bookingId) {
   const { data } = await api.post(`/bookings/${bookingId}/end`);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }
 
@@ -73,5 +100,6 @@ export async function createExtensionOrder(bookingId) {
 
 export async function verifyExtensionPayment(bookingId, payload) {
   const { data } = await api.post(`/bookings/${bookingId}/extensions/razorpay/verify`, payload);
+  invalidateQueries(BOOKINGS_CACHE_PREFIX);
   return data?.booking || data?.data || data;
 }

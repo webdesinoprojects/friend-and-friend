@@ -3,16 +3,15 @@ import { Link } from "react-router-dom";
 import { BadgeCheck, Briefcase, Camera, Edit3, IndianRupee, Languages, MapPin, ShieldCheck, Star } from "lucide-react";
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
-import { getMyProviderProfile, updateMyProviderProfilePhoto } from "../../api/providers";
-import { getReceivedReviews } from "../../utils/userFlowStorage";
-import { listMyReviews } from "../../api/reports";
+import { getCachedMyProviderProfile, getMyProviderProfile, updateMyProviderProfilePhoto } from "../../api/providers";
+import { getCachedMyReviews, listMyReviews } from "../../api/reports";
 
 export default function ProviderProfile() {
+  const cachedProfile = getCachedMyProviderProfile();
   const [user, setUser] = useState(() => readUser());
-  const [provider, setProvider] = useState(null);
-  const localReviews = getReceivedReviews("PROVIDER");
-  const [backendReviews, setBackendReviews] = useState([]);
-  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const [provider, setProvider] = useState(cachedProfile?.provider || null);
+  const [backendReviews, setBackendReviews] = useState(() => getCachedMyReviews());
+  const [loading,setLoading]=useState(!cachedProfile?.provider); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
   const [photoSaving, setPhotoSaving] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
 
@@ -43,7 +42,8 @@ export default function ProviderProfile() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true); setError("");
+    if (!getCachedMyProviderProfile()?.provider) setLoading(true);
+    setError("");
     getMyProviderProfile()
       .then(({ provider: nextProvider }) => {
         if (!mounted) return;
@@ -81,7 +81,7 @@ export default function ProviderProfile() {
 
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
   const avatar = getImageSrc(images[0]) || user?.profileImage || "";
-  const allReviews = backendReviews.length ? backendReviews : localReviews;
+  const allReviews = backendReviews;
   const rating = allReviews.length
     ? (allReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / allReviews.length).toFixed(1)
     : provider?.rating ? Number(provider.rating).toFixed(1) : "New";

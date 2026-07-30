@@ -1,6 +1,3 @@
 export function hasAuthToken() {
-  return Boolean(
-    localStorage.getItem("buddybook_token") ||
-      localStorage.getItem("token")
-  );
+  return Boolean(localStorage.getItem("buddybook_auth_user"));
 }

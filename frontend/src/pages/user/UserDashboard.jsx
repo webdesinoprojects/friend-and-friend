@@ -16,61 +16,51 @@ import {
 } from "lucide-react";
 import ProviderCard from "../../components/users/ProviderCard";
 import UserAppLayout from "../../components/users/UserAppLayout";
-import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import { formatRs, formatRupees } from "../../utils/format";
-import { listBookings } from "../../api/bookings";
+import { getCachedBookings, listBookings } from "../../api/bookings";
+import { getCurrentUser } from "../../api/auth";
 
 export default function UserDashboard() {
   const [search, setSearch] = useState("");
   const [user, setUser] = useState(() => readStorage("buddybook_auth_user", null));
-  const [bookings, setBookings] = useState(() =>
-    readStorage("buddybook_bookings", [])
-  );
+  const [bookings, setBookings] = useState(() => getCachedBookings({ pageSize: 100 }));
   const [providers, setProviders] = useState(() => getCachedProviders());
   const [providersLoading, setProvidersLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
-    const loadDashboard = async () => {
-      try {
-        const response = hasAuthToken() ? await api.get("/auth/me") : null;
-        const nextUser =
-          response?.data?.user || response?.data?.data?.user || response?.data?.data;
+    if (hasAuthToken()) {
+      getCurrentUser()
+        .then((nextUser) => {
+          if (mounted && (nextUser?.id || nextUser?._id)) setUser(nextUser);
+        })
+        .catch(() => {});
+      listBookings({ pageSize: 100 })
+        .then((rows) => mounted && setBookings(rows))
+        .catch(() => {});
+    }
 
-        if (mounted && (nextUser?.id || nextUser?._id)) {
-          setUser(nextUser);
-          localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
-        }
-      } catch {
-        // Registration/login data already loaded from localStorage.
-      }
-
-      try {
-        const rows = await loadDashboardProviders();
-        if (mounted) {
-          setProviders(rows);
-        }
-      } catch {
+    if (!getCachedProviders().length) setProvidersLoading(true);
+    loadDashboardProviders()
+      .then((rows) => {
+        if (mounted) setProviders(rows);
+      })
+      .catch(() => {
         if (mounted) setProviders(getCachedProviders());
-      } finally {
+      })
+      .finally(() => {
         if (mounted) setProvidersLoading(false);
-      }
-      if (hasAuthToken()) listBookings().then((rows) => mounted && setBookings(rows)).catch(() => {});
-    };
+      });
 
-    loadDashboard();
     return () => {
       mounted = false;
     };
   }, []);
 
   useEffect(() => {
-    const refreshBookings = () =>
-      setBookings(readStorage("buddybook_bookings", []));
-
     const refreshProviders = async () => {
       try {
         const rows = await loadDashboardProviders();
@@ -83,14 +73,10 @@ export default function UserDashboard() {
     };
     const refreshProvidersFromCache = () => setProviders(getCachedProviders());
 
-    window.addEventListener("storage", refreshBookings);
-    window.addEventListener("buddybook:data-changed", refreshBookings);
     window.addEventListener("buddybook:providers-changed", refreshProviders);
     window.addEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
 
     return () => {
-      window.removeEventListener("storage", refreshBookings);
-      window.removeEventListener("buddybook:data-changed", refreshBookings);
       window.removeEventListener("buddybook:providers-changed", refreshProviders);
       window.removeEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
     };
@@ -150,7 +136,7 @@ export default function UserDashboard() {
           />
           <Statistics total={total} completed={completed} pending={pending} />
 
-          <div className="rounded-none border border-black/10 bg-white p-6 shadow-sm">
+          <div className="rounded-none border border-black/10 bg-white p-6 pb-10 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black">Providers to Explore</h2>
@@ -160,7 +146,7 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid items-start grid-cols-2 gap-4 pb-4 md:grid-cols-2 xl:grid-cols-3">
               {providersLoading ? (
                 [1, 2, 3, 4].map((item) => (
                   <div key={item} className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">

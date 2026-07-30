@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, CalendarCheck, Clock3, MessageCircle, Star, X } from "lucide-react";
 import api from "../../api/api";
+import { fetchQuery, getQueryData, setQueryData } from "../../utils/queryCache";
+
+const NOTIFICATIONS_KEY = "notifications:list";
 
 function formatTime(value) {
   const date = value ? new Date(value) : new Date();
@@ -15,15 +18,21 @@ function formatTime(value) {
 }
 
 async function buildBackendNotifications() {
-  const { data } = await api.get("/notifications", { suppressGlobalError: true });
-  const rows = Array.isArray(data?.data) ? data.data : [];
-  return rows.map((row) => ({ id: row.id, kind: String(row.type || "notification").toLowerCase(), title: row.title, detail: row.message, link: row.link, readAt: row.readAt, time: formatTime(row.createdAt), sortAt: row.createdAt }));
+  return fetchQuery(
+    NOTIFICATIONS_KEY,
+    async () => {
+      const { data } = await api.get("/notifications", { suppressGlobalError: true });
+      const rows = Array.isArray(data?.data) ? data.data : [];
+      return rows.map((row) => ({ id: row.id, kind: String(row.type || "notification").toLowerCase(), title: row.title, detail: row.message, link: row.link, readAt: row.readAt, time: formatTime(row.createdAt), sortAt: row.createdAt }));
+    },
+    { staleTime: 15_000 }
+  );
 }
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => getQueryData(NOTIFICATIONS_KEY, []));
 
   useEffect(() => {
     let mounted = true;
@@ -50,8 +59,20 @@ export function NotificationBell() {
 
   const latest = notifications[0];
   const unread = notifications.some((item) => !item.readAt);
-  const markRead = async (id) => { await api.patch(`/notifications/${id}/read`).catch(() => {}); setNotifications((current) => current.map((item) => item.id === id ? { ...item, readAt: new Date().toISOString() } : item)); };
-  const markAllRead = async () => { await api.patch("/notifications/all/read").catch(() => {}); setNotifications((current) => current.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() }))); };
+  const markRead = async (id) => {
+    await api.patch(`/notifications/${id}/read`).catch(() => {});
+    setNotifications((current) => setQueryData(
+      NOTIFICATIONS_KEY,
+      current.map((item) => item.id === id ? { ...item, readAt: new Date().toISOString() } : item)
+    ));
+  };
+  const markAllRead = async () => {
+    await api.patch("/notifications/all/read").catch(() => {});
+    setNotifications((current) => setQueryData(
+      NOTIFICATIONS_KEY,
+      current.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() }))
+    ));
+  };
 
   return (
     <div className="relative">

@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
   Flag,
@@ -15,8 +15,9 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getMyReportSummary } from "../../api/reports";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { getCachedReportSummary, getMyReportSummary } from "../../api/reports";
+import { listChats } from "../../api/chats";
 import { NotificationBell } from "../common/HeaderActions";
 import Logo from "../common/Logo";
 
@@ -32,7 +33,39 @@ const userLinks = [
   { label: "Settings", to: "/app/user/settings", icon: Settings },
 ];
 
-export default function UserAppLayout({
+const UserWorkspaceContext = createContext(null);
+
+export function UserWorkspaceRoute() {
+  const [layoutProps, setLayoutProps] = useState({});
+  const contextValue = useMemo(() => ({ setLayoutProps }), []);
+  useEffect(() => {
+    listChats().catch(() => {});
+  }, []);
+
+  return (
+    <UserWorkspaceContext.Provider value={contextValue}>
+      <UserAppLayoutShell {...layoutProps}>
+        <Outlet />
+      </UserAppLayoutShell>
+    </UserWorkspaceContext.Provider>
+  );
+}
+
+export default function UserAppLayout(props) {
+  const workspace = useContext(UserWorkspaceContext);
+  const { title, user, searchValue, onSearchChange } = props;
+
+  useLayoutEffect(() => {
+    if (!workspace) return undefined;
+    workspace.setLayoutProps({ title, user, searchValue, onSearchChange });
+    return () => workspace.setLayoutProps({});
+  }, [workspace, title, user, searchValue, onSearchChange]);
+
+  if (workspace) return props.children;
+  return <UserAppLayoutShell {...props} />;
+}
+
+function UserAppLayoutShell({
   children,
   title = "Dashboard",
   user,
@@ -46,7 +79,7 @@ export default function UserAppLayout({
   const pageName = getPageName(location.pathname, title);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [navSearch, setNavSearch] = useState("");
-  const [reportCount, setReportCount] = useState(0);
+  const [reportCount, setReportCount] = useState(() => getCachedReportSummary().received || 0);
   useEffect(() => {
     let mounted = true;
     const load = () => getMyReportSummary().then((data) => mounted && setReportCount(data.received || 0)).catch(() => {});
@@ -247,18 +280,24 @@ export default function UserAppLayout({
                 </div>
 
                 <nav className="mt-6 grid gap-2">
-                  {userLinks.map(({ label, to, icon: Icon }) => (
-                    <Link
-                      key={label}
-                      to={to}
-                      onClick={() => setDrawerOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black text-black transition hover:bg-[#ffeedd]"
-                    >
-                      <Icon size={18} />
-                      {label}
-                      {label === "Reports" ? <span className="ml-auto rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">{reportCount}</span> : null}
-                    </Link>
-                  ))}
+                  {userLinks.map(({ label, to, icon: Icon }) => {
+                    const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
+                    return (
+                      <Link
+                        key={label}
+                        to={to}
+                        onClick={() => setDrawerOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition ${
+                          active ? "bg-[#fff0d2] text-[#08204a] shadow-sm" : "text-black hover:bg-[#ffeedd]"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        {label}
+                        {label === "Reports" ? <span className="ml-auto rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">{reportCount}</span> : null}
+                      </Link>
+                    );
+                  })}
                 </nav>
               </aside>
             </div>

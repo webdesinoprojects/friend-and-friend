@@ -80,7 +80,6 @@ export default function PublicNavbar() {
       } catch (error) {
         const status = error?.response?.status;
         if (status === 401 || status === 403) {
-          localStorage.removeItem('buddybook_token');
           localStorage.removeItem('buddybook_auth_user');
         }
         setUser(null);
@@ -124,12 +123,10 @@ export default function PublicNavbar() {
     setLogoutConfirm(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await api.post("/auth/logout").catch(() => {});
     localStorage.removeItem("buddybook_auth_user");
-    localStorage.removeItem("buddybook_token");
-    localStorage.removeItem("buddybook_admin_token");
     localStorage.removeItem("buddybook_admin_user");
-    localStorage.removeItem("token");
     setUser(null);
     setAccountOpen(false);
     setLogoutConfirm(false);
@@ -151,17 +148,23 @@ export default function PublicNavbar() {
                  </div>
 
                 <nav className="hidden items-center rounded-full border border-black/70 bg-white/80 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_14px_35px_rgba(0,0,0,0.08)] md:flex">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.to}
-                      className="group relative overflow-hidden rounded-full px-4 py-2.5 text-sm font-bold text-black transition duration-300 hover:text-black"
-                    >
-                      <span className="pointer-events-none absolute inset-0 scale-90 rounded-full bg-gradient-to-r from-[#e8e8e4] to-[#e9ecef] opacity-0 transition duration-300 group-hover:scale-100 group-hover:opacity-100" />
-                      <span className="relative z-10">{item.label}</span>
-                      <span className="pointer-events-none absolute bottom-1 left-5 right-5 h-0.5 scale-x-0 rounded-full bg-black transition duration-300 group-hover:scale-x-100" />
-                    </Link>
-                  ))}
+                  {navItems.map((item) => {
+                    const active = location.pathname === item.to;
+                    return (
+                      <Link
+                        key={item.label}
+                        to={item.to}
+                        aria-current={active ? "page" : undefined}
+                        className={`group relative overflow-hidden rounded-full px-4 py-2.5 text-sm font-bold transition duration-300 ${
+                          active ? "bg-black text-white shadow-md" : "text-black hover:text-black"
+                        }`}
+                      >
+                        <span className={`pointer-events-none absolute inset-0 scale-90 rounded-full bg-gradient-to-r from-[#e8e8e4] to-[#e9ecef] transition duration-300 group-hover:scale-100 group-hover:opacity-100 ${active ? "opacity-0" : "opacity-0"}`} />
+                        <span className="relative z-10">{item.label}</span>
+                        <span className={`pointer-events-none absolute bottom-1 left-5 right-5 h-0.5 rounded-full transition duration-300 ${active ? "scale-x-100 bg-white" : "scale-x-0 bg-black group-hover:scale-x-100"}`} />
+                      </Link>
+                    );
+                  })}
                 </nav>
 
                 <div className="flex shrink-0 items-center gap-2 sm:gap-2">

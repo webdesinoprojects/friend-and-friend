@@ -38,18 +38,12 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
-import { getMyProviderProfile, saveMyProviderProfile } from "../../api/providers";
-import { acceptBookingApi, listBookings, startBookingMeeting } from "../../api/bookings";
+import { getCachedMyProviderProfile, getMyProviderProfile, saveMyProviderProfile } from "../../api/providers";
+import { acceptBookingApi, getCachedBookings, listBookings, startBookingMeeting } from "../../api/bookings";
 import { listChats } from "../../api/chats";
-import { createReview } from "../../api/reports";
+import { createReview, getCachedMyReviews, listMyReviews } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
 import MeetingReportDialog from "../../components/common/MeetingReportDialog";
-import {
-  addReview,
-  getBookings,
-  getReviewForBooking,
-  subscribeToUserData,
-} from "../../utils/userFlowStorage";
 
 const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const palette = ["#e08c4c", "#111111", "#ffeedd", "#16815f"];
@@ -184,29 +178,32 @@ export function ProviderAvailability() {
 }
 
 export function ProviderBookings() {
-  const [bookings, setBookings] = useState(() => getBookings());
+  const [bookings, setBookings] = useState(() => getCachedBookings({ pageSize: 100 }));
+  const [reviews, setReviews] = useState(() => getCachedMyReviews());
+  const [loadError, setLoadError] = useState("");
   const [userImages, setUserImages] = useState({});
   const [pins, setPins] = useState({});
   const [startingId, setStartingId] = useState("");
   const [reportTarget, setReportTarget] = useState(null);
   const [openReviewId, setOpenReviewId] = useState("");
+  const [openCancellationId, setOpenCancellationId] = useState("");
 
   useEffect(() => {
     let mounted = true;
     const refresh = () => {
-      Promise.all([listBookings(), listChats()])
-        .then(([rows, chats]) => {
+      setLoadError("");
+      Promise.all([listBookings({ pageSize: 100 }), listChats(), listMyReviews()])
+        .then(([rows, chats, reviewRows]) => {
           if (!mounted) return;
           setBookings(rows);
+          setReviews(reviewRows);
           setUserImages(Object.fromEntries(chats.map((chat) => [chat.userId, chat.userImage || ""])));
         })
-        .catch(() => mounted && setBookings(getBookings()));
+        .catch(() => mounted && setLoadError("Bookings could not be loaded."));
     };
     refresh();
-    const unsubscribe = subscribeToUserData(() => setBookings(getBookings()));
     return () => {
       mounted = false;
-      unsubscribe();
     };
   }, []);
 
@@ -227,16 +224,18 @@ export function ProviderBookings() {
   };
 
   return (
-    <ProviderPageShell title="Bookings" subtitle="Start meetings securely with the user's PIN and manage the live handoff." action={null}>
+    <ProviderPageShell title="Bookings" subtitle="Use the user's secure six-digit code to begin each confirmed meeting." action={null}>
       <div>
         <section className="min-h-[calc(100vh-13rem)] bg-white">
           <div className="p-1 sm:p-2">
-            {bookings.length ? (
+            {loadError ? (
+              <WorkspaceError message={loadError} onRetry={() => window.location.reload()} />
+            ) : bookings.length ? (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {bookings.map((booking) => {
                   const status = String(booking.status || "PENDING").toUpperCase();
                   const completed = status === "COMPLETED";
-                  const providerReview = getReviewForBooking(booking.id, "PROVIDER");
+                  const providerReview = reviews.find((review) => review.bookingId === booking.id && review.reviewerRole === "PROVIDER");
 
                   return (
                     <article key={booking.id} className="min-w-0 self-start border border-slate-200 bg-white p-4 shadow-[0_10px_32px_rgba(15,23,42,0.07)] transition hover:border-slate-300">
@@ -269,14 +268,48 @@ export function ProviderBookings() {
                         </div>
                       </div>
 
-                      {status === "CANCELLED" ? <div className="mt-4 bg-rose-50 p-4 text-sm font-bold text-rose-800"><span className="font-black">Cancellation note: {booking.cancelCategory || "Other"}</span><p className="mt-1">{booking.cancelReason}</p>{booking.refundAmount != null ? <p className="mt-2 text-xs">20% fee: {formatRs(booking.cancellationFee)} · Refund: {formatRs(booking.refundAmount)}</p> : null}</div> : null}
+                      {status === "CANCELLED" ? (
+                        <div className="mt-4 overflow-hidden bg-rose-50 text-sm text-rose-800">
+                          <button
+                            type="button"
+                            aria-expanded={openCancellationId === booking.id}
+                            onClick={() => setOpenCancellationId((current) => current === booking.id ? "" : booking.id)}
+                            className="flex w-full min-w-0 items-center justify-between gap-3 p-4 text-left font-black"
+                          >
+                            <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                              Cancellation details: {booking.cancelCategory || "Other"}
+                            </span>
+                            <ChevronDown size={17} className={`shrink-0 transition ${openCancellationId === booking.id ? "rotate-180" : ""}`} />
+                          </button>
+                          {openCancellationId === booking.id ? (
+                            <div className="border-t border-rose-200 px-4 pb-4 pt-3">
+                              <p className="whitespace-pre-wrap break-words font-bold leading-6 [overflow-wrap:anywhere]">
+                                {booking.cancelReason || "No additional reason was provided."}
+                              </p>
+                              {booking.refundAmount != null ? (
+                                <p className="mt-2 break-words text-xs">
+                                  20% fee: {formatRs(booking.cancellationFee)} · Refund: {formatRs(booking.refundAmount)}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
 
                       {status === "CONFIRMED" ? (
                         <div className="mt-4 border border-amber-200 bg-amber-50 p-3">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex min-w-[180px] flex-1 items-center gap-2"><KeyRound size={16} className="text-amber-700" /><div><p className="text-xs font-black">User start PIN</p><p className="text-[10px] font-semibold text-slate-500">Ask the user for the code shown after payment.</p></div></div>
-                            <input aria-label="Six-digit user start PIN" value={pins[booking.id] || ""} onChange={(event)=>setPins((current)=>({...current,[booking.id]:event.target.value.replace(/\D/g,"").slice(0,6)}))} inputMode="numeric" maxLength={6} placeholder="000000" className="h-10 w-36 border border-slate-900 bg-white px-3 text-center font-mono text-base font-black tracking-[.2em] outline-none focus:ring-2 focus:ring-amber-300" />
-                            <button type="button" disabled={startingId===booking.id || String(pins[booking.id]||"").length!==6} onClick={()=>startMeeting(booking)} className="inline-flex h-10 items-center gap-2 bg-slate-950 px-4 text-xs font-black text-white disabled:opacity-40"><Play size={14}/>{startingId===booking.id?"Starting...":"Start meeting"}</button>
+                          <div className="flex items-start gap-2">
+                            <KeyRound size={17} className="mt-0.5 shrink-0 text-amber-700" />
+                            <div>
+                              <p className="text-xs font-black text-slate-950">Enter the user&apos;s start code</p>
+                              <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-500">
+                                Ask the user for the six-digit code shown in their confirmed booking.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex w-full items-stretch gap-2">
+                            <input aria-label="Six-digit user start code" value={pins[booking.id] || ""} onChange={(event)=>setPins((current)=>({...current,[booking.id]:event.target.value.replace(/\D/g,"").slice(0,6)}))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" className="h-11 min-w-0 flex-1 border border-slate-900 bg-white px-2 text-center font-mono text-base font-black tracking-[.16em] outline-none focus:ring-2 focus:ring-amber-300" />
+                            <button type="button" disabled={startingId===booking.id || String(pins[booking.id]||"").length!==6} onClick={()=>startMeeting(booking)} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 bg-slate-950 px-3 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"><Play size={14}/>{startingId===booking.id?"Starting...":"Start meeting"}</button>
                           </div>
                         </div>
                       ) : null}
@@ -296,7 +329,7 @@ export function ProviderBookings() {
                             <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{providerReview.description}</p>
                           </div>
                         ) : (
-                          <ProviderReviewForm booking={booking} onSubmitted={() => setBookings((rows) => [...rows])} />
+                          <ProviderReviewForm booking={booking} onSubmitted={(review) => setReviews((rows) => [review, ...rows])} />
                         )) : null}</>
                       ) : null}
                     </article>
@@ -332,17 +365,7 @@ function ProviderReviewForm({ booking, onSubmitted }) {
     setSubmitting(true);
     try {
       const saved = await createReview({ bookingId: booking.id, rating, description: description.trim() });
-      addReview({
-      ...saved,
-      bookingId: booking.id,
-      reviewerRole: "PROVIDER",
-      targetRole: "USER",
-      targetName: booking.userName || "BuddyBOOK user",
-      rating,
-      description,
-      service: booking.service || booking.activity,
-      });
-      onSubmitted();
+      onSubmitted(saved);
     } catch (error) {
       notify(error?.response?.data?.message || "Could not submit review.", "error");
     } finally {
@@ -507,9 +530,10 @@ function updateRow(setter, index, key, value) {
 }
 
 function useProviderWorkspace() {
-  const [provider, setProvider] = useState(null);
-  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
-  const [bookings, setBookings] = useState([]);
+  const cachedProfile = getCachedMyProviderProfile();
+  const [provider, setProvider] = useState(cachedProfile?.provider || null);
+  const [loading,setLoading]=useState(!cachedProfile?.provider); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const [bookings, setBookings] = useState(() => getCachedBookings({ pageSize: 100 }));
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalBookings: 0,
@@ -518,8 +542,9 @@ function useProviderWorkspace() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true); setError("");
-    Promise.all([getMyProviderProfile(), listBookings().catch(() => getBookings())])
+    if (!getCachedMyProviderProfile()?.provider) setLoading(true);
+    setError("");
+    Promise.all([getMyProviderProfile(), listBookings({ pageSize: 100 })])
       .then(([result, bookingRows]) => {
         if (!mounted) return;
         setProvider(result.provider);

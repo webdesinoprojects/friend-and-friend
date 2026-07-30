@@ -20,7 +20,12 @@ function emitAck(socket, event, payload) {
 
 function connect(url, token) {
   return new Promise((resolve, reject) => {
-    const socket = createClient(url, { auth: { token }, transports: ["websocket"], forceNew: true, reconnection: false });
+    const socket = createClient(url, {
+      extraHeaders: token ? { Cookie: `buddybook_session=${encodeURIComponent(token)}` } : {},
+      transports: ["websocket"],
+      forceNew: true,
+      reconnection: false,
+    });
     socket.once("connect", () => resolve(socket));
     socket.once("connect_error", reject);
   });
@@ -82,7 +87,10 @@ test("Socket.IO chat authenticates, authorizes, deduplicates, and delivers immed
   const io = initializeChatSocket(server, ["http://127.0.0.1"], { prisma: db, chatController: controller, realtime: live });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
-  const tokens = Object.fromEntries([...users.keys()].map((id) => [id, jwt.sign({ id }, process.env.JWT_SECRET)]));
+  const tokens = Object.fromEntries([...users.keys()].map((id) => [
+    id,
+    jwt.sign({ id, purpose: "user-session" }, process.env.JWT_SECRET),
+  ]));
   const sockets = await Promise.all([connect(url, tokens.u1), connect(url, tokens.u2), connect(url, tokens.u3)]);
   context.after(async () => {
     sockets.forEach((socket) => socket.disconnect());

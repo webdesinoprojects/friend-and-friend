@@ -13,7 +13,6 @@ import api from "../../api/api";
 import { formatRupees } from "../../utils/format";
 import { createBookingRequest, createRazorpayOrder, listBookings, verifyRazorpayPayment } from "../../api/bookings";
 import { getCachedProvider, getProvider } from "../../api/providers";
-import { createPaidBooking } from "../../utils/userFlowStorage";
 import { hasAuthToken } from "../../utils/authSession";
 
 const paymentMethods = [
@@ -131,10 +130,6 @@ export default function UserBookingPayment() {
         handler: async (response) => {
           try {
             const booking = await verifyRazorpayPayment(response);
-            createPaidBooking({
-              provider: { ...provider, id: booking.providerId || provider.id, name: booking.providerName || provider.name, image: booking.providerImage || provider.image },
-              service, date, time, duration, paymentMethod: "RAZORPAY", user, bookingOverride: booking,
-            });
             navigate("/app/user/bookings", { replace: true, state: { paymentSuccess: true, bookingId: booking.id } });
           } catch (error) {
             setPaymentError(error.response?.data?.message || error.message || "Payment verification failed. Please contact support with your Razorpay payment ID.");

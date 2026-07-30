@@ -3,6 +3,11 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { listBookings } from "../../api/bookings";
+import { listChats } from "../../api/chats";
+import { setCurrentUser } from "../../api/auth";
+import { getMyProviderProfile, listProviders } from "../../api/providers";
+import { getMyReportSummary, listMyReviews } from "../../api/reports";
+import { clearQueryCache } from "../../utils/queryCache";
 import Logo from "../../components/common/Logo";
 import {
   ArrowRight,
@@ -51,14 +56,23 @@ export default function Login() {
   };
 
   const completeAuth = (data) => {
-    if (data.token) {
-      localStorage.setItem("buddybook_token", data.token);
-    }
-
+    clearQueryCache();
     localStorage.setItem("buddybook_auth_user", JSON.stringify(data.user));
-    localStorage.removeItem("buddybook_application_token");
+    setCurrentUser(data.user);
     localStorage.removeItem("buddybook_pending_application");
-    if (data.user?.role === "USER" || data.user?.role === "PROVIDER") listBookings().catch(() => {});
+    if (data.user?.role === "USER") {
+      listChats().catch(() => {});
+      listBookings({ pageSize: 100 }).catch(() => {});
+      listProviders({ verified: true, limit: 4 }).catch(() => {});
+      getMyReportSummary().catch(() => {});
+    }
+    if (data.user?.role === "PROVIDER") {
+      listChats().catch(() => {});
+      getMyProviderProfile().catch(() => {});
+      listBookings({ pageSize: 100 }).catch(() => {});
+      listMyReviews().catch(() => {});
+      getMyReportSummary().catch(() => {});
+    }
     goToDashboard(data.user);
   };
 
@@ -85,8 +99,7 @@ export default function Login() {
         return;
       }
 
-      if (data?.applicationToken) {
-        localStorage.setItem("buddybook_application_token", data.applicationToken);
+      if (data?.applicationPending || data?.applicationRejected) {
         navigate("/application-review");
         return;
       }
@@ -116,8 +129,7 @@ export default function Login() {
       completeAuth(res.data);
     } catch (error) {
       console.error("LOGIN_FRONTEND_ERROR:", error);
-      if (error.response?.data?.applicationToken) {
-        localStorage.setItem("buddybook_application_token", error.response.data.applicationToken);
+      if (error.response?.data?.applicationPending || error.response?.data?.applicationRejected) {
         navigate("/application-review");
         return;
       }
@@ -170,8 +182,7 @@ export default function Login() {
       completeAuth(res.data);
     } catch (error) {
       console.error("LOGIN_OTP_FRONTEND_ERROR:", error);
-      if (error.response?.data?.applicationToken) {
-        localStorage.setItem("buddybook_application_token", error.response.data.applicationToken);
+      if (error.response?.data?.applicationPending || error.response?.data?.applicationRejected) {
         navigate("/application-review");
         return;
       }

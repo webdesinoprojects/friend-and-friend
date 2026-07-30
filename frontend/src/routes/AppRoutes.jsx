@@ -1,10 +1,36 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { SkeletonRows } from "../components/common/Feedback";
-import Activities from "../pages/public/Activities";
+import { UserWorkspaceRoute } from "../components/users/UserAppLayout";
+import { ProviderWorkspaceRoute } from "../components/layout/AppShell";
+import MyReports from "../pages/common/MyReports";
+import UserDashboard from "../pages/user/UserDashboard";
+import UserBookingPayment from "../pages/user/UserBookingPayment";
+import UserBookings from "../pages/user/UserBookings";
+import UserPayments from "../pages/user/UserPayments";
+import UserWatchlist from "../pages/user/UserWatchlist";
+import UserActiveMeet from "../pages/user/UserActiveMeet";
+import UserProfile from "../pages/user/UserProfile";
+import UserReviews from "../pages/user/UserReviews";
+import UserSettings from "../pages/user/UserSettings";
+import UserChats from "../pages/user/UserChats";
+import ProviderDashboard from "../pages/provider/ProviderDashboard";
+import ProviderCreate from "../pages/provider/ProviderCreate";
+import ProviderReviews from "../pages/provider/ProviderReviews";
+import ProviderSettings from "../pages/provider/ProviderSettings";
+import ProviderChats from "../pages/provider/ProviderChats";
+import ProviderUserProfile from "../pages/provider/ProviderUserProfile";
+import ProviderProfile from "../pages/provider/ProviderProfile";
+import {
+  ProviderAvailability,
+  ProviderBookings,
+  ProviderEarnings,
+  ProviderServices,
+} from "../pages/provider/ProviderWorkspacePages";
 
 /* PUBLIC */
 const Home = lazy(() => import("../pages/public/Home"));
+const Activities = lazy(() => import("../pages/public/Activities"));
 const HowItWorks = lazy(() => import("../pages/public/HowItWorks"));
 const Safety = lazy(() => import("../pages/public/Safety"));
 const Contact = lazy(() => import("../pages/public/Contact"));
@@ -16,15 +42,6 @@ const NotFound = lazy(() => import("../pages/public/NotFound"));
 /* AUTH */
 const Login=lazy(()=>import("../pages/auth/Login")); const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
 const ApplicationReview=lazy(()=>import("../pages/auth/ApplicationReview"));
-const MyReports=lazy(()=>import("../pages/common/MyReports"));
-
-/* USER */
-const UserDashboard=lazy(()=>import("../pages/user/UserDashboard")); const UserBookingPayment=lazy(()=>import("../pages/user/UserBookingPayment")); const UserBookings=lazy(()=>import("../pages/user/UserBookings")); const UserPayments=lazy(()=>import("../pages/user/UserPayments")); const UserWatchlist=lazy(()=>import("../pages/user/UserWatchlist")); const UserActiveMeet=lazy(()=>import("../pages/user/UserActiveMeet")); const UserProfile=lazy(()=>import("../pages/user/UserProfile")); const UserReviews=lazy(()=>import("../pages/user/UserReviews")); const UserSettings=lazy(()=>import("../pages/user/UserSettings")); const UserChats=lazy(()=>import("../pages/user/UserChats"));
-
-/* PROVIDER */
-const ProviderDashboard=lazy(()=>import("../pages/provider/ProviderDashboard")); const ProviderCreate=lazy(()=>import("../pages/provider/ProviderCreate")); const ProviderReviews=lazy(()=>import("../pages/provider/ProviderReviews")); const ProviderSettings=lazy(()=>import("../pages/provider/ProviderSettings")); const ProviderChats=lazy(()=>import("../pages/provider/ProviderChats")); const ProviderUserProfile=lazy(()=>import("../pages/provider/ProviderUserProfile"));
-const ProviderProfile=lazy(()=>import("../pages/provider/ProviderProfile"));
-const ProviderBookings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderBookings}))); const ProviderEarnings=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderEarnings}))); const ProviderServices=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderServices}))); const ProviderAvailability=lazy(()=>import("../pages/provider/ProviderWorkspacePages").then(m=>({default:m.ProviderAvailability})));
 
 /* ADMIN */
 const AdminLogin=lazy(()=>import("../pages/admin/AdminLogin")); const AdminDashboard=lazy(()=>import("../pages/admin/AdminDashboard"));
@@ -57,63 +74,41 @@ export default function AppRoutes() {
       <Route path="/application-review" element={<ApplicationReview />} />
 
       {/* USER ROUTES */}
-      <Route path="/app/user/dashboard" element={userOnly(<UserDashboard />)} />
-      <Route path="/app/user/search" element={userOnly(<Navigate to="/app/user/dashboard" replace />)} />
-      <Route path="/app/user/watchlist" element={userOnly(<UserWatchlist />)} />
-
+      <Route path="/app/user" element={userOnly(<UserWorkspaceRoute />)}>
+        <Route path="dashboard" element={<UserDashboard />} />
+        <Route path="search" element={<Navigate to="/app/user/dashboard" replace />} />
+        <Route path="watchlist" element={<UserWatchlist />} />
+        <Route path="provider/:providerId/book" element={<UserBookingPayment />} />
+        <Route path="bookings" element={<UserBookings />} />
+        <Route path="chat" element={<UserChats />} />
+        <Route path="payments" element={<UserPayments />} />
+        <Route path="wallet" element={<UserPayments />} />
+        <Route path="active-meet/:bookingId" element={<UserActiveMeet />} />
+        <Route path="reviews" element={<UserReviews />} />
+        <Route path="reports" element={<MyReports type="user" />} />
+        <Route path="profile" element={<UserProfile />} />
+        <Route path="settings" element={<UserSettings />} />
+      </Route>
       <Route
         path="/app/user/provider/:providerId"
         element={userOnly(<PublicProviderProfile />)}
       />
 
-      <Route
-        path="/app/user/provider/:providerId/book"
-        element={userOnly(<UserBookingPayment />)}
-      />
-
-      <Route path="/app/user/bookings" element={userOnly(<UserBookings />)} />
-      <Route path="/app/user/chat" element={userOnly(<UserChats />)} />
-      <Route path="/app/user/payments" element={userOnly(<UserPayments />)} />
-      <Route path="/app/user/wallet" element={userOnly(<UserPayments />)} />
-
-      <Route
-        path="/app/user/active-meet/:bookingId"
-        element={userOnly(<UserActiveMeet />)}
-      />
-
-      <Route path="/app/user/reviews" element={userOnly(<UserReviews />)} />
-      <Route path="/app/user/reports" element={userOnly(<MyReports type="user" />)} />
-      <Route path="/app/user/profile" element={userOnly(<UserProfile />)} />
-      <Route path="/app/user/settings" element={userOnly(<UserSettings />)} />
-
       {/* PROVIDER ROUTES */}
-      <Route
-        path="/app/provider/dashboard"
-        element={providerOnly(<ProviderDashboard />)}
-      />
-      <Route path="/app/provider/create" element={providerOnly(<ProviderCreate />)} />
-      <Route
-        path="/app/provider/services"
-        element={providerOnly(<ProviderServices />)}
-      />
-      <Route
-        path="/app/provider/availability"
-        element={providerOnly(<ProviderAvailability />)}
-      />
-      <Route
-        path="/app/provider/bookings"
-        element={providerOnly(<ProviderBookings />)}
-      />
-      <Route path="/app/provider/chat" element={providerOnly(<ProviderChats />)} />
-      <Route path="/app/provider/users/:userId" element={providerOnly(<ProviderUserProfile />)} />
-      <Route
-        path="/app/provider/earnings"
-        element={providerOnly(<ProviderEarnings />)}
-      />
-      <Route path="/app/provider/reviews" element={providerOnly(<ProviderReviews />)} />
-      <Route path="/app/provider/reports" element={providerOnly(<MyReports type="provider" />)} />
-      <Route path="/app/provider/profile" element={providerOnly(<ProviderProfile />)} />
-      <Route path="/app/provider/settings" element={providerOnly(<ProviderSettings />)} />
+      <Route path="/app/provider" element={providerOnly(<ProviderWorkspaceRoute />)}>
+        <Route path="dashboard" element={<ProviderDashboard />} />
+        <Route path="create" element={<ProviderCreate />} />
+        <Route path="services" element={<ProviderServices />} />
+        <Route path="availability" element={<ProviderAvailability />} />
+        <Route path="bookings" element={<ProviderBookings />} />
+        <Route path="chat" element={<ProviderChats />} />
+        <Route path="users/:userId" element={<ProviderUserProfile />} />
+        <Route path="earnings" element={<ProviderEarnings />} />
+        <Route path="reviews" element={<ProviderReviews />} />
+        <Route path="reports" element={<MyReports type="provider" />} />
+        <Route path="profile" element={<ProviderProfile />} />
+        <Route path="settings" element={<ProviderSettings />} />
+      </Route>
 
       {/* ADMIN ROUTES */}
       <Route path="/admin/login" element={<AdminLogin />} />

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
   ChevronDown,
@@ -42,6 +42,7 @@ const fallbackAvatar =
 
 export default function WorkspaceAccountMenu({ user: suppliedUser }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [user, setUser] = useState(() => suppliedUser || readStoredUser());
@@ -101,10 +102,9 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
     setLogoutConfirm(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await api.post("/auth/logout").catch(() => {});
     localStorage.removeItem("buddybook_auth_user");
-    localStorage.removeItem("buddybook_token");
-    localStorage.removeItem("token");
     setUser(null);
     close();
     window.dispatchEvent(new Event("buddybook:auth-changed"));
@@ -205,17 +205,23 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
                 Workspace
               </p>
               <nav className="grid gap-1.5">
-                {workspaceItems.map(({ label, to, icon: Icon }) => (
-                  <Link
-                    key={label}
-                    to={to}
-                    onClick={close}
-                    className="flex items-center gap-3 rounded-full px-4 py-2 text-sm font-black text-black/78 transition hover:bg-[#f5f3ee]"
-                  >
-                    <Icon size={18} />
-                    {label}
-                  </Link>
-                ))}
+                {workspaceItems.map(({ label, to, icon: Icon }) => {
+                  const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
+                  return (
+                    <Link
+                      key={label}
+                      to={to}
+                      onClick={close}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-full px-4 py-2 text-sm font-black transition ${
+                        active ? "bg-black text-white shadow-sm" : "text-black/78 hover:bg-[#f5f3ee]"
+                      }`}
+                    >
+                      <Icon size={18} />
+                      {label}
+                    </Link>
+                  );
+                })}
               </nav>
 
               <div className="my-2 h-px bg-black/10" />

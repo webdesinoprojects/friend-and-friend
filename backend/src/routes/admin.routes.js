@@ -26,6 +26,7 @@ function handleUpload(req, res, next) {
 }
 
 router.post("/login", adminController.loginAdmin);
+router.post("/logout", adminOnly, adminController.logoutAdmin);
 router.get("/summary", adminOnly, adminController.getAdminSummary);
 router.get("/content", adminController.getAdminContent);
 router.put("/content", adminOnly, adminController.updateAdminContent);

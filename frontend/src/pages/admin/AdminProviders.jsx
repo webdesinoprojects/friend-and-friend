@@ -156,8 +156,7 @@ function ImagePreview({ src, onClose }) {
 }
 
 function getAdminHeaders() {
-  const token = localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token");
-  return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  return {};
 }
 
 function formatDate(value) {

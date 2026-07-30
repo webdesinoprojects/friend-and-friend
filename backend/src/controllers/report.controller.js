@@ -1,4 +1,6 @@
 const prisma = require("../config/prisma");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
+const { clearProviderListCache } = require("./provider.controller");
 const crypto = require("crypto");
 const { sendTransactionalEmail } = require("../utils/email");
 const REVIEW_REASON = "__BUDDYBOOK_REVIEW__";
@@ -219,6 +221,7 @@ exports.createReview = async (req, res) => {
         reviewSnapshot: { id: reviewId, bookingId, reviewerId: req.user.id, reviewerName: req.user.fullName, reviewerRole: isUser ? "USER" : "PROVIDER", targetRole: isUser ? "PROVIDER" : "USER", targetName: target.fullName, rating, description, service: booking.service },
       },
     });
+    clearProviderListCache();
     return res.status(201).json({ success: true, data: serializeStoredReview(review) });
   } catch (error) {
     console.error("CREATE_REVIEW_ERROR:", error);
@@ -228,11 +231,13 @@ exports.createReview = async (req, res) => {
 
 exports.listMyReviews = async (req, res) => {
   try {
-    const rows = await prisma.reviewReport.findMany({
-      where: { reason: REVIEW_REASON, adminAction: null, OR: [{ reporterId: req.user.id }, { reportedUserId: req.user.id }] },
-      orderBy: { createdAt: "desc" },
-    });
-    return res.json({ success: true, data: rows.map(serializeStoredReview) });
+    const where = { reason: REVIEW_REASON, adminAction: null, OR: [{ reporterId: req.user.id }, { reportedUserId: req.user.id }] };
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [rows, total] = await Promise.all([
+      prisma.reviewReport.findMany({ where, orderBy: { createdAt: "desc" }, skip: pagination.skip, take: pagination.take }),
+      prisma.reviewReport.count({ where }),
+    ]);
+    return res.json({ success: true, data: rows.map(serializeStoredReview), pagination: paginationMeta({ ...pagination, total }) });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Could not load reviews." });
   }
@@ -244,12 +249,19 @@ function serializeStoredReview(row) {
 
 exports.listReports = async (req, res) => {
   try {
-    const reports = await prisma.reviewReport.findMany({
-      where: { reason: { not: REVIEW_REASON } },
-      include: { reporter: true },
-      orderBy: { createdAt: "desc" },
-    });
-    return res.json({ success: true, data: reports.map(serializeReport) });
+    const where = { reason: { not: REVIEW_REASON } };
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [reports, total] = await Promise.all([
+      prisma.reviewReport.findMany({
+        where,
+        include: { reporter: true },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      prisma.reviewReport.count({ where }),
+    ]);
+    return res.json({ success: true, data: reports.map(serializeReport), pagination: paginationMeta({ ...pagination, total }) });
   } catch (error) {
     console.error("LIST_REPORTS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load reports." });
@@ -276,6 +288,7 @@ exports.updateReportAction = async (req, res) => {
       },
       include: { reporter: true },
     });
+    clearProviderListCache();
     return res.json({ success: true, data: serializeReport(report) });
   } catch (error) {
     console.error("UPDATE_REPORT_ERROR:", error);
@@ -286,6 +299,7 @@ exports.updateReportAction = async (req, res) => {
 exports.deleteReport = async (req, res) => {
   try {
     await prisma.reviewReport.delete({ where: { id: req.params.id } });
+    clearProviderListCache();
     return res.json({ success: true, data: { id: req.params.id } });
   } catch (error) {
     console.error("DELETE_REPORT_ERROR:", error);

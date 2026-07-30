@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import api from "../../api/api";
 import {
   Calendar,
   CreditCard,
@@ -30,10 +31,9 @@ export default function ProviderSettings() {
   const [preferences,setPreferences]=useState(()=>{try{return JSON.parse(localStorage.getItem("buddybook_provider_preferences")||"{}");}catch{return {};}});
   const handleOption=(action)=>{if(action.startsWith("/")){navigate(action);return;}if(action==="lifecycle"){document.getElementById("account-lifecycle")?.scrollIntoView({behavior:"smooth"});return;}setPreferences((current)=>{const next={...current,[action]:!current[action]};localStorage.setItem("buddybook_provider_preferences",JSON.stringify(next));return next;});};
 
-  const logout = () => {
+  const logout = async () => {
+    await api.post("/auth/logout").catch(() => {});
     localStorage.removeItem("buddybook_auth_user");
-    localStorage.removeItem("buddybook_token");
-    localStorage.removeItem("token");
     navigate("/login");
   };
 

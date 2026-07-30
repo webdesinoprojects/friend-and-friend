@@ -18,18 +18,12 @@ const submit = async (event) => {
   try {
     const { data } = await api.post("/admin/login", form);
 
-    const token = data.token || data.data?.token;
     const user = data.user || data.admin || data.data?.user;
 
-    if (!token || !user) {
+    if (!user) {
       throw new Error("Invalid admin login response.");
     }
 
-    localStorage.setItem("buddybook_token", token);
-    localStorage.setItem("buddybook_auth_user", JSON.stringify(user));
-
-    // Optional admin-specific keys if your admin panel uses them
-    localStorage.setItem("buddybook_admin_token", token);
     localStorage.setItem("buddybook_admin_user", JSON.stringify(user));
 
     navigate("/admin/dashboard");

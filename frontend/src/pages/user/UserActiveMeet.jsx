@@ -5,12 +5,11 @@ import UserAppLayout from "../../components/users/UserAppLayout";
 import { createExtensionOrder, endBookingMeeting, listBookings, verifyBookingEndCode, verifyExtensionPayment } from "../../api/bookings";
 import { notify } from "../../components/common/Feedback";
 import { formatRupees } from "../../utils/format";
-import { getBookings, updateBooking } from "../../utils/userFlowStorage";
 
 export default function UserActiveMeet() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const [booking, setBooking] = useState(() => getBookings().find((item) => item.id === bookingId));
+  const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [otp, setOtp] = useState("");
@@ -63,7 +62,6 @@ export default function UserActiveMeet() {
     setBusy("end");
     try {
       const saved = await endBookingMeeting(bookingId);
-      updateBooking(bookingId, saved);
       notify("Meeting completed securely.", "success");
       navigate("/app/user/bookings", { replace: true });
     } catch (err) {
@@ -89,7 +87,6 @@ export default function UserActiveMeet() {
           try {
             const saved = await verifyExtensionPayment(bookingId, response);
             setBooking((current) => ({ ...current, ...saved }));
-            updateBooking(bookingId, saved);
             notify("One discounted hour added. A new end code is ready for the provider.", "success");
           } catch (err) {
             notify(err.response?.data?.message || "Extension payment verification failed.", "error");

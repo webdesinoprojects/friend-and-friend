@@ -1,7 +1,12 @@
 import axios from "axios";
+import { clearQueryCache } from "../utils/queryCache";
+
+const localApiUrl = typeof window === "undefined"
+  ? "http://127.0.0.1:5000/api"
+  : `${window.location.protocol}//${window.location.hostname}:5000/api`;
 
 const apiBaseUrl = import.meta.env.DEV
-  ? import.meta.env.VITE_LOCAL_API_URL || "http://127.0.0.1:5000/api"
+  ? import.meta.env.VITE_LOCAL_API_URL || localApiUrl
   : import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
@@ -9,22 +14,41 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const isAdminRoute = String(config.url || "").startsWith("/admin");
-  const token = isAdminRoute
-    ? localStorage.getItem("buddybook_admin_token")
-    : localStorage.getItem("buddybook_token") || localStorage.getItem("token");
+let csrfTokenInMemory = "";
+let csrfRequest = null;
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(async (config) => {
+  let csrfToken = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("buddybook_csrf="))
+    ?.split("=")
+    .slice(1)
+    .join("=") || csrfTokenInMemory;
+  const unsafe = !["get", "head", "options"].includes(String(config.method || "get").toLowerCase());
+  if (unsafe && !csrfToken) {
+    csrfRequest ||= axios
+      .get(`${apiBaseUrl}/auth/csrf`, { withCredentials: true })
+      .then((response) => response.data?.csrfToken || "")
+      .finally(() => { csrfRequest = null; });
+    csrfToken = await csrfRequest;
+    csrfTokenInMemory = csrfToken;
   }
-
+  if (unsafe && csrfToken) {
+    config.headers["X-CSRF-Token"] = decodeURIComponent(csrfToken);
+  }
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (String(response?.config?.url || "") === "/auth/logout") clearQueryCache();
+    const nextCsrfToken = response.headers?.["x-csrf-token"];
+    if (nextCsrfToken) csrfTokenInMemory = nextCsrfToken;
+    return response;
+  },
   (error) => {
+    const nextCsrfToken = error?.response?.headers?.["x-csrf-token"];
+    if (nextCsrfToken) csrfTokenInMemory = nextCsrfToken;
     const status = error?.response?.status;
     if ((!status || status >= 500) && !error?.config?.suppressGlobalError) {
       const message = error?.response?.data?.message ||
@@ -48,13 +72,11 @@ api.interceptors.response.use(
       }
     }
     if (status === 401) {
+      clearQueryCache();
       const isAdmin = String(error?.config?.url || "").startsWith("/admin");
       if (isAdmin) {
-        localStorage.removeItem("buddybook_admin_token");
         localStorage.removeItem("buddybook_admin_user");
       } else {
-        localStorage.removeItem("buddybook_token");
-        localStorage.removeItem("token");
         localStorage.removeItem("buddybook_auth_user");
       }
     }

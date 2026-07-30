@@ -7,7 +7,7 @@ import { confirmAction, notify } from "../common/Feedback";
 
 function clearAccountStorage() {
   [
-    "buddybook_auth_user", "buddybook_token", "token", "buddybook_bookings",
+    "buddybook_auth_user", "buddybook_bookings",
     "buddybook_payments", "buddybook_reviews", "buddybook_watchlist",
     "buddybook_explore_providers_cache", "buddybook_my_provider_profile_cache",
     "buddybook_selected_provider",

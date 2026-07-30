@@ -16,17 +16,10 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import { formatRupees } from "../../utils/format";
-import { cancelBookingApi, listBookings } from "../../api/bookings";
-import { createReview } from "../../api/reports";
+import { cancelBookingApi, getCachedBookings, listBookings } from "../../api/bookings";
+import { createReview, getCachedMyReviews, listMyReviews } from "../../api/reports";
 import { notify } from "../../components/common/Feedback";
 import MeetingReportDialog from "../../components/common/MeetingReportDialog";
-import {
-  addReview,
-  cancelBooking,
-  getBookings,
-  getReviewForBooking,
-  subscribeToUserData,
-} from "../../utils/userFlowStorage";
 
 const statusStyles = {
   CONFIRMED: "bg-[#ffeedd] text-black",
@@ -49,8 +42,11 @@ function getBookingGroup(booking) {
 }
 
 export default function UserBookings() {
-  const [bookings, setBookings] = useState(() => getBookings());
-  const [loadingBookings, setLoadingBookings] = useState(() => getBookings().length === 0);
+  const cachedBookings = getCachedBookings({ pageSize: 100 });
+  const [bookings, setBookings] = useState(cachedBookings);
+  const [reviews, setReviews] = useState(() => getCachedMyReviews());
+  const [loadingBookings, setLoadingBookings] = useState(!cachedBookings.length);
+  const [loadError, setLoadError] = useState("");
   const [cancelTarget, setCancelTarget] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [openReviewId, setOpenReviewId] = useState("");
@@ -58,16 +54,19 @@ export default function UserBookings() {
   useEffect(() => {
     let mounted = true;
     const refresh = () => {
-      listBookings()
-        .then((rows) => mounted && setBookings(rows))
-        .catch(() => mounted && setBookings(getBookings()))
+      setLoadError("");
+      Promise.all([listBookings({ pageSize: 100 }), listMyReviews()])
+        .then(([rows, reviewRows]) => {
+          if (!mounted) return;
+          setBookings(rows);
+          setReviews(reviewRows);
+        })
+        .catch(() => mounted && setLoadError("Bookings could not be loaded."))
         .finally(() => mounted && setLoadingBookings(false));
     };
     refresh();
-    const unsubscribe = subscribeToUserData(() => setBookings(getBookings()));
     return () => {
       mounted = false;
-      unsubscribe();
     };
   }, []);
 
@@ -76,7 +75,6 @@ export default function UserBookings() {
     if (!target) return;
     try {
       const saved = await cancelBookingApi(target.id, description, category);
-      cancelBooking(target.id, description);
       setBookings((rows) => rows.map((item) => item.id === target.id ? { ...item, ...saved } : item));
       setCancelTarget(null);
       notify("Booking cancelled. The 20% fee was deducted and the remaining amount is being refunded.", "success");
@@ -136,6 +134,8 @@ export default function UserBookings() {
         <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">
           {loadingBookings ? (
             <div className="grid gap-4 xl:grid-cols-2">{[1, 2].map((item) => <div key={item} className="h-72 animate-pulse rounded-2xl border border-[#eddac7] bg-white" />)}</div>
+          ) : loadError ? (
+            <div className="grid min-h-[18rem] place-items-center rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"><div><p className="text-xl font-black">Bookings unavailable</p><p className="mt-2 text-sm font-semibold text-slate-500">{loadError}</p><button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-full bg-black px-5 py-2.5 text-sm font-black text-white">Try again</button></div></div>
           ) : visibleBookings.length === 0 ? (
             <div className="grid min-h-[18rem] place-items-center rounded-2xl border border-dashed border-[#d9bfaa] bg-white p-8 text-center">
               <div>
@@ -155,7 +155,7 @@ export default function UserBookings() {
                 const canManage = ["CONFIRMED", "PAID", "ACCEPTED", "ACTIVE"].includes(status);
                 const canChat = String(booking.paymentStatus || "").toUpperCase() === "PAID";
                 const completed = status === "COMPLETED";
-                const userReview = getReviewForBooking(booking.id, "USER");
+                const userReview = reviews.find((review) => review.bookingId === booking.id && review.reviewerRole === "USER");
 
                 return (
                   <article
@@ -233,7 +233,7 @@ export default function UserBookings() {
                           <p className="mt-1 text-sm font-bold text-[#5d4a3c]">{userReview.description}</p>
                         </div>
                       ) : (
-                        <ReviewForm booking={booking} onSubmitted={() => setBookings(getBookings())} />
+                        <ReviewForm booking={booking} onSubmitted={(review) => setReviews((rows) => [review, ...rows])} />
                       )) : null}</>
                     ) : null}
                   </article>
@@ -303,26 +303,9 @@ function ReviewForm({ booking, onSubmitted }) {
   const submit = async () => {
     if (!description.trim() || submitting) return;
     setSubmitting(true);
-    const user = getStoredUser();
     try {
       const saved = await createReview({ bookingId: booking.id, rating, description: description.trim() });
-      addReview({
-      ...saved,
-      bookingId: booking.id,
-      reviewerRole: "USER",
-      targetRole: "PROVIDER",
-      targetId: booking.providerId,
-      providerId: booking.providerId,
-      reviewerId: user?.id || user?._id,
-      reviewerName: user?.fullName || "BuddyBOOK user",
-      reviewerImage: user?.profileImage || "",
-      targetName: booking.providerName || "BuddyBOOK provider",
-      targetImage: booking.providerImage,
-      rating,
-      description,
-      service: booking.service || booking.activity,
-      });
-      onSubmitted();
+      onSubmitted(saved);
     } catch (error) {
       notify(error?.response?.data?.message || "Could not submit review.", "error");
     } finally {
@@ -356,14 +339,6 @@ function ReviewForm({ booking, onSubmitted }) {
       </button>
     </div>
   );
-}
-
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
-  } catch {
-    return null;
-  }
 }
 
 function Stat({ icon: Icon, label, value, tone }) {

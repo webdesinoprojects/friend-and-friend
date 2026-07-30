@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const { deleteImageKitFile } = require("../utils/imagekit");
 const { isAccountDisabled, publicAccountState } = require("../utils/accountLifecycle");
 const { clearProviderListCache } = require("./provider.controller");
+const { clearSessions } = require("../utils/sessionCookies");
 
 function accountResponse(user) {
   return {
@@ -121,6 +122,7 @@ exports.deletePermanently = async (req, res) => {
 
     clearProviderListCache();
     await Promise.allSettled([...fileIds].map((fileId) => deleteImageKitFile(fileId)));
+    clearSessions(res);
     return res.json({ success: true, accountDeleted: true, message: "Your account has been permanently deleted." });
   } catch (error) {
     console.error("DELETE_ACCOUNT_ERROR:", error);

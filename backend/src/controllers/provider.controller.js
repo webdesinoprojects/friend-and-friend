@@ -5,9 +5,17 @@ const {
   uploadProviderBase64Image,
 } = require('../utils/imagekit');
 const { isAccountDisabled } = require('../utils/accountLifecycle');
+const TimedCache = require('../utils/timedCache');
 const REVIEW_REASON = '__BUDDYBOOK_REVIEW__';
+const PUBLIC_CACHE_MS = 60 * 1000;
+const providerListCache = new TimedCache({ ttlMs: PUBLIC_CACHE_MS, maxEntries: 200 });
+const providerDetailCache = new TimedCache({ ttlMs: PUBLIC_CACHE_MS, maxEntries: 500 });
+const providerRatingCache = new TimedCache({ ttlMs: PUBLIC_CACHE_MS, maxEntries: 500 });
 
 async function calculateProviderRating(userId) {
+  const cached = providerRatingCache.get(userId);
+  if (cached) return cached;
+
   const reports = await prisma.reviewReport.findMany({
     where: {
       targetRole: 'PROVIDER',
@@ -19,18 +27,22 @@ async function calculateProviderRating(userId) {
     select: { rating: true },
   });
 
-  if (!reports.length) return { rating: 0, reviewCount: 0 };
+  if (!reports.length) {
+    const empty = { rating: 0, reviewCount: 0 };
+    providerRatingCache.set(userId, empty);
+    return empty;
+  }
 
   const sum = reports.reduce((acc, report) => acc + Number(report.rating || 0), 0);
-  return {
+  const rating = {
     rating: Number((sum / reports.length).toFixed(2)),
     reviewCount: reports.length,
   };
+  providerRatingCache.set(userId, rating);
+  return rating;
 }
 
 const includeUser = { user: true };
-const providerListCache = new Map();
-const PROVIDER_LIST_CACHE_MS = 60 * 1000;
 const cardUserSelect = {
   id: true,
   fullName: true,
@@ -116,37 +128,39 @@ function sanitizeProviderImages(provider) {
   };
 }
 
-function getCacheKey({ where, take, imageMode }) {
-  return JSON.stringify({ where, take: take || null, imageMode });
+function getCacheKey({ where, page, pageSize, imageMode }) {
+  return JSON.stringify({ where, page, pageSize, imageMode });
 }
 
 function getCachedList(key) {
-  const cached = providerListCache.get(key);
-  if (!cached) return null;
-  return {
-    ...cached,
-    fresh: Date.now() - cached.createdAt < PROVIDER_LIST_CACHE_MS,
-  };
+  return providerListCache.get(key) || null;
 }
 
 function setCachedList(key, data) {
-  providerListCache.set(key, {
-    data,
-    createdAt: Date.now(),
-  });
+  providerListCache.set(key, data);
 }
 
 function clearProviderListCache() {
   providerListCache.clear();
+  providerDetailCache.clear();
+  providerRatingCache.clear();
 }
 
-async function fetchProviderList({ where, take, imageMode }) {
-  const providers = await prisma.providerProfile.findMany({
-    where,
-    select: imageMode === 'none' ? cardProviderListSelect : cardProviderSelect,
-    orderBy: { createdAt: 'desc' },
-    take,
-  });
+async function fetchProviderList({ where, page, pageSize, imageMode }) {
+  const cacheKey = getCacheKey({ where, page, pageSize, imageMode });
+  const cached = getCachedList(cacheKey);
+  if (cached) return cached;
+
+  const [providers, total] = await Promise.all([
+    prisma.providerProfile.findMany({
+      where,
+      select: imageMode === 'none' ? cardProviderListSelect : cardProviderSelect,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.providerProfile.count({ where }),
+  ]);
 
   const cleaned = providers.filter(
     (provider) => !provider.user?.isBlocked && !isAccountDisabled(provider.user)
@@ -156,13 +170,25 @@ async function fetchProviderList({ where, take, imageMode }) {
     cleaned.map((provider) => provider.user?.id).filter(Boolean)
   );
 
-  return cleaned.map((provider) => {
+  const data = cleaned.map((provider) => {
     const stats = ratingMap[provider.user?.id];
     const withRating = stats
       ? { ...provider, rating: stats.rating, reviewCount: stats.reviewCount }
       : provider;
     return withImageMode(withRating, imageMode);
   });
+  const result = {
+    data,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      pageCount: Math.max(1, Math.ceil(total / pageSize)),
+      hasNextPage: page * pageSize < total,
+    },
+  };
+  setCachedList(cacheKey, result);
+  return result;
 }
 
 async function loadProviderRatings(userIds) {
@@ -294,6 +320,16 @@ async function loadPublicProviderReviews(userId, take = 20) {
   });
 }
 
+function ratingFromReviews(reviews) {
+  if (!reviews.length) return { rating: 0, reviewCount: 0 };
+  return {
+    rating: Number(
+      (reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length).toFixed(2)
+    ),
+    reviewCount: reviews.length,
+  };
+}
+
 function buildStats(provider) {
   const price = Number(provider?.hourlyPrice || 0);
   const images = Array.isArray(provider?.profileImages) ? provider.profileImages : [];
@@ -360,13 +396,21 @@ const listProviders = async (req, res) => {
   try {
     // Support both `approved` and legacy `verified` query param from frontend
     const { approved, verified, limit, imageMode = 'none' } = req.query;
-    const where = {};
+    const cacheMinute = new Date(Math.floor(Date.now() / PUBLIC_CACHE_MS) * PUBLIC_CACHE_MS);
+    const where = {
+      user: {
+        isBlocked: false,
+        OR: [{ disabledUntil: null }, { disabledUntil: { lte: cacheMinute } }],
+      },
+    };
     const approvalFlag = approved !== undefined ? approved : verified;
     if (approvalFlag !== undefined) where.approved = String(approvalFlag) === 'true';
 
-    const take = limit ? Number(limit) : undefined;
-    const data = await fetchProviderList({ where, take, imageMode });
-    return res.json({ success: true, data });
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(limit || req.query.pageSize, 10) || 24));
+    const result = await fetchProviderList({ where, page, pageSize, imageMode });
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+    return res.json({ success: true, data: result.data, pagination: result.pagination });
   } catch (err) {
     console.error('listProviders error', err);
     return res.status(500).json({ success: false, message: err.message });
@@ -376,6 +420,11 @@ const listProviders = async (req, res) => {
 const getProvider = async (req, res) => {
   try {
     const { id } = req.params;
+    const cached = providerDetailCache.get(id);
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+      return res.json({ success: true, data: cached });
+    }
     const provider = await prisma.providerProfile.findUnique({
       where: { id },
       select: cardProviderSelect,
@@ -383,18 +432,20 @@ const getProvider = async (req, res) => {
     if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) {
       return res.status(404).json({ success: false, message: 'Provider profile is not available.' });
     }
-    const [rating, reviews] = await Promise.all([
-      calculateProviderRating(provider.userId),
-      loadPublicProviderReviews(provider.userId),
-    ]);
+    const reviews = await loadPublicProviderReviews(provider.userId);
+    const rating = ratingFromReviews(reviews);
+    providerRatingCache.set(provider.userId, rating);
+    const data = {
+      ...sanitizeProviderImages(provider),
+      rating: rating.rating,
+      reviewCount: rating.reviewCount,
+      reviews,
+    };
+    providerDetailCache.set(id, data);
+    res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
     return res.json({
       success: true,
-      data: {
-        ...sanitizeProviderImages(provider),
-        rating: rating.rating,
-        reviewCount: rating.reviewCount,
-        reviews,
-      },
+      data,
     });
   } catch (err) {
     console.error('getProvider error', err);
@@ -492,6 +543,7 @@ const getProviderImages = async (req, res) => {
 
     const images = normalizeProfileImages(provider.profileImages);
 
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     return res.json({
       success: true,
       images,

@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
-const jwt = require("jsonwebtoken");
+const { issueAdminSession, clearSessions } = require("../utils/sessionCookies");
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 const { uploadProviderImage } = require("../utils/imagekit");
 const { sendApplicationDecision } = require("../utils/email");
 
@@ -141,17 +142,18 @@ const loginAdmin = (req, res) => {
     role: "ADMIN",
     fullName: "Admin",
   };
-  const token = jwt.sign(admin, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-  });
-
+  issueAdminSession(res, admin);
   return res.json({
     success: true,
-    token,
     user: admin,
     admin,
-    data: { token, user: admin },
+    data: { user: admin },
   });
+};
+
+const logoutAdmin = (req, res) => {
+  clearSessions(res);
+  return res.json({ success: true, message: "Admin logout successful." });
 };
 
 const getAdminContent = async (req, res) => {
@@ -255,6 +257,7 @@ const getAdminSummary = async (req, res) => {
 
 const getAdminUsers = async (req, res) => {
   try {
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
     const users = await prisma.user.findMany({
       where: { role: "USER" },
       select: {
@@ -294,12 +297,20 @@ const getAdminUsers = async (req, res) => {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
     });
 
     const deletedAccounts = await prisma.accountDeletionAudit.findMany({
       where: { role: "USER" },
       orderBy: { deletedAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
     });
+    const [userCount, deletedCount] = await Promise.all([
+      prisma.user.count({ where: { role: "USER" } }),
+      prisma.accountDeletionAudit.count({ where: { role: "USER" } }),
+    ]);
     const formatted = users.map((user) => ({
       ...user,
       accountDisabled: Boolean(user.disabledUntil && new Date(user.disabledUntil) > new Date()),
@@ -326,7 +337,7 @@ const getAdminUsers = async (req, res) => {
       deletedAt: item.deletedAt,
       bookingSummary: { totalBookings: 0, totalEarning: null, totalSpending: null },
     }));
-    return res.json({ success: true, data: [...deletedRows, ...formatted] });
+    return res.json({ success: true, data: [...deletedRows, ...formatted], pagination: paginationMeta({ ...pagination, total: userCount + deletedCount }) });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch users." });
   }
@@ -433,6 +444,7 @@ const getAdminUserById = async (req, res) => {
 
 const getAdminProviders = async (req, res) => {
   try {
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
     const providers = await prisma.user.findMany({
       where: { role: "PROVIDER" },
       select: {
@@ -456,12 +468,20 @@ const getAdminProviders = async (req, res) => {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
     });
 
     const deletedAccounts = await prisma.accountDeletionAudit.findMany({
       where: { role: "PROVIDER" },
       orderBy: { deletedAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
     });
+    const [providerCount, deletedCount] = await Promise.all([
+      prisma.user.count({ where: { role: "PROVIDER" } }),
+      prisma.accountDeletionAudit.count({ where: { role: "PROVIDER" } }),
+    ]);
     return res.json({
       success: true,
       data: [
@@ -483,6 +503,7 @@ const getAdminProviders = async (req, res) => {
         activities: provider.providerProfile?.activities || "",
         })),
       ],
+      pagination: paginationMeta({ ...pagination, total: providerCount + deletedCount }),
     });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch providers." });
@@ -491,11 +512,17 @@ const getAdminProviders = async (req, res) => {
 
 const getAdminBookings = async (req, res) => {
   try {
-    const bookings = await prisma.booking.findMany({
-      include: { user: true, provider: { include: { user: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-    return res.json({ success: true, data: bookings.map(formatAdminBooking) });
+    const pagination = parsePagination(req.query);
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        include: { user: true, provider: { include: { user: true } } },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      prisma.booking.count(),
+    ]);
+    return res.json({ success: true, data: bookings.map(formatAdminBooking), pagination: paginationMeta({ ...pagination, total }) });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch bookings." });
   }
@@ -503,21 +530,26 @@ const getAdminBookings = async (req, res) => {
 
 const getAdminLogins = async (req, res) => {
   try {
-    const attempts = await prisma.loginAttempt.findMany({
-      select: {
-        id: true,
-        email: true,
-        message: true,
-        success: true,
-        faceMatched: true,
-        createdAt: true,
-        user: { select: { fullName: true, phone: true, role: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [attempts, total] = await Promise.all([
+      prisma.loginAttempt.findMany({
+        select: {
+          id: true,
+          email: true,
+          message: true,
+          success: true,
+          faceMatched: true,
+          createdAt: true,
+          user: { select: { fullName: true, phone: true, role: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      prisma.loginAttempt.count(),
+    ]);
 
-    return res.json({ success: true, data: attempts });
+    return res.json({ success: true, data: attempts, pagination: paginationMeta({ ...pagination, total }) });
   } catch {
     return res.status(500).json({ success: false, message: "Failed to fetch logins." });
   }
@@ -601,18 +633,21 @@ const formatPayment = (booking) => ({
 
 const getAdminPayments = async (req, res) => {
   try {
-    const bookings = await prisma.booking.findMany({
-      where: {
-        paymentStatus: { not: null },
-        amount: { gt: 0 },
-      },
-      include: { user: true },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
+    const where = { paymentStatus: { not: null }, amount: { gt: 0 } };
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      prisma.booking.count({ where }),
+    ]);
 
     const payments = bookings.map(formatPayment);
-    return res.json({ success: true, data: payments });
+    return res.json({ success: true, data: payments, pagination: paginationMeta({ ...pagination, total }) });
   } catch (error) {
     console.error("GET_ADMIN_PAYMENTS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load payment data." });
@@ -691,9 +726,13 @@ const unblockUser = async (req, res) => {
 
 const getKycReviews = async (req, res) => {
   try {
-    const applications = await prisma.registrationApplication.findMany({ orderBy: { updatedAt: "desc" } });
+    const pagination = parsePagination(req.query, { defaultPageSize: 50 });
+    const [applications, total] = await Promise.all([
+      prisma.registrationApplication.findMany({ orderBy: { updatedAt: "desc" }, skip: pagination.skip, take: pagination.take }),
+      prisma.registrationApplication.count(),
+    ]);
     let history = [];
-    try { history = await prisma.$queryRawUnsafe('SELECT * FROM "KycReviewHistory" ORDER BY "createdAt" DESC'); } catch {}
+    try { history = await prisma.kycReviewHistory.findMany({ orderBy: { createdAt: "desc" }, take: 100 }); } catch {}
     return res.json({ success: true, data: applications.map((item) => ({
       id: item.id, fullName: item.fullName, email: item.email, phone: item.phone, dob: item.dob,
       gender: item.gender, city: item.city, state: item.state, role: item.role,
@@ -703,7 +742,7 @@ const getKycReviews = async (req, res) => {
       userProfile: item.userProfile, providerProfile: item.providerProfile,
       kycVerification: { documentType: item.documentType, documentNumber: item.documentNumber, documentNumberLast4: item.documentLast4, documentUrl: item.documentUrl, consentAccepted: item.consentAccepted, status: item.status, rejectionReason: item.rejectionReason, createdAt: item.createdAt },
       history: history.filter((entry) => entry.userId === item.id),
-    })) });
+    })), pagination: paginationMeta({ ...pagination, total }) });
   } catch (error) {
     console.error("GET_KYC_REVIEWS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load KYC reviews." });
@@ -760,6 +799,7 @@ const reviewKyc = async (req, res) => {
 
 module.exports = {
   loginAdmin,
+  logoutAdmin,
   getAdminContent,
   updateAdminContent,
   getAdminSummary,

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { CalendarCheck, Flag, MessageCircle, Star, X } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
-import { reportReview, listMyReviews } from "../../api/reports";
+import { getCachedMyReviews, reportReview, listMyReviews } from "../../api/reports";
 
 export default function UserReviews() {
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState(() => getCachedMyReviews());
   useEffect(() => { listMyReviews().then(setReviews).catch(() => setReviews([])); }, []);
   const received = reviews.filter((review) => review.targetRole === "USER");
   const given = reviews.filter((review) => review.reviewerRole === "USER");

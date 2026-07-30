@@ -57,6 +57,7 @@ model User {
   providerBookings Booking[]        @relation("BookingProviderUser")
   sentMessages     ChatMessage[]    @relation("MessageSender")
   reviewReports    ReviewReport[]
+  watchlistItems   ProviderWatchlist[]
 
   @@index([disabledUntil])
 }
@@ -181,6 +182,21 @@ model ProviderProfile {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
+  watchlistedBy ProviderWatchlist[]
+}
+
+model ProviderWatchlist {
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  createdAt  DateTime @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, providerId])
+  @@index([userId, createdAt])
+  @@index([providerId])
 }
 
 model LoginAttempt {

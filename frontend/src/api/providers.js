@@ -1,5 +1,11 @@
 import api from './api';
 import { normalizeProvider } from '../data/providerCatalog';
+import {
+  createQueryKey,
+  fetchQuery,
+  getQueryData,
+  invalidateQueries,
+} from '../utils/queryCache';
 
 const PROVIDER_CACHE_KEY = 'buddybook_explore_providers_cache';
 const MY_PROVIDER_CACHE_KEY = 'buddybook_my_provider_profile_cache';
@@ -14,57 +20,75 @@ export function getCachedProvider(id) {
 }
 
 export async function listProviders(params = {}) {
-  try {
-    const res = await api.get('/providers', {
-      params: { imageMode: 'first', ...params },
-      // Provider rows include image metadata and can take a few seconds on a
-      // cold database connection.  Do not turn a healthy, slower response
-      // into an empty provider list.
-      timeout: 15000,
-    });
-    const rows = Array.isArray(res.data?.data)
-      ? res.data.data
-      : Array.isArray(res.data)
-      ? res.data
-      : [];
-    const normalized = rows.map((item, index) => normalizeProvider(item, index));
-    writeProviderCache(normalized);
-    return normalized;
-  } catch {
-    return getCachedProviders();
-  }
+  const requestParams = { imageMode: 'first', ...params };
+  return fetchQuery(
+    createQueryKey('providers:list', requestParams),
+    async () => {
+      try {
+        const res = await api.get('/providers', {
+          params: requestParams,
+          // Provider rows include image metadata and can take a few seconds on a
+          // cold database connection. Do not discard a healthy slower response.
+          timeout: 15000,
+        });
+        const rows = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        const normalized = rows.map((item, index) => normalizeProvider(item, index));
+        writeProviderCache(normalized);
+        return normalized;
+      } catch {
+        return getCachedProviders();
+      }
+    },
+    { staleTime: 60_000 }
+  );
 }
 
 export async function createProvider(payload) {
   const res = await api.post('/providers', payload);
+  invalidateQueries('providers:');
   const provider = normalizeProvider(res.data?.data || res.data);
   rememberProvider(provider);
   return provider;
 }
 
-export async function getMyProviderProfile() {
-  const cached = readMyProviderCache();
-  try {
-    const res = await api.get('/providers/me/profile');
-    const payload = {
-      provider: res.data?.data || null,
-      stats: res.data?.stats || null,
-    };
-    writeMyProviderCache(payload);
-    return payload;
-  } catch (error) {
-    if ([401, 403].includes(error?.response?.status)) {
-      return { provider: null, stats: null };
-    }
-    return {
-      provider: cached?.provider || null,
-      stats: cached?.stats || null,
-    };
-  }
+export function getCachedMyProviderProfile() {
+  return getQueryData('providers:me', readMyProviderCache());
+}
+
+export function getMyProviderProfile(options = {}) {
+  return fetchQuery(
+    'providers:me',
+    async () => {
+      const cached = readMyProviderCache();
+      try {
+        const res = await api.get('/providers/me/profile');
+        const payload = {
+          provider: res.data?.data || null,
+          stats: res.data?.stats || null,
+        };
+        writeMyProviderCache(payload);
+        return payload;
+      } catch (error) {
+        if ([401, 403].includes(error?.response?.status)) {
+          return { provider: null, stats: null };
+        }
+        return {
+          provider: cached?.provider || null,
+          stats: cached?.stats || null,
+        };
+      }
+    },
+    { staleTime: 60_000, ...options }
+  );
 }
 
 export async function saveMyProviderProfile(payload) {
   const res = await api.put('/providers/me/profile', payload);
+  invalidateQueries('providers:');
   const provider = normalizeProvider(res.data?.data || res.data);
   rememberProvider(provider);
   return {
@@ -92,6 +116,7 @@ export async function updateMyProviderProfilePhoto(file) {
   const formData = new FormData();
   formData.append('image', file);
   const res = await api.patch('/providers/me/profile-photo', formData, { timeout: 60000 });
+  invalidateQueries('providers:');
   clearProviderCaches();
   return res.data;
 }
@@ -107,6 +132,7 @@ export function clearProviderCaches() {
   localStorage.removeItem(PROVIDER_CACHE_KEY);
   sessionStorage.removeItem(MY_PROVIDER_CACHE_KEY);
   providerImageCache.clear();
+  invalidateQueries('providers:');
 }
 
 export async function getProviderImages(id) {

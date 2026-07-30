@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const prisma = require("../config/prisma");
+const { parsePagination, paginationMeta } = require("../utils/pagination");
 const realtime = require("../utils/realtime");
 const { uploadChatVoice, deleteImageKitFile } = require("../utils/imagekit");
 const { isAccountDisabled } = require("../utils/accountLifecycle");
@@ -258,12 +259,16 @@ async function createMessage(thread, sender, payload) {
 
 exports.listMyChats = async (req, res) => {
   try {
+    const pagination = parsePagination(req.query, { defaultPageSize: 30, maxPageSize: 50 });
+    const where = {
+      booking: { paymentStatus: { in: CHAT_PAYMENT_STATUSES } },
+      OR: [{ userId: req.user.id, hiddenForUser: false }, { providerUserId: req.user.id, hiddenForProvider: false }],
+    };
     const loadThreads = () => prisma.chatThread.findMany({
-      where: {
-        booking: { paymentStatus: { in: CHAT_PAYMENT_STATUSES } },
-        OR: [{ userId: req.user.id, hiddenForUser: false }, { providerUserId: req.user.id, hiddenForProvider: false }],
-      },
+      where,
       orderBy: { updatedAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.take,
       include: {
         booking: {
           include: {
@@ -278,10 +283,11 @@ exports.listMyChats = async (req, res) => {
     let threads = await loadThreads();
     // Older bookings may predate automatic thread creation. Repair only when
     // the user has no threads so the normal chat path stays one fast query.
-    if (!threads.length) {
+    if (!threads.length && pagination.page === 1) {
       const missingThreads = await prisma.booking.findMany({
         where: { paymentStatus: { in: CHAT_PAYMENT_STATUSES }, OR: [{ userId: req.user.id }, { providerUserId: req.user.id }], chatThread: null },
         select: { id: true, userId: true, providerId: true, providerUserId: true },
+        take: 100,
       });
       if (missingThreads.length) {
         await prisma.chatThread.createMany({
@@ -292,7 +298,8 @@ exports.listMyChats = async (req, res) => {
       }
     }
     for (const thread of threads) thread.messages.reverse();
-    return res.json({ success: true, data: groupConversationThreads(threads, req.user.id) });
+    const total = await prisma.chatThread.count({ where });
+    return res.json({ success: true, data: groupConversationThreads(threads, req.user.id), pagination: paginationMeta({ ...pagination, total }) });
   } catch (error) {
     console.error("LIST_CHATS_ERROR:", error);
     return res.status(500).json({ success: false, message: "Could not load chats." });
@@ -404,6 +411,7 @@ exports.sendVoiceMessage = async (req, res) => {
       mediaUrl: uploaded.url,
       mediaFileId: uploaded.fileId,
       durationSeconds,
+      clientMessageId: String(req.body?.clientMessageId || "").trim() || null,
     });
     return res.status(201).json({ success: true, data: message });
   } catch (error) {

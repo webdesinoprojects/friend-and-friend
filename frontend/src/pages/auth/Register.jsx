@@ -212,9 +212,8 @@ export default function Register() {
     kycTypes.find((item) => item.value === form.documentType) || kycTypes[0];
 
   useEffect(() => {
-    const token = localStorage.getItem("buddybook_application_token");
-    if (!token || !new URLSearchParams(window.location.search).has("edit")) return;
-    api.get("/auth/application", { headers: { Authorization: `Bearer ${token}` } }).then(({ data }) => {
+    if (!new URLSearchParams(window.location.search).has("edit")) return;
+    api.get("/auth/application").then(({ data }) => {
       const item = data.data;
       const profile = item.role === "PROVIDER" ? item.providerProfile : item.userProfile;
       const questions = Array.isArray(profile?.profileQuestions) && profile.profileQuestions.length ? profile.profileQuestions : emptyQuestions;
@@ -641,14 +640,12 @@ export default function Register() {
         },
       };
 
-      const applicationToken = localStorage.getItem("buddybook_application_token");
       const res = editingApplication
-        ? await api.patch("/auth/application", payload, { headers: { Authorization: `Bearer ${applicationToken}` } })
+        ? await api.patch("/auth/application", payload)
         : await api.post("/auth/register", payload);
 
       notify(res.data.message || "Registration successful");
       localStorage.removeItem(REGISTRATION_DRAFT_KEY);
-      if (res.data.applicationToken) localStorage.setItem("buddybook_application_token", res.data.applicationToken);
 
       const nextUser = {
         ...res.data.user,
@@ -673,7 +670,6 @@ export default function Register() {
         },
       };
 
-      localStorage.removeItem("buddybook_token");
       localStorage.removeItem("buddybook_auth_user");
       localStorage.setItem("buddybook_pending_application", JSON.stringify(editingApplication ? res.data.data : nextUser));
       navigate("/application-review");

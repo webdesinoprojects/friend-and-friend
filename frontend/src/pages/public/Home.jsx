@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BadgeCheck,
@@ -29,6 +29,7 @@ import api from "../../api/api";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import { formatRs, formatRupees } from "../../utils/format";
+import { buildProviderProfileLink, providerMatchesActivities, readPublicFilters, sameText } from "../../utils/providerFilters";
 import friendsHero from "../../assets/buddybook-friends-hero.webp";
 import heroHome1 from "../../assets/hero-home-1-arch.jpg";
 import heroHome2 from "../../assets/hero-home-2-arch.jpg";
@@ -83,7 +84,7 @@ const publicSearchDefaults = {
   city: "All",
   state: "All",
   gender: "All",
-  activity: "All",
+  activities: [],
   maxPrice: "All",
   rating: "All",
 };
@@ -98,7 +99,9 @@ const heroSlides = [
 ];
 
 export default function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const heroLayerRef = useRef(null);
+  const filtersMountedRef = useRef(false);
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
@@ -108,11 +111,13 @@ export default function Home() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
+  const [providerError, setProviderError] = useState("");
+  const [providerReload, setProviderReload] = useState(0);
   const [publicProviders, setPublicProviders] = useState(() =>
     onlyRealProviders(getCachedProviders())
   );
-  const [publicFilters, setPublicFilters] = useState(publicSearchDefaults);
-  const [providerPage, setProviderPage] = useState(1);
+  const [publicFilters, setPublicFilters] = useState(() => readPublicFilters(searchParams, publicSearchDefaults));
+  const [providerPage, setProviderPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
   const [siteContent, setSiteContent] = useState({});
 
   useEffect(() => {
@@ -176,14 +181,18 @@ export default function Home() {
 
     let mounted = true;
     setProviderLoading(true);
+    setProviderError("");
 
-    listProviders({ verified: true, _t: Date.now() })
+    listProviders({ verified: true, pageSize: 100 })
       .then((rows) => {
         if (!mounted) return;
         setPublicProviders(onlyRealProviders(rows));
       })
       .catch(() => {
-        if (mounted) setPublicProviders(onlyRealProviders(getCachedProviders()));
+        if (mounted) {
+          setPublicProviders(onlyRealProviders(getCachedProviders()));
+          setProviderError("Live provider results could not be refreshed. Showing saved results when available.");
+        }
       })
       .finally(() => {
         if (mounted) setProviderLoading(false);
@@ -192,21 +201,27 @@ export default function Home() {
     return () => {
       mounted = false;
     };
-  }, [drawerOpen]);
+  }, [drawerOpen, providerReload]);
 
   useEffect(() => {
     let mounted = true;
-    listProviders({ verified: true, _t: Date.now() })
+    setProviderLoading(true);
+    setProviderError("");
+    listProviders({ verified: true, pageSize: 100 })
       .then((rows) => {
         if (mounted) setPublicProviders(onlyRealProviders(rows));
       })
       .catch(() => {
-        if (mounted) setPublicProviders(onlyRealProviders(getCachedProviders()));
-      });
+        if (mounted) {
+          setPublicProviders(onlyRealProviders(getCachedProviders()));
+          setProviderError("Live provider results could not be refreshed. Showing saved results when available.");
+        }
+      })
+      .finally(() => mounted && setProviderLoading(false));
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [providerReload]);
 
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
@@ -324,8 +339,7 @@ export default function Home() {
         (publicFilters.gender === "All" ||
           String(provider.gender || "").toLowerCase() ===
             publicFilters.gender.toLowerCase()) &&
-        (publicFilters.activity === "All" ||
-          activities.includes(publicFilters.activity)) &&
+        providerMatchesActivities(activities, publicFilters.activities) &&
         (publicFilters.maxPrice === "All" ||
           Number(provider.price || 0) <= Number(publicFilters.maxPrice)) &&
         (publicFilters.rating === "All" ||
@@ -348,8 +362,23 @@ export default function Home() {
   }, [filteredPublicProviders, providerPage, providerPageCount]);
 
   useEffect(() => {
+    if (!filtersMountedRef.current) {
+      filtersMountedRef.current = true;
+      return;
+    }
     setProviderPage(1);
-  }, [publicFilters]);
+  }, [publicFilters.keyword, publicFilters.city, publicFilters.state, publicFilters.gender, publicFilters.activities, publicFilters.maxPrice, publicFilters.rating]);
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (publicFilters.keyword) next.set("keyword", publicFilters.keyword);
+    ["city", "state", "gender", "maxPrice", "rating"].forEach((key) => {
+      if (publicFilters[key] && publicFilters[key] !== "All") next.set(key, publicFilters[key]);
+    });
+    publicFilters.activities.forEach((activity) => next.append("activities", activity));
+    if (providerPage > 1) next.set("page", String(providerPage));
+    setSearchParams(next, { replace: true });
+  }, [providerPage, publicFilters, setSearchParams]);
 
   useEffect(() => {
     if (providerPage > providerPageCount) setProviderPage(providerPageCount);
@@ -396,7 +425,7 @@ export default function Home() {
                   onClick={isProviderAccount ? undefined : scrollToCommunity}
                   className="group inline-flex items-center justify-center gap-2 rounded-md bg-[#171b30] px-7 py-4 text-sm font-black text-white shadow-[0_16px_35px_rgba(23,27,48,0.2)] transition hover:-translate-y-1 hover:bg-[#d77f40]"
                 >
-                  Find trusted people
+                  {isProviderAccount ? "Dashboard" : "Find trusted people"}
                   <ArrowRight size={17} className="transition group-hover:translate-x-1" />
                 </a>
                                
@@ -474,6 +503,7 @@ export default function Home() {
             mobileProviders={filteredPublicProviders}
             totalProviders={filteredPublicProviders.length}
             loading={providerLoading}
+            error={providerError}
             filters={publicFilters}
             cities={publicCities}
             states={publicStates}
@@ -487,6 +517,7 @@ export default function Home() {
               setPublicFilters((current) => ({ ...current, [key]: value }))
             }
             onReset={() => setPublicFilters(publicSearchDefaults)}
+            onRetry={() => setProviderReload((value) => value + 1)}
           />
         ) : null}
 
@@ -1113,7 +1144,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
       <Link to={heroLink} className="group absolute bottom-0 left-1/2 z-30 w-[min(66%,240px)] -translate-x-1/2 rounded-lg border-2 border-[#e08c4c] bg-[#fff5ea]/95 p-3 shadow-[0_22px_55px_rgba(66,42,27,0.2)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(66,42,27,0.28)] focus:outline-none focus:ring-4 focus:ring-[#e08c4c]/30 sm:w-[320px] sm:p-4">
         <div className="pointer-events-none absolute bottom-[calc(100%-0.35rem)] right-[calc(100%-0.75rem)] hidden w-56 rounded-2xl border border-[#e08c4c]/40 bg-[#171b30] p-4 text-white shadow-[0_24px_60px_rgba(23,27,48,0.3)] group-hover:block group-focus-visible:block sm:w-64">
           <div className="flex items-center gap-3">
-            {heroImage ? <img src={heroImage} alt="" className="h-12 w-12 rounded-full border-2 border-[#f4ad75] object-cover" /> : null}
+            {heroImage ? <img src={heroImage} alt="" width="48" height="48" className="h-12 w-12 rounded-full border-2 border-[#f4ad75] object-cover" /> : null}
             <div className="min-w-0"><p className="truncate text-sm font-black">{heroProfile.name || heroName}</p><p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#f4ad75]">Star performer</p></div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
@@ -1123,7 +1154,7 @@ function HeroVisual({ publicProviders = [], siteContent = {} }) {
         </div>
         <div className="flex items-start gap-3">
           {heroImage ? (
-            <img src={heroImage} alt={heroName} className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
+            <img src={heroImage} alt={heroName} width="64" height="64" className="h-11 w-11 shrink-0 rounded-full object-cover border-4 border-[#e08c4c] sm:h-16 sm:w-16" />
           ) : (
             <div className="h-11 w-11 shrink-0 rounded-full bg-[#ffeedd] grid place-items-center text-lg font-black text-black border-4 border-[#e08c4c] sm:h-16 sm:w-16">
               {heroName[0]}
@@ -1160,9 +1191,9 @@ function ProfileCard({ profile, large = false }) {
   return (
     <article className={large ? "group overflow-hidden rounded-lg border-2 border-[#e08c4c] bg-white shadow-[0_16px_45px_rgba(63,42,28,0.08)] transition hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(224,140,76,0.25)]" : "flex items-center gap-3"}>
       {large ? (
-        <img src={profile.image} alt={profile.name} className="h-64 w-full object-cover object-top sm:h-72 border-4 border-[#e08c4c]/30 rounded-t-lg" />
+        <img src={profile.image} alt={profile.name} width="640" height="720" loading="lazy" className="h-64 w-full object-cover object-top sm:h-72 border-4 border-[#e08c4c]/30 rounded-t-lg" />
       ) : (
-        <img src={profile.image} alt={profile.name} className="h-14 w-10 shrink-0 rounded-md object-cover border-2 border-[#e08c4c]" />
+        <img src={profile.image} alt={profile.name} width="40" height="56" loading="lazy" className="h-14 w-10 shrink-0 rounded-md object-cover border-2 border-[#e08c4c]" />
       )}
 
       <div className={large ? "p-5" : "min-w-0 flex-1"}>
@@ -1258,6 +1289,7 @@ function PublicServiceExploreSection({
   mobileProviders = [],
   totalProviders,
   loading,
+  error,
   filters,
   cities,
   states,
@@ -1268,7 +1300,9 @@ function PublicServiceExploreSection({
   content = {},
   onPage,
   onFilter,
+  onRetry,
 }) {
+  const returnTo = `${window.location.pathname}${window.location.search}#providers`;
   const [showFilters, setShowFilters] = useState(false);
   const [draftFilters, setDraftFilters] = useState(() => ({ ...filters, keyword: "" }));
   const providerRailRef = useRef(null);
@@ -1338,7 +1372,7 @@ function PublicServiceExploreSection({
             <div className="mt-8 grid gap-6">
               <DrawerFilter label={content.filterLocationLabel || "Location"} value={draftFilters.city} placeholder={content.filterLocationPlaceholder || "eg. Gurgaon"} options={cities} onChange={(value) => setDraftFilters((current) => ({ ...current, city: value }))} />
               <DrawerFilter label={content.filterStateLabel || "State"} value={draftFilters.state} placeholder={content.filterStatePlaceholder || "eg. Haryana"} options={states} onChange={(value) => setDraftFilters((current) => ({ ...current, state: value }))} />
-              <DrawerFilter label={content.filterActivityLabel || "Activity"} value={draftFilters.activity} placeholder={content.filterActivityPlaceholder || "eg. Cafe meet"} options={activities} onChange={(value) => setDraftFilters((current) => ({ ...current, activity: value }))} />
+              <ActivityMultiSelect label={content.filterActivityLabel || "Activity"} value={draftFilters.activities} options={activities} onChange={(value) => setDraftFilters((current) => ({ ...current, activities: value }))} />
               <FilterRadioGroup
                 title={content.filterSortLabel || "Sort By"}
                 value={draftFilters.rating === "4" ? sortOptions[1] : sortOptions[0]}
@@ -1376,6 +1410,12 @@ function PublicServiceExploreSection({
             <p className="mt-2 text-sm font-bold text-black/45">
               {totalProviders} provider profiles available
             </p>
+            {error ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
+                <span>{error}</span>
+                <button type="button" onClick={onRetry} className="font-black underline">Try again</button>
+              </div>
+            ) : null}
 
             <div className="mt-5 flex items-center justify-end gap-3 sm:hidden">
               <button type="button" onClick={() => scrollProviderRail(-1)} className="grid h-12 w-12 -rotate-3 place-items-center rounded-xl border border-black/10 bg-white shadow-[5px_7px_0_#171b30] transition active:translate-x-1 active:translate-y-1 active:shadow-none" aria-label="Previous provider profiles">
@@ -1397,7 +1437,7 @@ function PublicServiceExploreSection({
               <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 lg:hidden">
                 {mobileProviders.map((provider, index) => (
                   <div key={provider.id} className="w-[82vw] max-w-[290px] shrink-0 snap-center [transform:perspective(900px)_rotateY(-2deg)] sm:w-auto sm:max-w-none sm:transform-none">
-                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activity} />
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activities} returnTo={returnTo} />
                   </div>
                 ))}
               </div>
@@ -1408,7 +1448,7 @@ function PublicServiceExploreSection({
                     className="provider-page-card"
                     style={{ animationDelay: `${index * 65}ms` }}
                   >
-                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activity} />
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activities} returnTo={returnTo} />
                   </div>
                 ))}
               </div>
@@ -1477,7 +1517,7 @@ function PublicServiceProviderCard({ provider, index }) {
       <article>
         <div className="relative aspect-[0.92] overflow-hidden rounded-2xl bg-[#eeeeee]">
           {image ? (
-            <img src={image} alt={provider.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+            <img src={image} alt={provider.name} width="640" height="700" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           ) : (
             <div className="grid h-full place-items-center text-4xl font-black">{provider.name?.[0] || "B"}</div>
           )}
@@ -1505,7 +1545,7 @@ function PublicServiceProviderCard({ provider, index }) {
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <img src={image || provider.avatar || "/favicon.svg"} alt="" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
+              <img src={image || provider.avatar || "/favicon.svg"} alt="" width="36" height="36" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
               <p className="truncate text-sm font-black">{provider.name} ({provider.age || 24})</p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-1.5 text-[10px] font-black shadow-sm">
@@ -1591,7 +1631,7 @@ function SafetyOrbit({ profiles: rows }) {
         <div key={`orbit-slot-${index}`} className="safety-orbiter absolute inset-[7%]" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
           <div className="absolute left-1/2 top-0 -translate-x-1/2">
             <div className="safety-avatar-upright" style={{ animationDelay: `${evenlySpacedDelay}s` }}>
-              <img src={profile.image} alt={profile.name} className="h-14 w-14 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
+              <img src={profile.image} alt={profile.name} width="80" height="80" loading="lazy" className="h-14 w-14 rounded-full border-4 border-white object-cover shadow-xl sm:h-20 sm:w-20" />
             </div>
           </div>
         </div>
@@ -1631,14 +1671,14 @@ function pickRandomProfiles(rows, limit) {
   return shuffled.slice(0, limit);
 }
 
-function SmallIndianProviderCard({ provider, index, content = {}, selectedActivities }) {
+function SmallIndianProviderCard({ provider, index, content = {}, selectedActivities, returnTo }) {
   const activity = provider.activities?.[0] || "Sports";
   const image = provider.image || provider.images?.[0] || "";
   const sold = 59 + index * 17;
   const booked = (index % 4) + 2;
 
   return (
-    <Link to={buildProviderProfileLink(provider.id, selectedActivities)} className="group block text-black">
+    <Link to={buildProviderProfileLink(provider.id, selectedActivities, returnTo)} className="group block text-black">
       <article className="rounded-2xl bg-white">
         <div className="relative aspect-[0.88] overflow-hidden rounded-2xl bg-[#eeeeee]">
           {image ? (
@@ -1698,6 +1738,7 @@ function PublicProviderDrawer({
   onFilter,
   onReset,
 }) {
+  const returnTo = `${window.location.pathname}${window.location.search}#providers`;
   if (!open) return null;
 
   return (
@@ -1744,7 +1785,7 @@ function PublicProviderDrawer({
             <DrawerFilter label="City" value={filters.city} placeholder="eg. Gurgaon" options={cities} onChange={(value) => onFilter("city", value)} />
             <DrawerFilter label="State" value={filters.state} placeholder="eg. Haryana" options={states} onChange={(value) => onFilter("state", value)} />
             <DrawerFilter label="Gender" value={filters.gender} placeholder="Any gender" options={["All", "Male", "Female", "Others"]} onChange={(value) => onFilter("gender", value)} />
-            <DrawerFilter label="Activity" value={filters.activity} placeholder="eg. Cafe meet" options={activities} onChange={(value) => onFilter("activity", value)} />
+            <ActivityMultiSelect label="Activity" value={filters.activities} options={activities} onChange={(value) => onFilter("activities", value)} />
             <DrawerFilter label="Max price" value={filters.maxPrice} placeholder="eg. Rs 1000" options={["All", "500", "700", "900", "1200", "1500", "2000"]} onChange={(value) => onFilter("maxPrice", value)} />
             <DrawerFilter label="Rating" value={filters.rating} placeholder="Any rating" options={["All", "1", "2", "3", "4", "5"]} onChange={(value) => onFilter("rating", value)} />
 
@@ -1791,7 +1832,7 @@ function PublicProviderDrawer({
                 <ProviderCard
                   key={provider.id}
                   provider={provider}
-                  link={buildProviderProfileLink(provider.id, filters.activity)}
+                  link={buildProviderProfileLink(provider.id, filters.activities, returnTo)}
                 />
               ))}
             </div>
@@ -1833,25 +1874,61 @@ function DrawerFilter({ label, value, options, onChange, placeholder }) {
   );
 }
 
+function ActivityMultiSelect({ label, value = [], options, onChange }) {
+  const selected = Array.isArray(value) ? value : [];
+  const choices = options.filter((option) => option !== "All");
+  const toggle = (option) => {
+    onChange(
+      selected.some((item) => sameText(item, option))
+        ? selected.filter((item) => !sameText(item, option))
+        : [...selected, option]
+    );
+  };
+
+  return (
+    <details className="relative border border-black/10 bg-[#fbfaf7]">
+      <summary className="flex min-h-[54px] cursor-pointer list-none items-center justify-between gap-2 px-3 py-2">
+        <span>
+          <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-black">{label}</span>
+          <span className={`mt-1 block text-sm font-black ${selected.length ? "text-black" : "text-black/35"}`}>
+            {selected.length ? `${selected.length} selected` : "Choose activities"}
+          </span>
+        </span>
+        <ChevronDown size={16} />
+      </summary>
+      <div className="absolute left-0 right-0 z-50 max-h-64 overflow-y-auto border border-black/10 bg-white p-2 shadow-xl">
+        {selected.length ? (
+          <button type="button" onClick={() => onChange([])} className="mb-2 w-full px-2 py-2 text-left text-xs font-black text-[#d67f3d]">
+            Clear activities
+          </button>
+        ) : null}
+        {choices.map((option) => {
+          const checked = selected.some((item) => sameText(item, option));
+          return (
+            <label key={option} className="flex cursor-pointer items-center gap-2 px-2 py-2 text-sm font-bold hover:bg-[#fff7ed]">
+              <input type="checkbox" checked={checked} onChange={() => toggle(option)} />
+              {option}
+            </label>
+          );
+        })}
+      </div>
+      {selected.length ? (
+        <div className="flex flex-wrap gap-1 border-t border-black/8 p-2">
+          {selected.map((activity) => (
+            <button key={activity} type="button" onClick={() => toggle(activity)} className="rounded-full bg-[#fff0d8] px-2 py-1 text-[10px] font-black">
+              {activity} ×
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </details>
+  );
+}
+
 function uniqueValues(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) =>
     String(a).localeCompare(String(b))
   );
-}
-
-function sameText(left, right) {
-  return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
-}
-
-function buildProviderProfileLink(providerId, selectedActivities) {
-  const activities = (Array.isArray(selectedActivities) ? selectedActivities : [selectedActivities])
-    .flatMap((value) => String(value || "").split(","))
-    .map((value) => value.trim())
-    .filter((value) => value && value !== "All");
-  const query = new URLSearchParams();
-  activities.forEach((activity) => query.append("activities", activity));
-  const suffix = query.toString();
-  return `/providers/${providerId}${suffix ? `?${suffix}` : ""}`;
 }
 
 function parseContentList(value, fallback) {

@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
+const { sessionToken } = require("../utils/sessionCookies");
 
 function adminOnly(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const token = sessionToken(req, "admin");
 
   if (!token) {
     return res.status(401).json({ success: false, message: "Admin token is required." });
@@ -10,7 +10,7 @@ function adminOnly(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== "ADMIN") {
+    if (decoded.role !== "ADMIN" || decoded.purpose !== "admin-session") {
       return res.status(403).json({ success: false, message: "Admin access only." });
     }
 

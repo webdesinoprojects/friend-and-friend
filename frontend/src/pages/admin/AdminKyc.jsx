@@ -4,7 +4,7 @@ import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
 import { EmptyState, SkeletonRows, confirmAction, notify } from "../../components/common/Feedback";
 
-const headers = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token")}` } });
+const headers = () => ({});
 
 export default function AdminKyc() {
   const [rows, setRows] = useState([]);

@@ -18,21 +18,22 @@ import {
 import PublicNavbar from "../../components/layout/PublicNavbar";
 import { getProvider, getProviderImages } from "../../api/providers";
 import { formatRs } from "../../utils/format";
-import {
-  isInWatchlist,
-  rememberProvider,
-  toggleWatchlist,
-} from "../../utils/userFlowStorage";
+import { getWatchlistStatus, setWatchlistStatus } from "../../api/watchlist";
 
 export default function PublicProviderProfile() {
   const { providerId } = useParams();
   const [searchParams] = useSearchParams();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [savePending, setSavePending] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
+    setLoadError("");
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     Promise.allSettled([getProvider(providerId), getProviderImages(providerId)])
       .then((results) => {
@@ -43,17 +44,21 @@ export default function PublicProviderProfile() {
           ? results[1].value.map((image) => image?.url || image?.thumbnailUrl || image).filter(Boolean)
           : [];
         setProvider({ ...row, images: gallery.length ? gallery : row.images });
-        setSaved(isInWatchlist(row.id));
+        if (isLoggedIn() && !isProviderAccount()) {
+          getWatchlistStatus(row.id).then((value) => mounted && setSaved(value)).catch(() => {});
+        } else {
+          setSaved(false);
+        }
       })
       .catch((error) => {
         if (!mounted) return;
         const status = error?.response?.status;
         if (status === 401 || status === 403) {
-          localStorage.removeItem("buddybook_token");
           localStorage.removeItem("buddybook_auth_user");
         }
         setProvider(null);
         setSaved(false);
+        setLoadError(status === 404 ? "not-found" : "load-failed");
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -62,15 +67,15 @@ export default function PublicProviderProfile() {
     return () => {
       mounted = false;
     };
-  }, [providerId]);
+  }, [providerId, reloadKey]);
 
   return (
-    <div className="min-h-screen scroll-smooth bg-[radial-gradient(circle_at_top_left,_#fff8e8_0,_#f5f3ec_38%,_#edf5f1_100%)] text-[#17213a] xl:h-screen xl:overflow-hidden">
+    <div className="min-h-screen scroll-smooth bg-[radial-gradient(circle_at_top_left,_#fff8e8_0,_#f5f3ec_38%,_#edf5f1_100%)] text-[#17213a]">
       <PublicNavbar />
-      <main className="box-border px-3 pb-28 pt-24 sm:px-6 sm:pt-28 lg:px-8 lg:pb-20 lg:pt-32 xl:h-screen xl:overflow-hidden xl:pb-5">
-        <section className="mx-auto max-w-[1440px] xl:flex xl:h-full xl:min-h-0 xl:flex-col">
+      <main className="box-border px-3 pb-28 pt-24 sm:px-6 sm:pt-28 lg:px-8 lg:pb-20 lg:pt-32">
+        <section className="mx-auto max-w-[1440px]">
           <Link
-            to={getExplorePath()}
+            to={getExplorePath(searchParams)}
             className="inline-flex items-center gap-2 rounded-full border border-[#17213a]/10 bg-white/90 px-4 py-2 text-sm font-black shadow-sm backdrop-blur"
           >
             <ArrowLeft size={16} /> Back to explore
@@ -82,10 +87,11 @@ export default function PublicProviderProfile() {
             <div className="mt-5 grid min-h-[360px] place-items-center rounded-[2rem] border border-[#17213a]/10 bg-white/90 text-center shadow-sm">
               <div>
                 <Sparkles size={30} className="mx-auto text-[#d67f3d]" />
-                <p className="mt-3 text-2xl font-black">Provider not found</p>
+                <p className="mt-3 text-2xl font-black">{loadError === "load-failed" ? "Profile could not be loaded" : "Provider not found"}</p>
                 <p className="mt-2 text-sm font-semibold text-[#17213a]/50">
-                  This profile may no longer be available.
+                  {loadError === "load-failed" ? "Check your connection and try again." : "This profile may no longer be available."}
                 </p>
+                {loadError === "load-failed" ? <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="mt-5 rounded-full bg-[#17213a] px-5 py-2.5 text-sm font-black text-white">Try again</button> : null}
               </div>
             </div>
           ) : (
@@ -93,10 +99,24 @@ export default function PublicProviderProfile() {
               provider={provider}
               highlightedActivities={parseHighlightedActivities(searchParams)}
               saved={saved}
-              onSave={() => {
-                rememberProvider(provider);
-                const result = toggleWatchlist(provider);
-                setSaved(result.saved);
+              savePending={savePending}
+              onSave={async () => {
+                if (savePending || isProviderAccount()) return;
+                if (!isLoggedIn()) {
+                  window.location.assign(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+                  return;
+                }
+                const previous = saved;
+                setSaved(!previous);
+                setSavePending(true);
+                try {
+                  const next = await setWatchlistStatus(provider.id, !previous);
+                  setSaved(next);
+                } catch {
+                  setSaved(previous);
+                } finally {
+                  setSavePending(false);
+                }
               }}
             />
           )}
@@ -106,7 +126,7 @@ export default function PublicProviderProfile() {
   );
 }
 
-function PublicProviderDetail({ provider, highlightedActivities, saved, onSave }) {
+function PublicProviderDetail({ provider, highlightedActivities, saved, savePending, onSave }) {
   const images = provider.images?.length ? provider.images : [provider.image].filter(Boolean);
   const activities = getProviderActivities(provider);
   const activity = activities[0] || "Public meetup";
@@ -123,8 +143,8 @@ function PublicProviderDetail({ provider, highlightedActivities, saved, onSave }
 
   return (
     <>
-      <div className="mt-3 grid items-start gap-3 sm:mt-5 sm:gap-5 xl:mb-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[400px_minmax(0,1fr)]">
-        <aside className="overflow-hidden rounded-[2rem] border border-[#17213a]/10 bg-[#fffdf8] p-3 shadow-[0_20px_65px_rgba(32,53,45,0.11)] sm:p-4 xl:h-full xl:min-h-0">
+      <div className="mt-3 grid items-start gap-3 sm:mt-5 sm:gap-5 xl:mb-5 xl:grid-cols-[400px_minmax(0,1fr)]">
+        <aside className="overflow-hidden rounded-[2rem] border border-[#17213a]/10 bg-[#fffdf8] p-3 shadow-[0_20px_65px_rgba(32,53,45,0.11)] sm:p-4">
           <ProfileGallery images={images} name={provider.name} available={provider.available} />
 
           <div className="px-1 pb-1 pt-4 sm:px-2 sm:pb-2 sm:pt-5">
@@ -141,12 +161,13 @@ function PublicProviderDetail({ provider, highlightedActivities, saved, onSave }
               <button
                 type="button"
                 onClick={onSave}
+                disabled={savePending}
                 className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border transition ${
                   saved
                     ? "border-rose-200 bg-rose-50 text-rose-600"
                     : "border-[#17213a]/10 bg-white text-[#17213a] hover:-translate-y-0.5"
                 }`}
-                aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
+                aria-label={savePending ? "Updating watchlist" : saved ? "Remove from watchlist" : "Add to watchlist"}
               >
                 <Heart size={20} fill={saved ? "currentColor" : "none"} />
               </button>
@@ -170,7 +191,7 @@ function PublicProviderDetail({ provider, highlightedActivities, saved, onSave }
           </div>
         </aside>
 
-        <main className="relative overflow-hidden rounded-[2rem] border border-[#17213a]/10 bg-white/95 shadow-[0_20px_65px_rgba(32,53,45,0.09)] xl:grid xl:h-full xl:min-h-0 xl:grid-rows-[auto_auto_minmax(0,1fr)]">
+        <main className="relative overflow-hidden rounded-[2rem] border border-[#17213a]/10 bg-white/95 shadow-[0_20px_65px_rgba(32,53,45,0.09)]">
           <div className="border-b border-[#17213a]/8 bg-gradient-to-r from-[#f6fbf8] via-white to-[#fff8e9] p-5 text-center">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#2c8060]">Verified profile</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Activities &amp; Reviews</h2>
@@ -206,7 +227,6 @@ function PublicProviderDetail({ provider, highlightedActivities, saved, onSave }
             total={Number(provider.reviews || reviews.length)}
             activity={activity}
             schedulePath={schedulePath}
-            provider={provider}
             providerAccount={providerAccount}
           />
         </main>
@@ -229,10 +249,10 @@ function ProfileGallery({ images, name, available }) {
   };
 
   return (
-    <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[1.4rem] bg-[#edf1ed] sm:aspect-[5/4] xl:h-[300px] xl:aspect-auto">
+      <div>
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.4rem] bg-[#edf1ed] sm:aspect-[5/4] xl:h-[380px] xl:aspect-auto">
         {slides[active] ? (
-          <img src={slides[active]} alt={name} className="h-full w-full object-cover" decoding="async" />
+          <img src={slides[active]} alt={name} width="800" height="600" className="h-full w-full object-cover" decoding="async" />
         ) : (
           <div className="grid h-full place-items-center text-center text-sm font-black text-[#17213a]/35">
             <div><ImageIcon size={30} className="mx-auto mb-2" />No profile image</div>
@@ -271,7 +291,7 @@ function ProfileGallery({ images, name, available }) {
               }`}
               aria-label={`Show photo ${index + 1}`}
             >
-              <img src={image} alt="" className="h-full w-full object-cover" />
+              <img src={image} alt="" width="240" height="180" loading="lazy" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -332,7 +352,7 @@ function buildBioRows(provider) {
   return unique.size ? Array.from(unique.values()) : [{ question: "Profile details", answer: "Not added yet." }];
 }
 
-function ReviewsSection({ reviews, rating, total, activity, schedulePath, provider, providerAccount }) {
+function ReviewsSection({ reviews, rating, total, activity, schedulePath, providerAccount }) {
   const distribution = useMemo(() => {
     const counts = [5, 4, 3, 2, 1].map((score) => reviews.filter((review) => Number(review.rating) === score).length);
     const max = Math.max(...counts, 1);
@@ -369,7 +389,7 @@ function ReviewsSection({ reviews, rating, total, activity, schedulePath, provid
             <article key={review.id || index} className="rounded-2xl border border-[#17213a]/9 bg-white p-3">
               <div className="flex items-start gap-3">
                 {review.reviewerImage ? (
-                  <img src={review.reviewerImage} alt={review.reviewerName || "Reviewer"} className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                  <img src={review.reviewerImage} alt={review.reviewerName || "Reviewer"} width="44" height="44" loading="lazy" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                 ) : (
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#dff2e8] font-black text-[#247052]">
                     {(review.reviewerName || "U")[0].toUpperCase()}
@@ -403,7 +423,6 @@ function ReviewsSection({ reviews, rating, total, activity, schedulePath, provid
       <div className="absolute bottom-4 right-4 z-10">
         <Link
           to={schedulePath}
-          onClick={() => rememberProvider(provider)}
           className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[#17213a] px-6 py-3 text-center text-sm font-black text-white shadow-[0_12px_30px_rgba(23,33,58,0.18)] transition-all duration-300 ease-out before:absolute before:inset-y-0 before:-left-1/2 before:w-1/3 before:-skew-x-12 before:bg-white/25 before:blur-sm before:transition-all before:duration-500 hover:-translate-y-1 hover:scale-[1.03] hover:bg-[#2c8060] hover:shadow-[0_18px_38px_rgba(44,128,96,0.3)] hover:before:left-[125%] active:translate-y-0 active:scale-[0.98]"
         >
           <Sparkles size={16} className="relative transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
@@ -491,11 +510,7 @@ function formatReviewDate(value) {
 }
 
 function isLoggedIn() {
-  return Boolean(
-    localStorage.getItem("buddybook_token") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("buddybook_auth_user")
-  );
+  return Boolean(localStorage.getItem("buddybook_auth_user"));
 }
 
 function isProviderAccount() {
@@ -507,7 +522,9 @@ function isProviderAccount() {
   }
 }
 
-function getExplorePath() {
+function getExplorePath(searchParams) {
+  const returnTo = searchParams?.get("returnTo");
+  if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) return returnTo;
   if (!isLoggedIn()) return "/#providers";
   if (isProviderAccount()) return "/app/provider/dashboard";
   return "/app/user/dashboard";

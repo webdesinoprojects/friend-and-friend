@@ -1,16 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   ArrowRight,
   Briefcase,
@@ -30,10 +19,14 @@ import {
 
 import AppShell from "../../components/layout/AppShell";
 import { formatRs } from "../../utils/format";
-import { getMyProviderProfile } from "../../api/providers";
-import { listBookings } from "../../api/bookings";
+import { getCachedMyProviderProfile, getMyProviderProfile } from "../../api/providers";
+import { getCachedBookings, listBookings } from "../../api/bookings";
 import ProviderImageCarousel from "../../components/users/ProviderImageCarousel";
-import { getBookings, getReceivedReviews, subscribeToUserData } from "../../utils/userFlowStorage";
+import { getCachedMyReviews, listMyReviews } from "../../api/reports";
+
+const ProviderDashboardCharts = lazy(
+  () => import("../../components/provider/ProviderDashboardCharts")
+);
 
 const emptyStats = {
   profileCompletion: 0,
@@ -55,13 +48,18 @@ const emptyStats = {
 };
 
 export default function ProviderDashboard() {
-  const cachedProfile = readCachedProviderProfile();
+  const cachedProfile = getCachedMyProviderProfile() || readCachedProviderProfile();
   const [user, setUser] = useState(() => readUser());
   const [provider, setProvider] = useState(cachedProfile?.provider || null);
   const [stats, setStats] = useState(cachedProfile?.stats ? { ...emptyStats, ...cachedProfile.stats } : emptyStats);
   const [loading, setLoading] = useState(!cachedProfile?.provider);
-  const [bookings, setBookings] = useState(() => getBookings());
-  const [reviews, setReviews] = useState(() => getReceivedReviews("PROVIDER"));
+  const [bookings, setBookings] = useState(() => {
+    const cachedBookings = getCachedBookings({ pageSize: 100 });
+    return Array.isArray(cachedBookings) ? cachedBookings : [];
+  });
+  const [reviews, setReviews] = useState(() =>
+    getCachedMyReviews().filter((review) => review.targetRole === "PROVIDER")
+  );
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -70,12 +68,14 @@ export default function ProviderDashboard() {
     const loadProvider = () =>
       Promise.all([
         getMyProviderProfile(),
-        listBookings().catch(() => getBookings()),
+        listBookings({ pageSize: 100 }),
+        listMyReviews(),
       ])
-        .then(([{ provider: nextProvider, stats: nextStats }, nextBookings]) => {
+        .then(([{ provider: nextProvider, stats: nextStats }, nextBookings, nextReviews]) => {
         if (!mounted) return;
         setProvider(nextProvider);
         setBookings(Array.isArray(nextBookings) ? nextBookings : []);
+        setReviews(nextReviews.filter((review) => review.targetRole === "PROVIDER"));
         if (nextProvider?.user) setUser(nextProvider.user);
         if (nextStats) setStats({ ...emptyStats, ...nextStats });
       })
@@ -88,18 +88,9 @@ export default function ProviderDashboard() {
     };
   }, []);
 
-  useEffect(
-    () =>
-      subscribeToUserData(() => {
-        setBookings(getBookings());
-        setReviews(getReceivedReviews("PROVIDER"));
-      }),
-    []
-  );
-
   const profile = providerToProfile(provider, user);
   const providerBookings = useMemo(() =>
-    bookings.filter((booking) =>
+    (Array.isArray(bookings) ? bookings : []).filter((booking) =>
       provider?.id ? !booking.providerId || booking.providerId === provider.id : true
     ),
     [bookings, provider?.id]
@@ -149,37 +140,9 @@ export default function ProviderDashboard() {
               <Metric icon={Star} label="Rating" value={liveStats.rating ? `${liveStats.rating} (${liveStats.reviewCount})` : "New"} tone="bg-[#ffeedd] text-black" />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <ChartCard title="Weekly profile performance" subtitle="Views and booking requests">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={liveStats.weeklyViews}>
-                    <defs>
-                      <linearGradient id="views" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor="#e08c4c" stopOpacity={0.34} />
-                        <stop offset="95%" stopColor="#e08c4c" stopOpacity={0.03} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eddac7" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="views" stroke="#e08c4c" strokeWidth={3} fill="url(#views)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              <ChartCard title="Revenue estimate" subtitle="Projected weekly earnings">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={liveStats.weeklyViews}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eddac7" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <Bar dataKey="revenue" radius={[10, 10, 0, 0]} fill="#111111" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
+            <Suspense fallback={<div className="grid gap-5 lg:grid-cols-2"><div className="h-[260px] animate-pulse bg-black/5" /><div className="h-[260px] animate-pulse bg-black/5" /></div>}>
+              <ProviderDashboardCharts data={liveStats.weeklyViews} />
+            </Suspense>
 
             <BookingRequestsTable bookings={filteredBookings} />
 
@@ -227,18 +190,6 @@ function ActionCard({ icon: Icon, title, text, to, tone }) {
       <h2 className="mt-5 text-lg font-black">{title}</h2>
       <p className="mt-2 text-sm font-bold leading-6 text-[#6b5d52]">{text}</p>
     </Link>
-  );
-}
-
-function ChartCard({ title, subtitle, children }) {
-  return (
-      <div className="h-[260px] rounded-none border border-[#eddac7] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(83,52,30,0.1)]">
-      <div className="mb-4">
-        <h2 className="text-lg font-black">{title}</h2>
-        <p className="text-xs font-bold text-[#8b7563]">{subtitle}</p>
-      </div>
-      <div className="h-[185px]">{children}</div>
-    </div>
   );
 }
 

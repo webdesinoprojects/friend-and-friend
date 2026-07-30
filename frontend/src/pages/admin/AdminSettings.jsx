@@ -124,8 +124,8 @@ export default function AdminSettings() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                localStorage.removeItem("buddybook_admin_token");
+              onClick={async () => {
+                await api.post("/admin/logout").catch(() => {});
                 localStorage.removeItem("buddybook_admin_user");
                 window.location.href = "/admin/login";
               }}
@@ -216,6 +216,5 @@ function Toggle({ label, description, value, onChange }) {
 }
 
 function getAdminHeaders() {
-  const token = localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token");
-  return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  return {};
 }

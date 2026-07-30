@@ -12,17 +12,10 @@ import {
 } from "lucide-react";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import { formatRupees } from "../../utils/format";
-import {
-  getBookings,
-  getPayments,
-  subscribeToUserData,
-} from "../../utils/userFlowStorage";
+import { getCachedBookings, listBookings } from "../../api/bookings";
 
-function readTransactions() {
-  const payments = getPayments();
-  if (payments.length) return payments;
-
-  return getBookings()
+function toTransactions(bookings) {
+  return bookings
     .filter((booking) => booking.amount)
     .map((booking) => ({
       id: booking.paymentId || `LEGACY-${booking.id}`,
@@ -44,12 +37,19 @@ function readTransactions() {
 }
 
 export default function UserPayments() {
-  const [transactions, setTransactions] = useState(() => readTransactions());
+  const cachedTransactions = toTransactions(getCachedBookings({ pageSize: 100 }));
+  const [transactions, setTransactions] = useState(cachedTransactions);
+  const [loading, setLoading] = useState(!cachedTransactions.length);
+  const [error, setError] = useState("");
 
-  useEffect(
-    () => subscribeToUserData(() => setTransactions(readTransactions())),
-    []
-  );
+  useEffect(() => {
+    let mounted = true;
+    listBookings({ pageSize: 100 })
+      .then((rows) => mounted && setTransactions(toTransactions(rows)))
+      .catch(() => mounted && setError("Transactions could not be loaded."))
+      .finally(() => mounted && setLoading(false));
+    return () => { mounted = false; };
+  }, []);
 
   const summary = useMemo(() => {
     const amountFor = (status) =>
@@ -101,7 +101,11 @@ export default function UserPayments() {
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-7">
-          {visible.length === 0 ? (
+          {loading ? (
+            <div className="grid min-h-[18rem] place-items-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-black/10 border-t-black" /></div>
+          ) : error ? (
+            <div className="grid min-h-[18rem] place-items-center text-center"><div><p className="text-xl font-black">Transactions unavailable</p><p className="mt-2 text-sm font-bold text-black/45">{error}</p><button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-full bg-black px-5 py-2.5 text-sm font-black text-white">Try again</button></div></div>
+          ) : visible.length === 0 ? (
             <div className="grid min-h-[18rem] place-items-center rounded-2xl border border-dashed border-[#d9bfaa] bg-white text-center">
               <div>
                 <CreditCard className="mx-auto text-[#e08c4c]" size={42} />

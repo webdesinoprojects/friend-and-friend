@@ -26,8 +26,13 @@ const {
 const protect = require("../middlewares/auth.middleware");
 const accountController = require("../controllers/account.controller");
 const { ALLOWED_MIME_TYPES, MAX_IMAGE_BYTES, ALLOWED_KYC_MIME_TYPES, MAX_KYC_DOCUMENT_BYTES } = require("../utils/imagekit");
+const { issueCsrfCookie } = require("../utils/sessionCookies");
 
 const router = express.Router();
+router.get("/csrf", (_req, res) => {
+  const csrfToken = issueCsrfCookie(res);
+  return res.json({ success: true, csrfToken });
+});
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
@@ -90,7 +95,7 @@ router.patch("/application", updateApplication);
 
 router.get("/me", protect.allowDisabled, me);
 router.patch("/me", protect, updateMe);
-router.post("/logout", protect, logout);
+router.post("/logout", logout);
 router.get("/account/status", protect.allowDisabled, accountController.getStatus);
 router.post("/account/disable", protect.allowDisabled, accountController.disableFor24Hours);
 router.post("/account/reactivate", protect.allowDisabled, accountController.reactivate);

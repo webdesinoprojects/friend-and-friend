@@ -55,7 +55,7 @@ export default function Activities() {
       <main className="overflow-hidden bg-[#f6f1e8] pt-20">
         <div>
           <section className="relative min-h-[560px] overflow-hidden sm:min-h-[650px]">
-            <img src={heroImage} alt="Indian friends sharing a relaxed picnic" className="absolute inset-0 h-full w-full object-cover object-[66%_center]" />
+            <img src={heroImage} alt="Indian friends sharing a relaxed picnic" width="1600" height="900" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[66%_center]" />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(246,241,232,.94)_0%,rgba(246,241,232,.78)_38%,rgba(246,241,232,.18)_72%)] max-sm:bg-[linear-gradient(180deg,rgba(246,241,232,.2)_0%,rgba(246,241,232,.88)_66%,rgba(246,241,232,.98)_100%)]" />
             <div className="relative mx-auto flex min-h-[560px] max-w-7xl items-end px-4 pb-12 pt-20 sm:min-h-[650px] sm:items-center sm:px-6 sm:py-20 lg:px-8">
             <div className="max-w-4xl text-[#1d1d1b]">
@@ -84,7 +84,7 @@ export default function Activities() {
                 const Icon = activity.icon;
                 return (
                   <article key={activity.title} className="group relative min-h-[220px] overflow-hidden rounded-[1.1rem] bg-[#1d1d1b] shadow-[0_14px_35px_rgba(35,26,20,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(35,26,20,.16)] sm:min-h-[310px] sm:rounded-[1.5rem] lg:min-h-[300px]">
-                    <img src={activity.image} alt={`${activity.title} in India`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.05]" />
+                    <img src={activity.image} alt={`${activity.title} in India`} width="800" height="620" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.05]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-3.5 text-white sm:p-6">
                       <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/20 backdrop-blur sm:mb-3 sm:h-9 sm:w-9">
@@ -116,7 +116,7 @@ export default function Activities() {
               </div>
 
               <div className="relative overflow-hidden rounded-[2rem] bg-[#1d1d1b]">
-                <img src={heroImage} alt="Indian friends sharing a relaxed picnic" loading="lazy" className="h-[360px] w-full object-cover object-[68%_center] opacity-80 sm:h-[470px]" />
+                <img src={heroImage} alt="Indian friends sharing a relaxed picnic" width="1200" height="800" loading="lazy" className="h-[360px] w-full object-cover object-[68%_center] opacity-80 sm:h-[470px]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <p className="absolute bottom-6 left-6 right-6 max-w-md text-2xl font-extrabold leading-tight text-white sm:bottom-8 sm:left-8 sm:text-3xl">Make room for the plans you keep saying “someday” to.</p>
               </div>

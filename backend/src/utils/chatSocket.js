@@ -4,6 +4,7 @@ const prisma = require("../config/prisma");
 const chatController = require("../controllers/chat.controller");
 const realtime = require("./realtime");
 const { isAccountDisabled } = require("./accountLifecycle");
+const { USER_COOKIE, parseCookieHeader } = require("./sessionCookies");
 
 function controllerRequest(handler, socket, { params = {}, body = {}, query = {}, chatThread = null } = {}) {
   return new Promise((resolve) => {
@@ -45,9 +46,10 @@ function initializeChatSocket(httpServer, allowedOrigins, dependencies = {}) {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || String(socket.handshake.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      const token = parseCookieHeader(socket.handshake.headers.cookie)[USER_COOKIE] || "";
       if (!token) return next(new Error("Authentication required."));
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.purpose !== "user-session") return next(new Error("Invalid session."));
       const user = await db.user.findUnique({
         where: { id: decoded.id },
         select: { id: true, fullName: true, role: true, kycStatus: true, isBlocked: true, disabledAt: true, disabledUntil: true },

@@ -1,8 +1,14 @@
 import api from "./api";
 import { io } from "socket.io-client";
+import {
+  fetchQuery,
+  getQueryData,
+  hasQueryData,
+  setQueryData,
+} from "../utils/queryCache";
 
 let chatSocket = null;
-let socketToken = "";
+const CHATS_CACHE_KEY = "chats:list";
 
 function socketBaseUrl() {
   const base = String(api.defaults.baseURL || "/api");
@@ -11,12 +17,9 @@ function socketBaseUrl() {
 }
 
 function getChatSocket() {
-  const token = localStorage.getItem("buddybook_token") || localStorage.getItem("token") || "";
-  if (chatSocket && socketToken === token) return chatSocket;
-  chatSocket?.disconnect();
-  socketToken = token;
+  if (chatSocket) return chatSocket;
   chatSocket = io(socketBaseUrl(), {
-    auth: { token },
+    withCredentials: true,
     transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -83,6 +86,11 @@ export function leaveRealtimeChat(threadId) {
 }
 
 export function sendRealtimeChatMessage(threadId, payload) {
+  const socket = getChatSocket();
+  if (!socket.connected) {
+    socket.connect();
+    return Promise.reject(new Error("Real-time chat is reconnecting."));
+  }
   return emitWithAck("chat:send", { threadId, ...payload });
 }
 
@@ -118,10 +126,28 @@ function unwrap(response) {
   return response?.data?.data ?? response?.data;
 }
 
-export async function listChats() {
-  const response = await api.get("/chats", { timeout: 30000 });
-  const data = unwrap(response);
-  return Array.isArray(data) ? data : [];
+export function getCachedChats() {
+  return getQueryData(CHATS_CACHE_KEY, []);
+}
+
+export function hasCachedChats() {
+  return hasQueryData(CHATS_CACHE_KEY);
+}
+
+export function setCachedChats(chats) {
+  return setQueryData(CHATS_CACHE_KEY, Array.isArray(chats) ? chats : []);
+}
+
+export function listChats(options = {}) {
+  return fetchQuery(
+    CHATS_CACHE_KEY,
+    async () => {
+      const response = await api.get("/chats", { timeout: 30000 });
+      const data = unwrap(response);
+      return Array.isArray(data) ? data : [];
+    },
+    { staleTime: 30_000, ...options }
+  );
 }
 
 export async function listChatMessages(threadId, { before, limit = 50 } = {}) {
@@ -139,11 +165,12 @@ export async function sendChatMessage(threadId, payload) {
   return unwrap(await api.post(`/chats/${threadId}/messages`, payload, { timeout: 30000 }));
 }
 
-export async function uploadVoiceMessage(threadId, blob, durationSeconds) {
+export async function uploadVoiceMessage(threadId, blob, durationSeconds, clientMessageId) {
   const form = new FormData();
   const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
   form.append("voice", blob, `voice-${Date.now()}.${extension}`);
   form.append("durationSeconds", String(Math.max(1, Math.round(durationSeconds))));
+  if (clientMessageId) form.append("clientMessageId", clientMessageId);
   return unwrap(await api.post(`/chats/${threadId}/voice`, form, { timeout: 60000 }));
 }
 
@@ -172,14 +199,12 @@ export async function editChatMessage(threadId, messageId, text) {
 }
 
 export async function subscribeChatEvents(onEvent, { signal } = {}) {
-  const token = localStorage.getItem("buddybook_token") || localStorage.getItem("token");
   const baseUrl = String(api.defaults.baseURL || "").replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/chats/events`, {
     method: "GET",
     credentials: "include",
     headers: {
       Accept: "text/event-stream",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal,
   });

@@ -14,9 +14,10 @@ import {
   X,
 } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
-import { getMyReportSummary } from "../../api/reports";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { getCachedReportSummary, getMyReportSummary } from "../../api/reports";
+import { listChats } from "../../api/chats";
+import { useLocation, Link, Outlet, useNavigate } from "react-router-dom";
 import Logo from "../common/Logo";
 import { NotificationBell } from "../common/HeaderActions";
 
@@ -40,7 +41,39 @@ const userLinks = [
   { label: "Settings", to: "/app/user/settings", icon: Settings },
 ];
 
-export default function AppShell({ type, children, searchValue = "", onSearchChange }) {
+const ProviderWorkspaceContext = createContext(null);
+
+export function ProviderWorkspaceRoute() {
+  const [layoutProps, setLayoutProps] = useState({});
+  const contextValue = useMemo(() => ({ setLayoutProps }), []);
+  useEffect(() => {
+    listChats().catch(() => {});
+  }, []);
+
+  return (
+    <ProviderWorkspaceContext.Provider value={contextValue}>
+      <AppShellView type="provider" {...layoutProps}>
+        <Outlet />
+      </AppShellView>
+    </ProviderWorkspaceContext.Provider>
+  );
+}
+
+export default function AppShell(props) {
+  const workspace = useContext(ProviderWorkspaceContext);
+  const { type, searchValue, onSearchChange } = props;
+
+  useLayoutEffect(() => {
+    if (!workspace || type !== "provider") return undefined;
+    workspace.setLayoutProps({ searchValue, onSearchChange });
+    return () => workspace.setLayoutProps({});
+  }, [workspace, type, searchValue, onSearchChange]);
+
+  if (workspace && type === "provider") return props.children;
+  return <AppShellView {...props} />;
+}
+
+function AppShellView({ type, children, searchValue = "", onSearchChange }) {
   const location = useLocation();
   const navigate = useNavigate();
   const pathParts = location.pathname.split("/").filter(Boolean);
@@ -49,7 +82,7 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
   const storedUser = readStoredUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
-  const [reportCount, setReportCount] = useState(0);
+  const [reportCount, setReportCount] = useState(() => getCachedReportSummary().received || 0);
   useEffect(() => {
     if (type !== "provider") return undefined;
     let mounted = true;
@@ -256,17 +289,23 @@ export default function AppShell({ type, children, searchValue = "", onSearchCha
                 </div>
 
                 <nav className="mt-6 grid gap-2">
-                  {links.map(({ label, to, icon: Icon }) => (
-                    <Link
-                      key={label}
-                      to={to}
-                      onClick={() => setDrawerOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black text-black transition hover:bg-[#ffeedd]"
-                    >
-                      <Icon size={18} />
-                      {label}
-                    </Link>
-                  ))}
+                  {links.map(({ label, to, icon: Icon }) => {
+                    const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
+                    return (
+                      <Link
+                        key={label}
+                        to={to}
+                        onClick={() => setDrawerOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition ${
+                          active ? "bg-[#fff0d2] text-[#08204a] shadow-sm" : "text-black hover:bg-[#ffeedd]"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        {label}
+                      </Link>
+                    );
+                  })}
                 </nav>
               </aside>
             </div>

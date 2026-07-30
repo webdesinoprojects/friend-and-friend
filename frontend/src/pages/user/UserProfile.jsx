@@ -16,35 +16,33 @@ import {
 import UserAppLayout from "../../components/users/UserAppLayout";
 import api from "../../api/api";
 import { hasAuthToken } from "../../utils/authSession";
-import { getReceivedReviews } from "../../utils/userFlowStorage";
-import { listMyReviews } from "../../api/reports";
+import { getCachedMyReviews, listMyReviews } from "../../api/reports";
+import { getCachedCurrentUser, getCurrentUser, invalidateCurrentUser } from "../../api/auth";
 
 const fallbackAvatar =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop";
 
 export default function UserProfile() {
-  const [user, setUser] = useState(() => readUser());
+  const cachedUser = getCachedCurrentUser();
+  const [user, setUser] = useState(() => cachedUser || readUser());
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoSaving, setPhotoSaving] = useState(false);
   const [form, setForm] = useState(() => userToForm(readUser()));
-  const localReviews = getReceivedReviews("USER");
-  const [backendReviews, setBackendReviews] = useState([]);
-  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const [backendReviews, setBackendReviews] = useState(() => getCachedMyReviews());
+  const [loading,setLoading]=useState(!cachedUser); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true); setError("");
+    if (!getCachedCurrentUser()) setLoading(true);
+    setError("");
     if (!hasAuthToken()) {
       return () => {
         mounted = false;
       };
     }
-    api
-      .get("/auth/me")
-      .then((response) => {
-        const nextUser =
-          response.data?.user || response.data?.data?.user || response.data?.data;
+    getCurrentUser({ force: Boolean(reload) })
+      .then((nextUser) => {
         if (!mounted || !nextUser) return;
         setUser((current) => ({ ...current, ...nextUser }));
         setForm(userToForm({ ...readUser(), ...nextUser }));
@@ -89,7 +87,7 @@ export default function UserProfile() {
     [profile.interests, profile.preferredActivities]
   );
   const avatar = user?.profileImage || user?.avatar || profile.avatar || fallbackAvatar;
-  const allReviews = backendReviews.length ? backendReviews : localReviews;
+  const allReviews = backendReviews;
   const averageRating = allReviews.length
     ? (allReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / allReviews.length).toFixed(1)
     : "New";
@@ -115,6 +113,7 @@ export default function UserProfile() {
     try {
       setPhotoSaving(true);
       const response = await api.patch("/auth/me", { profileImage });
+      invalidateCurrentUser();
       const savedUser = response.data?.user || response.data?.data || optimistic;
       setUser(savedUser);
       localStorage.setItem("buddybook_auth_user", JSON.stringify(savedUser));
@@ -141,6 +140,7 @@ export default function UserProfile() {
         },
       };
       const response = await api.patch("/auth/me", payload);
+      invalidateCurrentUser();
       const nextUser = response.data?.user || response.data?.data || { ...user, ...payload, userProfile: payload.userProfile };
       setUser(nextUser);
       localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));

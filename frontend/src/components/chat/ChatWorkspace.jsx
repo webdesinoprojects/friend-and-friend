@@ -8,8 +8,10 @@ import {
   MessageCircle,
   Mic,
   MoreVertical,
+  Pause,
   Pencil,
   Pin,
+  Play,
   Reply,
   Search,
   Send,
@@ -24,13 +26,17 @@ import {
   editRealtimeChatMessage,
   joinRealtimeChat,
   leaveRealtimeChat,
+  getCachedChats,
+  hasCachedChats,
   listChatMessages,
   listChats,
   readRealtimeChat,
+  sendChatMessage,
   sendRealtimeChatMessage,
   reactRealtimeChatMessage,
   pinRealtimeChatMessage,
   signalRealtimeChat,
+  setCachedChats,
   subscribeSocketChatEvents,
   updateRealtimeLocation,
   uploadVoiceMessage,
@@ -72,6 +78,11 @@ function dateLabel(value) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(date);
 }
 
+function durationLabel(value) {
+  const total = Math.max(0, Math.floor(Number(value) || 0));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
 function lastMessageLabel(chat) {
   const message = chat.messages?.[chat.messages.length - 1];
   if (!message) return "Start the conversation";
@@ -86,11 +97,15 @@ export default function ChatWorkspace({ role }) {
   const requestedBookingId = searchParams.get("booking");
   const [user] = useState(() => storedUser());
   const myId = String(user.id || user._id || "");
-  const [chats, setChats] = useState([]);
-  const [activeId, setActiveId] = useState("");
+  const initialChats = getCachedChats();
+  const [chats, setChats] = useState(initialChats);
+  const [activeId, setActiveId] = useState(() => {
+    const requested = initialChats.find((row) => row.bookingId === requestedBookingId);
+    return requested?.id || initialChats[0]?.id || "";
+  });
   const [query, setQuery] = useState("");
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !hasCachedChats());
   const [streamOnline, setStreamOnline] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -135,10 +150,10 @@ export default function ChatWorkspace({ role }) {
     });
   }, [chats, query, role]);
 
-  const refreshChats = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) setLoading(true);
+  const refreshChats = useCallback(async ({ quiet = false, force = false } = {}) => {
+    if (!quiet && !hasCachedChats()) setLoading(true);
     try {
-      const rows = await listChats();
+      const rows = await listChats({ force });
       setChats(rows);
       setActiveId((current) => {
         const requested = rows.find((row) => row.bookingId === requestedBookingId);
@@ -152,11 +167,18 @@ export default function ChatWorkspace({ role }) {
   }, [requestedBookingId]);
 
   useEffect(() => {
-    const initialTimer = window.setTimeout(refreshChats, 0);
+    if (!loading || hasCachedChats()) setCachedChats(chats);
+  }, [chats, loading]);
+
+  useEffect(() => {
+    const initialTimer = window.setTimeout(
+      () => refreshChats({ quiet: hasCachedChats(), force: true }),
+      0
+    );
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") refreshChats({ quiet: true });
+      if (document.visibilityState === "visible") refreshChats({ quiet: true, force: true });
     }, 30000);
-    const visible = () => document.visibilityState === "visible" && refreshChats({ quiet: true });
+    const visible = () => document.visibilityState === "visible" && refreshChats({ quiet: true, force: true });
     document.addEventListener("visibilitychange", visible);
     return () => {
       window.clearTimeout(initialTimer);
@@ -180,17 +202,14 @@ export default function ChatWorkspace({ role }) {
             : chat
         ));
       } else if (event === "chat") {
-        let found = false;
         setChats((rows) => rows.map((chat) => {
           if (!(chat.threadIds || [chat.id]).includes(payload.threadId)) return chat;
-          found = true;
           return {
             ...chat,
             messages: mergeMessages((chat.messages || []).filter((message) => !payload.message?.clientMessageId || message.id !== payload.message.clientMessageId), [payload.message]),
             updatedAt: payload.message.createdAt,
           };
         }));
-        if (!found) refreshChats({ quiet: true });
         return;
       }
       if (["edit", "delete", "location", "reaction", "pin"].includes(event)) {
@@ -221,6 +240,16 @@ export default function ChatWorkspace({ role }) {
     };
     return subscribeSocketChatEvents(handleEvent, (connected) => setStreamOnline(connected));
   }, [activeThreadKey, currentChatId, myId, refreshChats]);
+
+  useEffect(() => {
+    if (streamOnline) return undefined;
+    const reconcile = () => {
+      if (document.visibilityState === "visible") refreshChats({ quiet: true, force: true });
+    };
+    reconcile();
+    const timer = window.setInterval(reconcile, 2000);
+    return () => window.clearInterval(timer);
+  }, [refreshChats, streamOnline]);
 
   useEffect(() => {
     if (!currentChatId) return;
@@ -290,7 +319,15 @@ export default function ChatWorkspace({ role }) {
     };
     setChats((rows) => rows.map((chat) => chat.id === chatId ? { ...chat, messages: [...(chat.messages || []), optimistic] } : chat));
     try {
-      const saved = await sendRealtimeChatMessage(chatId, { ...payload, clientMessageId: optimisticId });
+      const messagePayload = { ...payload, clientMessageId: optimisticId };
+      let saved;
+      try {
+        saved = await sendRealtimeChatMessage(chatId, messagePayload);
+      } catch {
+        // The client message id makes this retry safe if the socket saved the
+        // message but its acknowledgement was lost during a reconnect.
+        saved = await sendChatMessage(chatId, messagePayload);
+      }
       patchMessage(chatId, optimisticId, saved);
       return saved;
     } catch (error) {
@@ -437,7 +474,7 @@ export default function ChatWorkspace({ role }) {
     };
     setChats((rows) => rows.map((chat) => chat.id === chatId ? { ...chat, messages: [...(chat.messages || []), optimistic] } : chat));
     try {
-      const saved = await uploadVoiceMessage(chatId, voiceDraft.blob, voiceDraft.duration);
+      const saved = await uploadVoiceMessage(chatId, voiceDraft.blob, voiceDraft.duration, optimisticId);
       patchMessage(chatId, optimisticId, saved);
       discardVoice();
     } catch (error) {
@@ -592,7 +629,7 @@ export default function ChatWorkspace({ role }) {
                 {editing && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-amber-50 p-3"><Pencil size={16} className="text-amber-700" /><input autoFocus value={editing.text} onChange={(event) => setEditing({ ...editing, text: event.target.value.slice(0, MAX_TEXT_LENGTH) })} onKeyDown={(event) => event.key === "Enter" && saveEdit()} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none" /><button onClick={saveEdit} className="font-black text-emerald-700">Save</button><button onClick={() => setEditing(null)}><X size={17} /></button></div>}
                 {replyTo && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-orange-50 p-3"><Reply size={16} className="text-[#df843f]"/><div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase text-[#b7662d]">Replying to message</p><p className="truncate text-xs font-semibold text-black/55">{replyTo.text || replyTo.type}</p></div><button onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X size={17}/></button></div>}
                 {recording && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-rose-50 p-3"><span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" /><strong className="flex-1 text-sm text-rose-700">Recording {recordingSeconds}s / {MAX_VOICE_SECONDS}s</strong><button onClick={stopRecording} className="flex items-center gap-1 rounded-full bg-rose-600 px-3 py-2 text-xs font-black text-white"><StopCircle size={15} /> Stop</button></div>}
-                {voiceDraft && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-orange-50 p-3"><audio controls src={voiceDraft.url} className="h-9 min-w-0 flex-1" /><button disabled={voiceSending} onClick={sendVoice} className="rounded-full bg-black p-2 text-white disabled:opacity-50">{voiceSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send size={17} />}</button><button disabled={voiceSending} onClick={discardVoice}><Trash2 size={17} className="text-rose-600" /></button></div>}
+                {voiceDraft && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-orange-50 p-3"><VoicePlayer src={voiceDraft.url} durationSeconds={voiceDraft.duration} /><button disabled={voiceSending} onClick={sendVoice} className="rounded-full bg-black p-2 text-white disabled:opacity-50">{voiceSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send size={17} />}</button><button disabled={voiceSending} onClick={discardVoice}><Trash2 size={17} className="text-rose-600" /></button></div>}
                 <div className="flex items-end gap-2">
                   <div className="relative"><button disabled={recording || Boolean(voiceDraft)} onClick={() => setEmojiOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 text-lg disabled:opacity-40">☺</button>{emojiOpen && <div className="absolute bottom-14 left-0 z-30"><Suspense fallback={<div className="grid h-24 w-[min(300px,80vw)] place-items-center rounded-2xl border bg-white text-xs font-black">Loading emojis...</div>}><EmojiPicker onEmojiClick={(emoji) => onTextChange(text + emoji.emoji)} width={300} height={380} /></Suspense></div>}</div>
                   <div className="relative"><button disabled={sendingLocation} onClick={() => setLocationOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 disabled:opacity-40">{sendingLocation ? <LoaderCircle className="animate-spin" size={18} /> : <MapPin size={18} />}</button>{locationOpen && <div className="absolute bottom-14 left-0 z-20 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={() => shareLocation(false)} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black hover:bg-black/5">Share current location</button><button onClick={() => shareLocation(true)} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black hover:bg-black/5">Share live location</button></div>}</div>
@@ -625,7 +662,7 @@ function MessageBubble({ message, repliedMessage, mine, canEdit, reactionOpen, o
         {message.replyToId && !deleted ? <div className={`mb-2 rounded-lg border-l-2 px-2 py-1.5 text-xs ${mine ? "border-[#df843f] bg-white/10 text-white/65" : "border-[#df843f] bg-black/5 text-black/50"}`}><p className="truncate font-bold">{repliedMessage?.text || (repliedMessage ? repliedMessage.type : "Original message")}</p></div> : null}
         {deleted ? <p className="text-sm italic">This message was deleted.</p> : null}
         {!deleted && message.type === "TEXT" ? <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-6">{message.text}</p> : null}
-        {!deleted && message.type === "VOICE" ? <audio controls preload="metadata" src={message.mediaUrl} className="h-10 max-w-full" /> : null}
+        {!deleted && message.type === "VOICE" ? <VoicePlayer src={message.mediaUrl} durationSeconds={message.durationSeconds} compact mine={mine} /> : null}
         {!deleted && ["LOCATION", "LIVE_LOCATION"].includes(message.type) ? <a href={message.mediaUrl} target="_blank" rel="noreferrer" className="flex min-w-48 items-center gap-3"><span className={`grid h-10 w-10 place-items-center rounded-full ${mine ? "bg-white/15" : "bg-orange-50 text-[#df843f]"}`}><MapPin size={19} /></span><span><strong className="block text-sm">{message.type === "LIVE_LOCATION" ? "Live location" : "Shared location"}</strong><small className={mine ? "text-white/60" : "text-black/45"}>Open in map</small></span></a> : null}
         <div className={`mt-1 flex items-center justify-end gap-1 text-[9px] font-bold ${mine && !deleted ? "text-white/45" : "text-black/35"}`}><span>{message.editedAt && !deleted ? "edited · " : ""}{timeLabel(message.createdAt)}</span>{mine && !message.failed ? message.pending ? <LoaderCircle className="animate-spin" size={11} /> : message.readAt ? <CheckCheck size={13} /> : <Check size={12} /> : null}</div>
       </div>
@@ -634,4 +671,64 @@ function MessageBubble({ message, repliedMessage, mine, canEdit, reactionOpen, o
       {!deleted && !message.pending && !message.failed ? <div className={`relative mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100 ${mine ? "justify-end" : "justify-start"}`}><button onClick={onReply} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="Reply"><Reply size={13}/></button><button onClick={onToggleReactions} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="React">☺</button><button onClick={onPin} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label={message.pinnedAt ? "Unpin message" : "Pin message"}><Pin size={13}/></button>{mine && canEdit && <button onClick={onEdit} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="Edit message"><Pencil size={13} /></button>}{mine && <button onClick={onDelete} className="rounded-full p-1.5 text-rose-500 hover:bg-white" aria-label="Delete message"><Trash2 size={13} /></button>}{reactionOpen ? <div className={`absolute bottom-8 z-20 flex gap-1 rounded-full border border-black/10 bg-white p-1.5 shadow-xl ${mine ? "right-0" : "left-0"}`}>{["👍","❤️","😂","😮","😢","🙏"].map((emoji) => <button type="button" key={emoji} onClick={() => onReact(emoji)} className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-black/5">{emoji}</button>)}</div> : null}</div> : null}
     </div>
   </div>;
+}
+
+function VoicePlayer({ src, durationSeconds, compact = false, mine = false }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(Number(durationSeconds) || 0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(Number(durationSeconds) || 0);
+    setFailed(false);
+  }, [src, durationSeconds]);
+
+  const toggle = async () => {
+    const audio = audioRef.current;
+    if (!audio || failed) return;
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    try {
+      await audio.play();
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  const seek = (event) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const next = Number(event.target.value);
+    audio.currentTime = next;
+    setCurrentTime(next);
+  };
+
+  return (
+    <div className={`flex min-w-0 items-center gap-2 ${compact ? "w-64 max-w-full" : "flex-1"}`}>
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        onLoadedMetadata={(event) => Number.isFinite(event.currentTarget.duration) && setDuration(event.currentTarget.duration)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCurrentTime(0); }}
+        onError={() => setFailed(true)}
+      />
+      <button type="button" onClick={toggle} disabled={failed} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${mine ? "bg-white/15 text-white" : "bg-black text-white"} disabled:opacity-40`} aria-label={playing ? "Pause voice note" : "Play voice note"}>
+        {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+      </button>
+      {failed ? <span className="min-w-0 flex-1 text-xs font-bold opacity-60">Voice note unavailable</span> : <>
+        <input type="range" min="0" max={Math.max(duration, 1)} step="0.1" value={Math.min(currentTime, Math.max(duration, 1))} onChange={seek} className="h-1 min-w-0 flex-1 cursor-pointer accent-[#df843f]" aria-label="Voice note position" />
+        <span className="w-9 shrink-0 text-right text-[10px] font-bold opacity-60">{durationLabel(playing || currentTime ? currentTime : duration)}</span>
+      </>}
+    </div>
+  );
 }

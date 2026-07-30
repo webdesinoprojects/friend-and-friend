@@ -1,15 +1,19 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const { activateIfExpired, isAccountDisabled, publicAccountState } = require("../utils/accountLifecycle");
+const { sessionToken } = require("../utils/sessionCookies");
 
 async function authenticate(req, res, next, { allowDisabled = false } = {}) {
   try {
-    const authHeader = req.headers.authorization || (req.query?.token ? `Bearer ${req.query.token}` : "");
-    if (!authHeader.startsWith("Bearer ")) {
+    const token = sessionToken(req);
+    if (!token) {
       return res.status(401).json({ success: false, message: "Token missing. Please login again." });
     }
 
-    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== "user-session") {
+      return res.status(401).json({ success: false, message: "Invalid session." });
+    }
     let user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: {

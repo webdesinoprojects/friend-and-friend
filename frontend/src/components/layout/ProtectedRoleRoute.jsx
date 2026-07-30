@@ -9,10 +9,9 @@ export default function ProtectedRoleRoute({ role, children }) {
     window.addEventListener("buddybook:auth-changed", sync);
     return () => window.removeEventListener("buddybook:auth-changed", sync);
   }, []);
-  const token = localStorage.getItem("buddybook_token") || localStorage.getItem("token");
   const user = readUser();
 
-  if (!token || !user) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

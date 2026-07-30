@@ -144,6 +144,8 @@ function HomeProviderCard({
           <img
             src={image}
             alt={provider.name}
+            width="640"
+            height="780"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             loading="lazy"
           />
@@ -183,7 +185,7 @@ function HomeProviderCard({
     </>
   );
 
-  const className = "group block overflow-hidden rounded-2xl bg-white text-black shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md";
+  const className = "group block h-full overflow-hidden rounded-2xl bg-white pb-3 text-black shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md";
 
   return link ? (
     <Link to={link} className={className}>

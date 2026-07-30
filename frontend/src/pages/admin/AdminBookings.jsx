@@ -143,6 +143,5 @@ function formatDateTime(dateValue, timeValue) {
 }
 
 function getAdminHeaders() {
-  const token = localStorage.getItem("buddybook_admin_token") || localStorage.getItem("buddybook_token");
-  return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  return {};
 }

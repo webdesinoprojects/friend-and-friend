@@ -5,20 +5,21 @@ const prisma = require("../config/prisma");
 const { normalizeStoredImage, uploadProviderImage, uploadKycDocument: storeKycDocument } = require("../utils/imagekit");
 const { publicAccountState } = require("../utils/accountLifecycle");
 const generateOtp = require("../utils/generateOtp");
-const generateToken = require("../utils/generateToken");
 const { sendApplicationReceived } = require("../utils/email");
 const { sendMobileOtp: deliverMobileOtp, sendEmailOtp: deliverEmailOtp } = require("../utils/otpDelivery");
-
-function generateApplicationToken(user) {
-  return jwt.sign({ id: user.id, purpose: "application-review" }, process.env.JWT_SECRET, { expiresIn: "30d" });
-}
+const {
+  issueUserSession,
+  issueApplicationSession,
+  clearSessions,
+  sessionToken,
+} = require("../utils/sessionCookies");
 
 function applicationBlockedResponse(res, user) {
+  issueApplicationSession(res, user);
   return res.status(403).json({
     success: false,
     applicationPending: user.kycStatus === "PENDING",
     applicationRejected: user.kycStatus === "REJECTED",
-    applicationToken: generateApplicationToken(user),
     status: user.kycStatus,
     reason: user.rejectionReason || user.kycVerification?.rejectionReason || null,
     message: user.kycStatus === "REJECTED"
@@ -588,12 +589,11 @@ const register = async (req, res) => {
     });
 
     sendApplicationReceived(application).catch((error) => console.error("APPLICATION_EMAIL_ERROR:", error.message));
-    const applicationToken = generateApplicationToken(application);
+    issueApplicationSession(res, application);
 
     return res.status(201).json({
       success: true,
       message: "Registration successful. Your application is now under admin review.",
-      applicationToken,
       user: publicApplication(application),
     });
   } catch (error) {
@@ -722,7 +722,7 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
       return applicationBlockedResponse(res, applicationUser);
     }
 
-    const token = generateToken(user);
+    issueUserSession(res, user);
 
     await prisma.loginAttempt.create({
       data: {
@@ -739,7 +739,6 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
     return res.json({
       success: true,
       message: "Login successful.",
-      token,
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -848,10 +847,10 @@ exports.googleLogin = async (req, res) => {
       },
     });
 
+    issueUserSession(res, user);
     return res.json({
       success: true,
       message: "Google login successful.",
-      token: generateToken(user),
       user: getPublicUser(user),
     });
   } catch (error) {
@@ -940,9 +939,10 @@ exports.updateMe = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
+  clearSessions(res);
   return res.json({
     success: true,
-    message: "Logout successful. Clear token on frontend.",
+    message: "Logout successful.",
   });
 };
 
@@ -1039,7 +1039,7 @@ const loginWithMobileOtp = async (req, res) => {
       },
     });
 
-    const token = generateToken(user);
+    issueUserSession(res, user);
 
     const { referenceSelfie, ...safeUser } = user;
 
@@ -1048,7 +1048,6 @@ const loginWithMobileOtp = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Mobile OTP login successful.",
-      token,
       user: { ...safeUser, ...publicAccountState(user), averageRating },
     });
   } catch (error) {
@@ -1064,7 +1063,7 @@ const loginWithMobileOtp = async (req, res) => {
 
 exports.getApplication = async (req, res) => {
   try {
-    const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const token = sessionToken(req, "application");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== "application-review") throw new Error("Wrong token purpose");
     const application = await prisma.registrationApplication.findUnique({ where: { id: decoded.id } });
@@ -1077,7 +1076,7 @@ exports.getApplication = async (req, res) => {
 
 exports.updateApplication = async (req, res) => {
   try {
-    const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const token = sessionToken(req, "application");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== "application-review") throw new Error("Wrong token purpose");
     const current = await prisma.registrationApplication.findUnique({ where: { id: decoded.id } });
