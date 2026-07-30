@@ -1,0 +1,5 @@
+ALTER TABLE "ChatMessage"
+ADD COLUMN "replyToId" TEXT,
+ADD COLUMN "reactions" JSONB,
+ADD COLUMN "pinnedAt" TIMESTAMP(3),
+ADD COLUMN "pinnedBy" TEXT;

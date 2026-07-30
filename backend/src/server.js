@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
@@ -11,6 +12,7 @@ const bookingRoutes = require("./routes/booking.routes");
 const chatRoutes = require("./routes/chat.routes");
 const reportRoutes = require("./routes/report.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const initializeChatSocket = require("./utils/chatSocket");
 
 const app = express();
 const allowedOrigins = [
@@ -57,7 +59,9 @@ app.use("/api/notifications", notificationRoutes);
 const PORT = process.env.PORT || 5000;
 
 if (process.env.VERCEL !== "1") {
-  app.listen(PORT, () => {
+  const server = http.createServer(app);
+  initializeChatSocket(server, allowedOrigins);
+  server.listen(PORT, () => {
     console.log(`BuddyBOOK backend running on port ${PORT}`);
   });
 }

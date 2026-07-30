@@ -97,7 +97,7 @@ export async function updateMyProviderProfilePhoto(file) {
 }
 
 export async function getProvider(id) {
-  const res = await api.get(`/providers/${id}`, { timeout: 3000 });
+  const res = await api.get(`/providers/${id}`, { timeout: 15000 });
   const provider = normalizeProvider(res.data?.data || res.data?.provider || res.data);
   rememberProvider(provider);
   return provider;

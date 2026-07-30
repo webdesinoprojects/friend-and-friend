@@ -271,6 +271,8 @@ model ChatThread {
   closedReason      String?
   hiddenForUser     Boolean @default(false)
   hiddenForProvider Boolean @default(false)
+  clearedForUserAt     DateTime?
+  clearedForProviderAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -288,6 +290,11 @@ model ChatMessage {
   threadId        String
   senderId        String?
   senderRole      String
+  clientMessageId String?   @unique
+  replyToId       String?
+  reactions       Json?
+  pinnedAt        DateTime?
+  pinnedBy        String?
   type            String    @default("TEXT")
   text            String?
   mediaUrl        String?

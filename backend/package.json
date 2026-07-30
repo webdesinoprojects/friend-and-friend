@@ -21,7 +21,8 @@
     "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
-    "razorpay": "^2.9.8"
+    "razorpay": "^2.9.8",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.0",

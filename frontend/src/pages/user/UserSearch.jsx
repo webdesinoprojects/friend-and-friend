@@ -47,9 +47,30 @@ export default function UserSearch() {
 
   useEffect(() => {
     if (!showFilters || !window.matchMedia("(max-width: 767px)").matches) return undefined;
-    const overflow = document.body.style.overflow;
+    const scrollY = window.scrollY;
+    const bodyStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+      overscrollBehavior: document.body.style.overscrollBehavior,
+    };
+    const htmlOverflow = document.documentElement.style.overflow;
+    const htmlOverscroll = document.documentElement.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = overflow; };
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      Object.assign(document.body.style, bodyStyles);
+      document.documentElement.style.overflow = htmlOverflow;
+      document.documentElement.style.overscrollBehavior = htmlOverscroll;
+      window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
+    };
   }, [showFilters]);
 
   useEffect(() => {
@@ -189,7 +210,7 @@ export default function UserSearch() {
           </div>
 
           {showFilters ? (
-            <div className="fixed inset-x-0 bottom-16 top-16 z-40 overflow-y-auto overscroll-contain border-t border-[#e7edf5] bg-white p-4 md:static md:mt-4 md:overflow-visible md:bg-transparent md:p-0 md:pt-4">
+            <div className="fixed inset-x-0 bottom-16 top-16 z-40 touch-pan-y overflow-y-auto overscroll-contain border-t border-[#e7edf5] bg-white p-4 md:static md:mt-4 md:overflow-visible md:bg-transparent md:p-0 md:pt-4">
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-6">
                 <label className="hidden">
                   <Search

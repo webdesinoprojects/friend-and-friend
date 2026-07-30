@@ -5,6 +5,7 @@ const {
   uploadProviderBase64Image,
 } = require('../utils/imagekit');
 const { isAccountDisabled } = require('../utils/accountLifecycle');
+const REVIEW_REASON = '__BUDDYBOOK_REVIEW__';
 
 async function calculateProviderRating(userId) {
   const reports = await prisma.reviewReport.findMany({
@@ -173,7 +174,7 @@ async function loadProviderRatings(userIds) {
       targetRole: 'PROVIDER',
       reportedUserId: { in: userIds },
       rating: { not: null },
-      reason: '__BUDDYBOOK_REVIEW__',
+      reason: REVIEW_REASON,
       adminAction: null,
     },
     select: { reportedUserId: true, rating: true },
@@ -256,6 +257,41 @@ function buildProfileData(body, { requireImages = false } = {}) {
     providerSafetyAgreement: Boolean(body.providerSafetyAgreement),
     approved: Boolean(body.approved),
   };
+}
+
+async function loadPublicProviderReviews(userId, take = 20) {
+  const rows = await prisma.reviewReport.findMany({
+    where: {
+      targetRole: 'PROVIDER',
+      reportedUserId: userId,
+      rating: { not: null },
+      reason: REVIEW_REASON,
+      adminAction: null,
+    },
+    include: {
+      reporter: { select: { profileImage: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take,
+  });
+
+  return rows.map((row) => {
+    const snapshot = row.reviewSnapshot && typeof row.reviewSnapshot === 'object'
+      ? row.reviewSnapshot
+      : {};
+    return {
+      ...snapshot,
+      id: row.reviewId || row.id,
+      bookingId: row.bookingId,
+      reviewerId: row.reporterId,
+      reviewerName: row.reporterName || snapshot.reviewerName || 'BuddyBOOK user',
+      reviewerImage: row.reporter?.profileImage || snapshot.reviewerImage || '',
+      rating: Number(row.rating || snapshot.rating || 0),
+      description: row.reviewText || snapshot.description || '',
+      service: snapshot.service || 'Public meetup',
+      createdAt: row.createdAt,
+    };
+  });
 }
 
 function buildStats(provider) {
@@ -347,7 +383,19 @@ const getProvider = async (req, res) => {
     if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) {
       return res.status(404).json({ success: false, message: 'Provider profile is not available.' });
     }
-    return res.json({ success: true, data: sanitizeProviderImages(provider) });
+    const [rating, reviews] = await Promise.all([
+      calculateProviderRating(provider.userId),
+      loadPublicProviderReviews(provider.userId),
+    ]);
+    return res.json({
+      success: true,
+      data: {
+        ...sanitizeProviderImages(provider),
+        rating: rating.rating,
+        reviewCount: rating.reviewCount,
+        reviews,
+      },
+    });
   } catch (err) {
     console.error('getProvider error', err);
     return res.status(500).json({ success: false, message: err.message });

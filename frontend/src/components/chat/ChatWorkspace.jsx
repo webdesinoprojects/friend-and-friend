@@ -9,6 +9,8 @@ import {
   Mic,
   MoreVertical,
   Pencil,
+  Pin,
+  Reply,
   Search,
   Send,
   StopCircle,
@@ -18,15 +20,19 @@ import {
 } from "lucide-react";
 import {
   deleteChat,
-  deleteChatMessage,
-  editChatMessage,
+  deleteRealtimeChatMessage,
+  editRealtimeChatMessage,
+  joinRealtimeChat,
+  leaveRealtimeChat,
   listChatMessages,
   listChats,
-  markChatRead,
-  sendChatMessage,
-  signalChat,
-  subscribeChatEvents,
-  updateLiveLocation,
+  readRealtimeChat,
+  sendRealtimeChatMessage,
+  reactRealtimeChatMessage,
+  pinRealtimeChatMessage,
+  signalRealtimeChat,
+  subscribeSocketChatEvents,
+  updateRealtimeLocation,
   uploadVoiceMessage,
 } from "../../api/chats";
 import { confirmAction, notify } from "../common/Feedback";
@@ -90,9 +96,12 @@ export default function ChatWorkspace({ role }) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
   const [sendingLocation, setSendingLocation] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const [reactionOpenId, setReactionOpenId] = useState("");
   const [peerTyping, setPeerTyping] = useState(false);
   const [peerOnline, setPeerOnline] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -110,6 +119,7 @@ export default function ChatWorkspace({ role }) {
   const liveMessageRef = useRef(null);
   const liveLastUpdateRef = useRef(0);
   const typingTimerRef = useRef(null);
+  const typingLastSentRef = useRef(0);
 
   const active = useMemo(() => chats.find((chat) => chat.id === activeId) || null, [chats, activeId]);
   const currentChatId = active?.id || "";
@@ -156,12 +166,11 @@ export default function ChatWorkspace({ role }) {
   }, [refreshChats]);
 
   useEffect(() => {
-    let stopped = false;
-    let controller;
-    let reconnectTimer;
     const handleEvent = (event, payload) => {
       if (event === "connected" || event === "ready") {
         setStreamOnline(true);
+        refreshChats({ quiet: true });
+        if (currentChatId) joinRealtimeChat(currentChatId).catch(() => {});
         return;
       }
       if (event === "cleared") {
@@ -175,12 +184,16 @@ export default function ChatWorkspace({ role }) {
         setChats((rows) => rows.map((chat) => {
           if (!(chat.threadIds || [chat.id]).includes(payload.threadId)) return chat;
           found = true;
-          return { ...chat, messages: mergeMessages(chat.messages || [], [payload.message]), updatedAt: payload.message.createdAt };
+          return {
+            ...chat,
+            messages: mergeMessages((chat.messages || []).filter((message) => !payload.message?.clientMessageId || message.id !== payload.message.clientMessageId), [payload.message]),
+            updatedAt: payload.message.createdAt,
+          };
         }));
         if (!found) refreshChats({ quiet: true });
         return;
       }
-      if (["edit", "delete", "location"].includes(event)) {
+      if (["edit", "delete", "location", "reaction", "pin"].includes(event)) {
         setChats((rows) => rows.map((chat) => ({
           ...chat,
           messages: (chat.messages || []).map((message) => message.id === payload.message?.id ? payload.message : message),
@@ -206,22 +219,8 @@ export default function ChatWorkspace({ role }) {
         setPeerOnline(Boolean(payload.active ?? payload.online));
       }
     };
-    const connect = async () => {
-      controller = new AbortController();
-      try {
-        await subscribeChatEvents(handleEvent, { signal: controller.signal });
-      } catch {
-        if (!controller.signal.aborted) setStreamOnline(false);
-      }
-      if (!stopped) reconnectTimer = window.setTimeout(connect, 2500);
-    };
-    connect();
-    return () => {
-      stopped = true;
-      controller?.abort();
-      window.clearTimeout(reconnectTimer);
-    };
-  }, [activeThreadKey, myId, refreshChats]);
+    return subscribeSocketChatEvents(handleEvent, (connected) => setStreamOnline(connected));
+  }, [activeThreadKey, currentChatId, myId, refreshChats]);
 
   useEffect(() => {
     if (!currentChatId) return;
@@ -230,11 +229,13 @@ export default function ChatWorkspace({ role }) {
       setPeerTyping(false);
       setChats((rows) => rows.map((chat) => chat.id === currentChatId ? { ...chat, unreadCount: 0 } : chat));
     }, 0);
-    markChatRead(currentChatId).catch(() => {});
-    signalChat(currentChatId, "presence", true).catch(() => {});
+    joinRealtimeChat(currentChatId).then((result) => setPeerOnline(Boolean(result?.peerOnline))).catch(() => {});
+    readRealtimeChat(currentChatId).catch(() => {});
+    signalRealtimeChat(currentChatId, "presence", true).catch(() => {});
     return () => {
       window.clearTimeout(stateTimer);
-      signalChat(currentChatId, "presence", false).catch(() => {});
+      signalRealtimeChat(currentChatId, "presence", false).catch(() => {});
+      leaveRealtimeChat(currentChatId).catch(() => {});
     };
   }, [currentChatId, initialPeerOnline]);
 
@@ -283,12 +284,13 @@ export default function ChatWorkspace({ role }) {
       text: optimisticText ?? payload.text,
       mediaUrl: payload.mediaUrl || null,
       durationSeconds: payload.durationSeconds || null,
+      replyToId: payload.replyToId || null,
       createdAt: new Date().toISOString(),
       pending: true,
     };
     setChats((rows) => rows.map((chat) => chat.id === chatId ? { ...chat, messages: [...(chat.messages || []), optimistic] } : chat));
     try {
-      const saved = await sendChatMessage(chatId, payload);
+      const saved = await sendRealtimeChatMessage(chatId, { ...payload, clientMessageId: optimisticId });
       patchMessage(chatId, optimisticId, saved);
       return saved;
     } catch (error) {
@@ -307,9 +309,11 @@ export default function ChatWorkspace({ role }) {
     const value = text.trim();
     if (!value || value.length > MAX_TEXT_LENGTH) return;
     setText("");
+    const replyingTo = replyTo;
+    setReplyTo(null);
     setEmojiOpen(false);
-    await signalChat(active.id, "typing", false).catch(() => {});
-    await sendPayload({ type: "TEXT", text: value });
+    signalRealtimeChat(active.id, "typing", false).catch(() => {});
+    await sendPayload({ type: "TEXT", text: value, replyToId: replyingTo?.id || null });
   };
 
   const retryMessage = async (message) => {
@@ -323,9 +327,13 @@ export default function ChatWorkspace({ role }) {
   const onTextChange = (value) => {
     setText(value.slice(0, MAX_TEXT_LENGTH));
     if (!active) return;
-    signalChat(active.id, "typing", Boolean(value.trim())).catch(() => {});
+    const now = Date.now();
+    if (!value.trim() || now - typingLastSentRef.current >= 600) {
+      typingLastSentRef.current = now;
+      signalRealtimeChat(active.id, "typing", Boolean(value.trim())).catch(() => {});
+    }
     window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => signalChat(active.id, "typing", false).catch(() => {}), 1500);
+    typingTimerRef.current = window.setTimeout(() => signalRealtimeChat(active.id, "typing", false).catch(() => {}), 1500);
   };
 
   const position = () => new Promise((resolve, reject) => {
@@ -350,7 +358,7 @@ export default function ChatWorkspace({ role }) {
           if (!liveMessageRef.current || now - liveLastUpdateRef.current < 5000) return;
           liveLastUpdateRef.current = now;
           const coords = { latitude: next.coords.latitude, longitude: next.coords.longitude };
-          updateLiveLocation(liveMessageRef.current.threadId, liveMessageRef.current.id, coords)
+          updateRealtimeLocation(liveMessageRef.current.threadId, liveMessageRef.current.id, coords)
             .then((updated) => {
               liveMessageRef.current = updated;
               setChats((rows) => rows.map((chat) => ({
@@ -459,7 +467,7 @@ export default function ChatWorkspace({ role }) {
     const value = editing?.text?.trim();
     if (!value || !editing?.message) return;
     try {
-      const updated = await editChatMessage(editing.message.threadId, editing.message.id, value);
+      const updated = await editRealtimeChatMessage(editing.message.threadId, editing.message.id, value);
       setChats((rows) => rows.map((chat) => ({ ...chat, messages: (chat.messages || []).map((message) => message.id === updated.id ? updated : message) })));
       setEditing(null);
     } catch (error) {
@@ -470,21 +478,42 @@ export default function ChatWorkspace({ role }) {
   const removeMessage = async (message) => {
     if (!await confirmAction({ title: "Delete message?", message: "It will show as deleted for both people.", confirmLabel: "Delete", danger: true })) return;
     try {
-      const updated = await deleteChatMessage(message.threadId, message.id);
+      const updated = await deleteRealtimeChatMessage(message.threadId, message.id);
       setChats((rows) => rows.map((chat) => ({ ...chat, messages: (chat.messages || []).map((row) => row.id === updated.id ? updated : row) })));
     } catch (error) {
       notify(errorMessage(error, "Could not delete this message."), "error");
     }
   };
 
+  const reactToMessage = async (message, emoji) => {
+    setReactionOpenId("");
+    setPinnedOpen(false);
+    try {
+      const updated = await reactRealtimeChatMessage(message.threadId, message.id, emoji);
+      setChats((rows) => rows.map((chat) => ({ ...chat, messages: (chat.messages || []).map((row) => row.id === updated.id ? updated : row) })));
+    } catch (error) {
+      notify(errorMessage(error, "Could not update reaction."), "error");
+    }
+  };
+
+  const pinMessage = async (message) => {
+    try {
+      const updated = await pinRealtimeChatMessage(message.threadId, message.id);
+      setChats((rows) => rows.map((chat) => ({ ...chat, messages: (chat.messages || []).map((row) => row.id === updated.id ? updated : row) })));
+      notify(updated.pinnedAt ? "Message pinned." : "Message unpinned.", "success");
+    } catch (error) {
+      notify(errorMessage(error, "Could not update pinned message."), "error");
+    }
+  };
+
   const hideChat = async () => {
-    if (!active || !await confirmAction({ title: "Delete messages?", message: "Every message in this conversation will be permanently deleted from the database for both people. The empty conversation will remain in the chat list.", confirmLabel: "Delete messages", danger: true })) return;
+    if (!active || !await confirmAction({ title: "Delete messages?", message: "This conversation history will be removed only from your account. The other person will keep their messages, and this conversation will remain in your chat list.", confirmLabel: "Delete messages", danger: true })) return;
     try {
       await deleteChat(active.id);
       setChats((rows) => rows.map((chat) => chat.id === active.id ? { ...chat, messages: [], unreadCount: 0 } : chat));
       setMobileOpen(false);
     } catch (error) {
-      notify(errorMessage(error, "Could not hide this conversation."), "error");
+      notify(errorMessage(error, "Could not delete your conversation history."), "error");
     }
   };
 
@@ -495,6 +524,8 @@ export default function ChatWorkspace({ role }) {
     setMenuOpen(false);
     setEmojiOpen(false);
     setLocationOpen(false);
+    setReplyTo(null);
+    setReactionOpenId("");
   };
 
   const peerName = active ? (role === "PROVIDER" ? active.userName : active.providerName) : "";
@@ -536,12 +567,13 @@ export default function ChatWorkspace({ role }) {
             <header className="flex items-center gap-3 border-b border-black/10 bg-white px-4 py-3 sm:px-5">
               <button onClick={() => setMobileOpen(false)} className="md:hidden" aria-label="Back to conversations"><ArrowLeft /></button>
               <Avatar name={peerName} image={peerImage} small />
-              <div className="min-w-0 flex-1"><h2 className="truncate font-black">{peerName}</h2><p className={`text-xs font-bold ${peerTyping ? "text-[#df843f]" : "text-black/45"}`}>{active.peerUnavailable ? "Temporarily unavailable" : peerTyping ? "typing…" : peerOnline ? "Online" : active.service || "Conversation"}</p></div>
+              <div className="min-w-0 flex-1"><h2 className="truncate font-black">{peerName}</h2><p className={`text-xs font-bold ${peerTyping ? "text-[#df843f]" : "text-black/45"}`}>{active.peerUnavailable ? "Temporarily unavailable" : peerTyping ? "typing…" : peerOnline ? "Online" : "Offline"}</p></div>
               {liveSharing && <button onClick={stopLiveLocation} className="rounded-full bg-rose-50 px-3 py-2 text-xs font-black text-rose-600">Stop live</button>}
-              <div className="relative"><button onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 hover:bg-black/5" aria-label="Conversation menu"><MoreVertical /></button>{menuOpen && <div className="absolute right-0 top-11 z-30 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={hideChat} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete messages</button></div>}</div>
+              <div className="relative"><button onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 hover:bg-black/5" aria-label="Conversation menu"><MoreVertical /></button>{menuOpen && <div className="absolute right-0 top-11 z-30 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={() => { setPinnedOpen((open) => !open); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black hover:bg-black/5"><Pin size={16}/> Pinned messages</button><button onClick={hideChat} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete messages</button></div>}</div>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+              {pinnedOpen ? <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-wider text-amber-800">Pinned messages</p><button onClick={() => setPinnedOpen(false)}><X size={15}/></button></div><div className="mt-2 grid gap-1">{(active.messages || []).filter((message) => message.pinnedAt && !message.deletedAt).map((message) => <button type="button" key={message.id} onClick={() => document.getElementById(`message-${message.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="truncate rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-black/60">{message.text || message.type}</button>)}{!(active.messages || []).some((message) => message.pinnedAt && !message.deletedAt) ? <p className="py-2 text-xs font-semibold text-amber-800/60">No pinned messages in the loaded history.</p> : null}</div></div> : null}
               {active.hasMore && <div className="mb-5 text-center"><button disabled={loadingOlder} onClick={loadOlder} className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-black disabled:opacity-50">{loadingOlder ? "Loading…" : "Load older messages"}</button></div>}
               {!active.messages?.length && <div className="grid h-full place-items-center text-center"><div><MessageCircle className="mx-auto text-black/20" size={40} /><p className="mt-3 font-black">Say hello to {peerName}</p><p className="mt-1 text-sm font-semibold text-black/40">Messages are saved securely to your account.</p></div></div>}
               {(active.messages || []).map((message, index) => {
@@ -549,7 +581,8 @@ export default function ChatWorkspace({ role }) {
                 const previous = active.messages[index - 1];
                 const showDate = !previous || new Date(previous.createdAt).toDateString() !== new Date(message.createdAt).toDateString();
                 const canEdit = mine && message.type === "TEXT" && !message.deletedAt && clock - new Date(message.createdAt).getTime() <= 120000;
-                return <div key={message.id}>{showDate && <div className="my-5 text-center"><span className="rounded-full bg-black/5 px-3 py-1 text-[10px] font-black text-black/45">{dateLabel(message.createdAt)}</span></div>}<MessageBubble message={message} mine={mine} canEdit={canEdit} onEdit={() => setEditing({ message, text: message.text })} onDelete={() => removeMessage(message)} onRetry={() => retryMessage(message)} /></div>;
+                const repliedMessage = message.replyToId ? active.messages.find((row) => row.id === message.replyToId) : null;
+                return <div key={message.id} id={`message-${message.id}`}>{showDate && <div className="my-5 text-center"><span className="rounded-full bg-black/5 px-3 py-1 text-[10px] font-black text-black/45">{dateLabel(message.createdAt)}</span></div>}<MessageBubble message={message} repliedMessage={repliedMessage} mine={mine} canEdit={canEdit} reactionOpen={reactionOpenId === message.id} onToggleReactions={() => setReactionOpenId((current) => current === message.id ? "" : message.id)} onReact={(emoji) => reactToMessage(message, emoji)} onReply={() => setReplyTo(message)} onPin={() => pinMessage(message)} onEdit={() => setEditing({ message, text: message.text })} onDelete={() => removeMessage(message)} onRetry={() => retryMessage(message)} /></div>;
               })}
               <div ref={bottomRef} />
             </div>
@@ -557,6 +590,7 @@ export default function ChatWorkspace({ role }) {
             <footer className="border-t border-black/10 bg-white p-3 sm:p-4">
               {active.closed || active.peerUnavailable ? <div className="rounded-2xl bg-black/5 p-3 text-center text-sm font-bold text-black/50">{active.peerUnavailable ? "This account is temporarily unavailable. Messaging will return when the account is active." : `This booking chat is closed${active.closedReason ? `: ${active.closedReason}` : "."}`}</div> : <>
                 {editing && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-amber-50 p-3"><Pencil size={16} className="text-amber-700" /><input autoFocus value={editing.text} onChange={(event) => setEditing({ ...editing, text: event.target.value.slice(0, MAX_TEXT_LENGTH) })} onKeyDown={(event) => event.key === "Enter" && saveEdit()} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none" /><button onClick={saveEdit} className="font-black text-emerald-700">Save</button><button onClick={() => setEditing(null)}><X size={17} /></button></div>}
+                {replyTo && <div className="mb-3 flex items-center gap-2 rounded-2xl bg-orange-50 p-3"><Reply size={16} className="text-[#df843f]"/><div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase text-[#b7662d]">Replying to message</p><p className="truncate text-xs font-semibold text-black/55">{replyTo.text || replyTo.type}</p></div><button onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X size={17}/></button></div>}
                 {recording && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-rose-50 p-3"><span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" /><strong className="flex-1 text-sm text-rose-700">Recording {recordingSeconds}s / {MAX_VOICE_SECONDS}s</strong><button onClick={stopRecording} className="flex items-center gap-1 rounded-full bg-rose-600 px-3 py-2 text-xs font-black text-white"><StopCircle size={15} /> Stop</button></div>}
                 {voiceDraft && <div className="mb-3 flex items-center gap-3 rounded-2xl bg-orange-50 p-3"><audio controls src={voiceDraft.url} className="h-9 min-w-0 flex-1" /><button disabled={voiceSending} onClick={sendVoice} className="rounded-full bg-black p-2 text-white disabled:opacity-50">{voiceSending ? <LoaderCircle className="animate-spin" size={17} /> : <Send size={17} />}</button><button disabled={voiceSending} onClick={discardVoice}><Trash2 size={17} className="text-rose-600" /></button></div>}
                 <div className="flex items-end gap-2">
@@ -580,20 +614,24 @@ function Avatar({ name, image, small = false }) {
   return <span className={`${size} grid shrink-0 place-items-center overflow-hidden rounded-full bg-[#f2d8c2] font-black text-[#9a5124]`}>{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : name ? name.trim().charAt(0).toUpperCase() : <User size={18} />}</span>;
 }
 
-function MessageBubble({ message, mine, canEdit, onEdit, onDelete, onRetry }) {
+function MessageBubble({ message, repliedMessage, mine, canEdit, reactionOpen, onToggleReactions, onReact, onReply, onPin, onEdit, onDelete, onRetry }) {
   if (message.system) return <div className="my-3 text-center"><span className="inline-block max-w-xl rounded-full bg-black/5 px-4 py-2 text-xs font-bold text-black/50">{message.text}</span></div>;
   const deleted = message.type === "DELETED" || message.deletedAt;
+  const reactions = Object.entries(message.reactions || {}).filter(([, ids]) => Array.isArray(ids) && ids.length);
   return <div className={`group mb-2 flex ${mine ? "justify-end" : "justify-start"}`}>
     <div className={`max-w-[85%] sm:max-w-[72%] ${mine ? "items-end" : "items-start"}`}>
       <div className={`rounded-2xl px-4 py-3 shadow-sm ${deleted ? "border border-dashed border-black/15 bg-white text-black/40" : mine ? "rounded-br-md bg-black text-white" : "rounded-bl-md bg-white text-black"}`}>
+        {message.pinnedAt && !deleted ? <p className={`mb-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider ${mine ? "text-amber-300" : "text-amber-700"}`}><Pin size={10} fill="currentColor"/>Pinned</p> : null}
+        {message.replyToId && !deleted ? <div className={`mb-2 rounded-lg border-l-2 px-2 py-1.5 text-xs ${mine ? "border-[#df843f] bg-white/10 text-white/65" : "border-[#df843f] bg-black/5 text-black/50"}`}><p className="truncate font-bold">{repliedMessage?.text || (repliedMessage ? repliedMessage.type : "Original message")}</p></div> : null}
         {deleted ? <p className="text-sm italic">This message was deleted.</p> : null}
         {!deleted && message.type === "TEXT" ? <p className="whitespace-pre-wrap break-words text-sm font-semibold leading-6">{message.text}</p> : null}
         {!deleted && message.type === "VOICE" ? <audio controls preload="metadata" src={message.mediaUrl} className="h-10 max-w-full" /> : null}
         {!deleted && ["LOCATION", "LIVE_LOCATION"].includes(message.type) ? <a href={message.mediaUrl} target="_blank" rel="noreferrer" className="flex min-w-48 items-center gap-3"><span className={`grid h-10 w-10 place-items-center rounded-full ${mine ? "bg-white/15" : "bg-orange-50 text-[#df843f]"}`}><MapPin size={19} /></span><span><strong className="block text-sm">{message.type === "LIVE_LOCATION" ? "Live location" : "Shared location"}</strong><small className={mine ? "text-white/60" : "text-black/45"}>Open in map</small></span></a> : null}
         <div className={`mt-1 flex items-center justify-end gap-1 text-[9px] font-bold ${mine && !deleted ? "text-white/45" : "text-black/35"}`}><span>{message.editedAt && !deleted ? "edited · " : ""}{timeLabel(message.createdAt)}</span>{mine && !message.failed ? message.pending ? <LoaderCircle className="animate-spin" size={11} /> : message.readAt ? <CheckCheck size={13} /> : <Check size={12} /> : null}</div>
       </div>
+      {reactions.length ? <div className={`mt-1 flex flex-wrap gap-1 ${mine ? "justify-end" : "justify-start"}`}>{reactions.map(([emoji, ids]) => <button type="button" key={emoji} onClick={() => onReact(emoji)} className="rounded-full border border-black/10 bg-white px-2 py-0.5 text-xs shadow-sm">{emoji} <span className="font-black text-black/45">{ids.length}</span></button>)}</div> : null}
       {message.failed ? <button onClick={onRetry} className="mt-1 text-xs font-black text-rose-600">Not sent · Retry</button> : null}
-      {mine && !deleted && !message.pending && !message.failed ? <div className="mt-1 flex justify-end gap-1 opacity-0 transition group-hover:opacity-100">{canEdit && <button onClick={onEdit} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="Edit message"><Pencil size={13} /></button>}<button onClick={onDelete} className="rounded-full p-1.5 text-rose-500 hover:bg-white" aria-label="Delete message"><Trash2 size={13} /></button></div> : null}
+      {!deleted && !message.pending && !message.failed ? <div className={`relative mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100 ${mine ? "justify-end" : "justify-start"}`}><button onClick={onReply} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="Reply"><Reply size={13}/></button><button onClick={onToggleReactions} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="React">☺</button><button onClick={onPin} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label={message.pinnedAt ? "Unpin message" : "Pin message"}><Pin size={13}/></button>{mine && canEdit && <button onClick={onEdit} className="rounded-full p-1.5 text-black/45 hover:bg-white" aria-label="Edit message"><Pencil size={13} /></button>}{mine && <button onClick={onDelete} className="rounded-full p-1.5 text-rose-500 hover:bg-white" aria-label="Delete message"><Trash2 size={13} /></button>}{reactionOpen ? <div className={`absolute bottom-8 z-20 flex gap-1 rounded-full border border-black/10 bg-white p-1.5 shadow-xl ${mine ? "right-0" : "left-0"}`}>{["👍","❤️","😂","😮","😢","🙏"].map((emoji) => <button type="button" key={emoji} onClick={() => onReact(emoji)} className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-black/5">{emoji}</button>)}</div> : null}</div> : null}
     </div>
   </div>;
 }

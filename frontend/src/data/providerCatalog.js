@@ -111,11 +111,17 @@ export function normalizeProvider(raw, index = 0) {
     activities: activities.length ? activities : ["Public Meetup"],
     price,
     rating: Number(profile.rating || raw?.rating || raw?.averageRating || 0),
-    reviews: Number(profile.reviewCount || raw?.reviewCount || 0),
+    reviews: Number(profile.reviewCount || raw?.reviewCount || (Array.isArray(raw?.reviews) ? raw.reviews.length : 0)),
+    reviewItems: Array.isArray(raw?.reviews)
+      ? raw.reviews
+      : Array.isArray(profile.reviewItems)
+        ? profile.reviewItems
+        : [],
     totalBookings: Number(raw?.totalBookings || profile.totalBookings || raw?.bookingCount || profile.completedBookings || raw?.completedBookings || 0),
     totalSpending: Number(raw?.totalSpending || profile.totalSpending || raw?.amountSpent || profile.amountSpent || raw?.totalEarning || profile.totalEarning || 0),
     age,
     available: profile.available ?? profile.isAvailable ?? raw?.available ?? true,
+    publicMeetups: Boolean(profile.providerSafetyAgreement ?? raw?.providerSafetyAgreement),
     languages: profile.languages || raw?.languages || "",
     availabilityDays: profile.availabilityDays || raw?.availabilityDays || "",
     education: profile.education || raw?.education || "",

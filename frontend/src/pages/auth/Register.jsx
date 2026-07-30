@@ -551,10 +551,9 @@ export default function Register() {
           !form.profession ||
           !form.education ||
           !form.height ||
-          !form.hobbies ||
-          !form.providerSafetyAgreement
+          !form.hobbies
         ) {
-          notify("Please complete provider details and safety agreement.");
+          notify("Please complete provider details.");
           return false;
         }
       }
@@ -638,7 +637,7 @@ export default function Register() {
           hobbies: form.hobbies,
           bio: profileAnswersText,
           profileQuestions: activeAnswers,
-          providerSafetyAgreement: form.providerSafetyAgreement,
+          providerSafetyAgreement: true,
         },
       };
 
@@ -1215,7 +1214,7 @@ export default function Register() {
 
                   {form.role ? <div className="mt-5 rounded-none border border-black/10 bg-[#fbfaf7] p-5">
                     <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.ageConfirmed} onChange={(event) => updateField("ageConfirmed", event.target.checked)} className="mt-1"/><span className="text-sm font-semibold">I confirm that I am 18 years of age or older.</span></label>
-                    <label className="mt-4 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.safetyAccepted} onChange={(event) => updateField("safetyAccepted", event.target.checked)} className="mt-1"/><span className="text-sm font-semibold">I have read and agree to the BuddyBOOK <Link to="/safety" target="_blank" className="font-black underline">Safety page</Link>.</span></label>
+                    <label className="mt-4 flex cursor-pointer items-start gap-3"><input type="checkbox" checked={form.safetyAccepted} onChange={(event) => updateField("safetyAccepted", event.target.checked)} className="mt-1"/><span className="text-sm font-semibold">I agree to BuddyBOOK safety rules, public meetup policy, in-app chat policy and admin review guidelines.  <Link to="/safety" target="_blank" className="text-blue-500 underline">Safety page</Link>.</span></label>
                   </div> : null}
 
                   {form.role === "USER" && (
@@ -1270,21 +1269,6 @@ export default function Register() {
                           <Input label="Hobbies" value={form.hobbies} onChange={(v) => updateField("hobbies", v)} placeholder="Movies, cafes" />
                         </div>
 
-                        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-none border border-black/10 bg-white p-5">
-                          <input
-                            type="checkbox"
-                            checked={form.providerSafetyAgreement}
-                            onChange={(e) =>
-                              updateField("providerSafetyAgreement", e.target.checked)
-                            }
-                            className="mt-1"
-                          />
-
-                          <span className="text-sm font-semibold leading-6 text-black/65">
-                            I agree to BuddyBOOK safety rules, public meetup policy,
-                            in-app chat policy and admin review guidelines.
-                          </span>
-                        </label>
                       </div>
 
                       <QuestionSection

@@ -1,4 +1,118 @@
 import api from "./api";
+import { io } from "socket.io-client";
+
+let chatSocket = null;
+let socketToken = "";
+
+function socketBaseUrl() {
+  const base = String(api.defaults.baseURL || "/api");
+  if (/^https?:\/\//i.test(base)) return base.replace(/\/api\/?$/, "");
+  return window.location.origin;
+}
+
+function getChatSocket() {
+  const token = localStorage.getItem("buddybook_token") || localStorage.getItem("token") || "";
+  if (chatSocket && socketToken === token) return chatSocket;
+  chatSocket?.disconnect();
+  socketToken = token;
+  chatSocket = io(socketBaseUrl(), {
+    auth: { token },
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 400,
+    reconnectionDelayMax: 3000,
+    timeout: 8000,
+  });
+  return chatSocket;
+}
+
+function emitWithAck(event, payload, timeout = 8000) {
+  const socket = getChatSocket();
+  return new Promise((resolve, reject) => {
+    if (!socket.connected) socket.connect();
+    socket.timeout(timeout).emit(event, payload, (error, response) => {
+      if (error) return reject(new Error("Real-time chat did not respond. Please retry."));
+      if (!response?.ok) return reject(new Error(response?.message || "Chat action failed."));
+      return resolve(response.data);
+    });
+  });
+}
+
+export function subscribeSocketChatEvents(onEvent, onStatus) {
+  const socket = getChatSocket();
+  const events = {
+    "chat:ready": "connected",
+    "chat:message": "chat",
+    "chat:edited": "edit",
+    "chat:deleted": "delete",
+    "chat:cleared": "cleared",
+    "chat:read-update": "read",
+    "chat:typing": "typing",
+    "chat:presence": "presence",
+    "chat:location-update": "location",
+    "chat:reaction-update": "reaction",
+    "chat:pin-update": "pin",
+  };
+  const listeners = Object.entries(events).map(([socketEvent, localEvent]) => {
+    const listener = (payload) => onEvent(localEvent, payload || {});
+    socket.on(socketEvent, listener);
+    return [socketEvent, listener];
+  });
+  const connected = () => onStatus?.(true);
+  const disconnected = () => onStatus?.(false);
+  const connectError = (error) => onStatus?.(false, error);
+  socket.on("connect", connected);
+  socket.on("disconnect", disconnected);
+  socket.on("connect_error", connectError);
+  if (socket.connected) connected(); else socket.connect();
+  return () => {
+    listeners.forEach(([event, listener]) => socket.off(event, listener));
+    socket.off("connect", connected);
+    socket.off("disconnect", disconnected);
+    socket.off("connect_error", connectError);
+  };
+}
+
+export function joinRealtimeChat(threadId) {
+  return emitWithAck("chat:join", { threadId });
+}
+
+export function leaveRealtimeChat(threadId) {
+  return emitWithAck("chat:leave", { threadId }, 3000);
+}
+
+export function sendRealtimeChatMessage(threadId, payload) {
+  return emitWithAck("chat:send", { threadId, ...payload });
+}
+
+export function editRealtimeChatMessage(threadId, messageId, text) {
+  return emitWithAck("chat:edit", { threadId, messageId, text });
+}
+
+export function deleteRealtimeChatMessage(threadId, messageId) {
+  return emitWithAck("chat:delete", { threadId, messageId });
+}
+
+export function readRealtimeChat(threadId) {
+  return emitWithAck("chat:read", { threadId });
+}
+
+export function signalRealtimeChat(threadId, type, active = true) {
+  return emitWithAck(type === "presence" ? "chat:presence" : "chat:typing", { threadId, active }, 3000);
+}
+
+export function updateRealtimeLocation(threadId, messageId, coordinates) {
+  return emitWithAck("chat:location-update", { threadId, messageId, ...coordinates });
+}
+
+export function reactRealtimeChatMessage(threadId, messageId, emoji) {
+  return emitWithAck("chat:react", { threadId, messageId, emoji });
+}
+
+export function pinRealtimeChatMessage(threadId, messageId) {
+  return emitWithAck("chat:pin", { threadId, messageId });
+}
 
 function unwrap(response) {
   return response?.data?.data ?? response?.data;

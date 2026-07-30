@@ -1397,7 +1397,7 @@ function PublicServiceExploreSection({
               <div ref={providerRailRef} className="provider-mobile-rail mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-5 lg:hidden">
                 {mobileProviders.map((provider, index) => (
                   <div key={provider.id} className="w-[82vw] max-w-[290px] shrink-0 snap-center [transform:perspective(900px)_rotateY(-2deg)] sm:w-auto sm:max-w-none sm:transform-none">
-                    <SmallIndianProviderCard provider={provider} index={index} content={content} />
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activity} />
                   </div>
                 ))}
               </div>
@@ -1408,7 +1408,7 @@ function PublicServiceExploreSection({
                     className="provider-page-card"
                     style={{ animationDelay: `${index * 65}ms` }}
                   >
-                    <SmallIndianProviderCard provider={provider} index={index} content={content} />
+                    <SmallIndianProviderCard provider={provider} index={index} content={content} selectedActivities={filters.activity} />
                   </div>
                 ))}
               </div>
@@ -1631,14 +1631,14 @@ function pickRandomProfiles(rows, limit) {
   return shuffled.slice(0, limit);
 }
 
-function SmallIndianProviderCard({ provider, index, content = {} }) {
+function SmallIndianProviderCard({ provider, index, content = {}, selectedActivities }) {
   const activity = provider.activities?.[0] || "Sports";
   const image = provider.image || provider.images?.[0] || "";
   const sold = 59 + index * 17;
   const booked = (index % 4) + 2;
 
   return (
-    <Link to={`/providers/${provider.id}`} className="group block text-black">
+    <Link to={buildProviderProfileLink(provider.id, selectedActivities)} className="group block text-black">
       <article className="rounded-2xl bg-white">
         <div className="relative aspect-[0.88] overflow-hidden rounded-2xl bg-[#eeeeee]">
           {image ? (
@@ -1791,7 +1791,7 @@ function PublicProviderDrawer({
                 <ProviderCard
                   key={provider.id}
                   provider={provider}
-                  link={`/providers/${provider.id}`}
+                  link={buildProviderProfileLink(provider.id, filters.activity)}
                 />
               ))}
             </div>
@@ -1841,6 +1841,17 @@ function uniqueValues(values) {
 
 function sameText(left, right) {
   return String(left || "").trim().toLocaleLowerCase() === String(right || "").trim().toLocaleLowerCase();
+}
+
+function buildProviderProfileLink(providerId, selectedActivities) {
+  const activities = (Array.isArray(selectedActivities) ? selectedActivities : [selectedActivities])
+    .flatMap((value) => String(value || "").split(","))
+    .map((value) => value.trim())
+    .filter((value) => value && value !== "All");
+  const query = new URLSearchParams();
+  activities.forEach((activity) => query.append("activities", activity));
+  const suffix = query.toString();
+  return `/providers/${providerId}${suffix ? `?${suffix}` : ""}`;
 }
 
 function parseContentList(value, fallback) {
