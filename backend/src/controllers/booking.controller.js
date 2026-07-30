@@ -340,6 +340,93 @@ exports.listMyBookings = async (req, res) => {
   }
 };
 
+exports.getBookedUserProfile = async (req, res) => {
+  try {
+    const userId = String(req.params.userId || "");
+    const viewingOwnProfile = req.user.role === "USER" && userId === req.user.id;
+    if (!viewingOwnProfile && req.user.role !== "PROVIDER") {
+      return res.status(403).json({ success: false, message: "You cannot view this user profile." });
+    }
+    const bookings = await prisma.booking.findMany({
+      where: viewingOwnProfile ? { userId } : { userId, providerUserId: req.user.id },
+      orderBy: { createdAt: "desc" },
+      include: bookingInclude,
+    });
+    if (!viewingOwnProfile && !bookings.length) {
+      return res.status(404).json({ success: false, message: "This user profile is available only for your booked users." });
+    }
+    const user = await prisma.user.findFirst({
+      where: { id: userId, role: "USER", isBlocked: false },
+      include: { userProfile: true },
+    });
+    if (!user || isAccountDisabled(user)) {
+      return res.status(404).json({ success: false, message: "This user profile is unavailable." });
+    }
+    const reviews = await prisma.reviewReport.findMany({
+      where: { reportedUserId: user.id, targetRole: "USER", reason: "__BUDDYBOOK_REVIEW__", adminAction: null },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    const birthDate = user.dob ? new Date(user.dob) : null;
+    let age = null;
+    if (birthDate && !Number.isNaN(birthDate.getTime())) {
+      const today = new Date();
+      age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+      const beforeBirthday = today.getUTCMonth() < birthDate.getUTCMonth()
+        || (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() < birthDate.getUTCDate());
+      if (beforeBirthday) age -= 1;
+    }
+    const completed = bookings.filter((booking) => String(booking.status).toUpperCase() === "COMPLETED").length;
+    const averageRating = reviews.length
+      ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length
+      : null;
+    return res.json({
+      success: true,
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        profileImage: user.profileImage || "",
+        age: Number.isFinite(age) && age >= 18 ? age : null,
+        gender: user.gender || "",
+        city: user.city || "",
+        state: user.state || "",
+        joinedAt: user.createdAt,
+        verified: {
+          identity: user.kycStatus === "VERIFIED",
+          face: user.faceStatus === "VERIFIED",
+          phone: user.mobileVerified,
+          email: user.emailVerified,
+        },
+        profile: {
+          bio: user.userProfile?.bio || "",
+          interests: user.userProfile?.interests || "",
+          preferredActivities: user.userProfile?.preferredActivities || user.userProfile?.activityPreferences || "",
+          preferredLanguage: user.userProfile?.preferredLanguage || "",
+          profileQuestions: user.userProfile?.profileQuestions || [],
+        },
+        stats: {
+          bookingsTogether: bookings.length,
+          completedTogether: completed,
+          averageRating: averageRating ? Number(averageRating.toFixed(1)) : null,
+          reviewCount: reviews.length,
+        },
+        bookings: bookings.map((booking) => serializeBooking(booking, req.user.id)),
+        reviews: reviews.map((review) => ({
+          id: review.reviewId || review.id,
+          reviewerName: review.reporterName || "BuddyBOOK provider",
+          rating: review.rating,
+          description: review.reviewText || "",
+          service: review.reviewSnapshot?.service || "",
+          createdAt: review.createdAt,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("GET_BOOKED_USER_PROFILE_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Could not load this user profile." });
+  }
+};
+
 exports.cancelBooking = async (req, res) => {
   try {
     const { reason, category } = req.body;

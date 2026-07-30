@@ -53,6 +53,11 @@ export function listBookings(params = {}, options = {}) {
   );
 }
 
+export async function getBookedUserProfile(userId) {
+  const { data } = await api.get(`/bookings/users/${userId || "me"}/profile`, { timeout: 30000 });
+  return data?.data || data;
+}
+
 export async function cancelBookingApi(bookingId, reason, category) {
   const { data } = await api.post(`/bookings/${bookingId}/cancel`, { reason, category });
   invalidateQueries(BOOKINGS_CACHE_PREFIX);

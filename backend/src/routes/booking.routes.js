@@ -7,6 +7,11 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", bookingController.listMyBookings);
+router.get("/users/me/profile", (req, res) => {
+  req.params.userId = req.user.id;
+  return bookingController.getBookedUserProfile(req, res);
+});
+router.get("/users/:userId/profile", bookingController.getBookedUserProfile);
 router.post("/razorpay/order", bookingController.createRazorpayOrder);
 router.post("/razorpay/verify", bookingController.verifyRazorpayPayment);
 router.post("/request", bookingController.createBookingRequest);

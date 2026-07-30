@@ -87,6 +87,7 @@ export default function AppRoutes() {
         <Route path="reviews" element={<UserReviews />} />
         <Route path="reports" element={<MyReports type="user" />} />
         <Route path="profile" element={<UserProfile />} />
+        <Route path="profile-view" element={<ProviderUserProfile self />} />
         <Route path="settings" element={<UserSettings />} />
       </Route>
       <Route

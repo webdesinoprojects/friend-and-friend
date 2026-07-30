@@ -241,10 +241,13 @@ export function ProviderBookings() {
                     <article key={booking.id} className="min-w-0 self-start border border-slate-200 bg-white p-4 shadow-[0_10px_32px_rgba(15,23,42,0.07)] transition hover:border-slate-300">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          {booking.userImage || userImages[booking.userId] ? <img src={booking.userImage || userImages[booking.userId]} alt={booking.userName || "User"} className="h-11 w-11 shrink-0 border border-slate-200 object-cover" /> : <div className="grid h-11 w-11 shrink-0 place-items-center bg-slate-100 text-lg font-black text-slate-700">{(booking.userName || "U").charAt(0).toUpperCase()}</div>}
+                          <a href={`/app/provider/users/${booking.userId}`} aria-label={`View ${booking.userName || "user"} profile`} className="shrink-0 transition hover:scale-105">
+                            {booking.userImage || userImages[booking.userId] ? <img src={booking.userImage || userImages[booking.userId]} alt={booking.userName || "User"} className="h-11 w-11 border border-slate-200 object-cover" /> : <div className="grid h-11 w-11 place-items-center bg-slate-100 text-lg font-black text-slate-700">{(booking.userName || "U").charAt(0).toUpperCase()}</div>}
+                          </a>
                           <div className="min-w-0">
                             <h3 className="truncate text-base font-black text-black">{booking.service || booking.activity || "Buddy meetup"}</h3>
-                            <p className="truncate text-sm font-bold text-slate-500">with {booking.userName || booking.customerName || "BuddyBOOK user"}</p>
+                            <p className="truncate text-sm font-bold text-slate-500">with <a href={`/app/provider/users/${booking.userId}`} className="text-slate-700 underline decoration-[#e08c4c]/50 underline-offset-2 hover:text-[#b8652d]">{booking.userName || booking.customerName || "BuddyBOOK user"}</a></p>
+                            <a href={`/app/provider/users/${booking.userId}`} className="mt-1 inline-block text-[10px] font-black uppercase tracking-[0.12em] text-blue-600 hover:text-blue-800">View profile →</a>
                           </div>
                         </div>
                         <Status value={status} />

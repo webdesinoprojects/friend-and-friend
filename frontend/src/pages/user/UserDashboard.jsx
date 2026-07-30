@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Siren,
   Star,
+  UserRound,
   Users,
   Wallet,
 } from "lucide-react";
@@ -133,6 +134,7 @@ export default function UserDashboard() {
           <UserMetricStrip
             totalSpent={totalSpent}
             savedProviders={readStorage("buddybook_watchlist", []).length}
+            user={user}
           />
           <Statistics total={total} completed={completed} pending={pending} />
 
@@ -290,14 +292,14 @@ function WelcomeBanner({ user }) {
 
 // ProviderCard is now shared in components/users/ProviderCard.jsx
 
-function UserMetricStrip({ totalSpent, savedProviders }) {
+function UserMetricStrip({ totalSpent, savedProviders, user }) {
   const cards = [
     [Wallet, formatRs(totalSpent), "Total Spending", "View details", "/app/user/wallet", "bg-[#fff1e6] text-[#d67f3d]"],
     [Heart, savedProviders, "Saved Providers", "View all", "/app/user/watchlist", "bg-[#fff1e6] text-[#d84e58]"],
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:gap-5">
+    <div className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3">
       {cards.map(([Icon, value, label, action, to, tone]) => (
         <article key={label} className="flex min-h-[104px] flex-col rounded-none border border-black/10 bg-white p-4 shadow-sm md:min-h-[150px] md:p-6">
           <div className="flex min-w-0 items-center gap-3 md:gap-4">
@@ -313,6 +315,30 @@ function UserMetricStrip({ totalSpent, savedProviders }) {
           <Link to={to} className="ml-auto mt-auto block pt-3 text-right text-xs font-black text-[#e08c4c] md:text-sm">{action}</Link>
         </article>
       ))}
+      <Link
+        to="/app/user/profile-view"
+        className="group relative col-span-2 min-h-[150px] overflow-hidden border border-[#9e96ff]/35 bg-gradient-to-br from-[#171b30] via-[#25284c] to-[#665ec7] p-5 text-white shadow-[0_18px_45px_rgba(76,70,160,.24)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(76,70,160,.38)] xl:col-span-1"
+      >
+        <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full border border-white/15 transition duration-700 group-hover:scale-125" />
+        <span className="pointer-events-none absolute -right-2 top-6 h-16 w-16 animate-pulse rounded-full bg-[#9e96ff]/25 blur-xl" />
+        <div className="relative flex h-full items-center gap-4">
+          <div className="relative shrink-0">
+            <span className="absolute -inset-2 rounded-full border border-[#aaa4ff]/45 transition duration-700 group-hover:rotate-180 group-hover:scale-110" />
+            <span className="absolute -inset-2 animate-ping rounded-full border border-[#aaa4ff]/20" />
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt={user.fullName || "Your profile"} className="relative h-16 w-16 rounded-full border-2 border-white object-cover shadow-xl" />
+            ) : (
+              <span className="relative grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-white/10 shadow-xl backdrop-blur"><UserRound size={27}/></span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#bcb7ff]">Your identity</p>
+            <h2 className="mt-1 truncate text-xl font-black">{user?.fullName || "Your Profile"}</h2>
+            <p className="mt-1 text-xs font-semibold text-white/55">See how providers view you</p>
+            <span className="mt-4 inline-flex items-center gap-2 text-xs font-black text-[#c8c4ff] transition group-hover:gap-3 group-hover:text-white">View profile <span aria-hidden>→</span></span>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
