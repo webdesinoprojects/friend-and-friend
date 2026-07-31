@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import { formatRs } from "../../utils/format";
 
 export default function AdminProviders() {
@@ -12,8 +13,7 @@ export default function AdminProviders() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get("/admin/providers", getAdminHeaders())
+    getAdminPage("/admin/providers", getAdminHeaders())
       .then(({ data }) => {
         if (mounted) setProviders(data?.data || []);
       })

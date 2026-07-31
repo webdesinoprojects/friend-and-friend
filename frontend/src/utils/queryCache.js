@@ -2,6 +2,7 @@ const queryCache = new Map();
 const SESSION_CACHE_PREFIX = "buddybook_page_cache_v1:";
 const SESSION_CACHE_MAX_AGE = 5 * 60 * 1000;
 const PERSISTED_QUERY_PREFIXES = [
+  "admin:",
   "bookings:",
   "chats:",
   "notifications:",
@@ -90,7 +91,11 @@ function isPersistedQuery(key) {
 function readCurrentUserId() {
   if (typeof localStorage === "undefined") return "";
   try {
-    const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    const user = JSON.parse(
+      localStorage.getItem("buddybook_auth_user") ||
+      localStorage.getItem("buddybook_admin_user") ||
+      "null"
+    );
     return String(user?.id || user?._id || "");
   } catch {
     return "";

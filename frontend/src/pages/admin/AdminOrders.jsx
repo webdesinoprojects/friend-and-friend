@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
 import { formatDate, formatMoney } from "./adminData";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 
 export default function AdminOrders() {
   const [query, setQuery] = useState("");
@@ -11,7 +12,7 @@ export default function AdminOrders() {
   const [error, setError] = useState("");
   const loadOrders = useCallback(() => {
     setLoading(true); setError("");
-    api.get("/admin/bookings").then(({ data }) => setOrders((data?.data || []).map(toOrder))).catch(() => setError("Orders could not be loaded from the server.")).finally(() => setLoading(false));
+    getAdminPage("/admin/bookings").then(({ data }) => setOrders((data?.data || []).map(toOrder))).catch(() => setError("Orders could not be loaded from the server.")).finally(() => setLoading(false));
   }, []);
   useEffect(() => { loadOrders(); }, [loadOrders]);
   const visible = useMemo(() => {

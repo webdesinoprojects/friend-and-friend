@@ -1,12 +1,12 @@
 import { RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import AdminShell from "../../components/layout/AdminShell";
 import { AdminHeader, LoadError, LoadingRows, OrderTable, toOrder } from "./AdminOrders";
 
 export default function AdminReturns() {
   const [rows, setRows] = useState([]); const [loading,setLoading]=useState(true); const [error,setError]=useState("");
-  const load=useCallback(()=>{setLoading(true);setError("");api.get("/admin/bookings").then(({data})=>setRows((data?.data||[]).map(toOrder).filter((order)=>["RETURNED","RETURN_REQUESTED","REFUNDED","REFUND_REQUESTED","REPLACED","CANCELLED"].includes(order.status)||order.paymentStatus==="REFUNDED"))).catch(()=>setError("Returns and refunds could not be loaded.")).finally(()=>setLoading(false));},[]);
+  const load=useCallback(()=>{setLoading(true);setError("");getAdminPage("/admin/bookings").then(({data})=>setRows((data?.data||[]).map(toOrder).filter((order)=>["RETURNED","RETURN_REQUESTED","REFUNDED","REFUND_REQUESTED","REPLACED","CANCELLED"].includes(order.status)||order.paymentStatus==="REFUNDED"))).catch(()=>setError("Returns and refunds could not be loaded.")).finally(()=>setLoading(false));},[]);
   useEffect(()=>{load();},[load]);
 
   return (

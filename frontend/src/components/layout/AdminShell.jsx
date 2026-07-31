@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
+import { fetchQuery, getQueryData } from "../../utils/queryCache";
+
+const notificationsQueryKey = "admin:notifications";
 
 const navItems = [
   { label: "Overview", to: "/admin/dashboard", icon: Home },
@@ -37,11 +40,15 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
     }
   }, []);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => getQueryData(notificationsQueryKey, []));
 
   useEffect(() => {
-    api.get("/admin/notifications", getAdminHeaders())
-      .then(({ data }) => setNotifications(data?.data || []))
+    fetchQuery(
+      notificationsQueryKey,
+      () => api.get("/admin/notifications", getAdminHeaders()).then(({ data }) => data?.data || []),
+      { staleTime: 60_000 }
+    )
+      .then(setNotifications)
       .catch(() => setNotifications([]));
   }, []);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
-import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
@@ -8,8 +8,7 @@ export default function AdminPayments() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get("/admin/payments", getAdminHeaders())
+    getAdminPage("/admin/payments", getAdminHeaders())
       .then(({ data }) => {
         if (mounted) setPayments(data?.data || []);
       })

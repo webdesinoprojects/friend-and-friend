@@ -103,6 +103,7 @@ const identityOptions = [
   "Genderfluid", "Agender", "Bigender", "Genderqueer", "Gender non-conforming",
   "Trans man", "Trans woman", "Intersex",
 ];
+const strongPasswordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export default function Register() {
   const navigate = useNavigate();
@@ -124,6 +125,8 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [mobileError, setMobileError] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [userQuestionAnswers, setUserQuestionAnswers] = useState(emptyQuestions);
@@ -268,6 +271,7 @@ export default function Register() {
 
   const sendMobileOtp = async () => {
     try {
+      setMobileError("");
       if (!/^\d{10}$/.test(form.phone)) {
         notify("Enter a valid 10-digit mobile number first.");
         return;
@@ -286,12 +290,15 @@ export default function Register() {
       );
     } catch (error) {
       console.error("SEND_MOBILE_OTP_FRONTEND_ERROR:", error);
-      notify(error.response?.data?.message || "Failed to send mobile OTP");
+      const message = error.response?.data?.message || "Failed to send mobile OTP";
+      setMobileError(message);
+      notify(message);
     }
   };
 
   const verifyMobileOtp = async () => {
     try {
+      setMobileError("");
       if (!form.phone || !form.mobileOtp) {
         notify("Enter phone and OTP first");
         return;
@@ -306,12 +313,15 @@ export default function Register() {
       notify(res.data.message || "Mobile verified successfully");
     } catch (error) {
       console.error("VERIFY_MOBILE_OTP_FRONTEND_ERROR:", error);
-      notify(error.response?.data?.message || "Mobile OTP verification failed");
+      const message = error.response?.data?.message || "Mobile OTP verification failed";
+      setMobileError(message);
+      notify(message);
     }
   };
 
   const sendEmailOtp = async () => {
     try {
+      setEmailError("");
       if (!form.email) {
         notify("Enter your email address first. Email verification is required.");
         return;
@@ -330,12 +340,15 @@ export default function Register() {
       );
     } catch (error) {
       console.error("SEND_EMAIL_OTP_FRONTEND_ERROR:", error);
-      notify(error.response?.data?.message || "Failed to send email OTP");
+      const message = error.response?.data?.message || "Failed to send email OTP";
+      setEmailError(message);
+      notify(message);
     }
   };
 
   const verifyEmailOtp = async () => {
     try {
+      setEmailError("");
       if (!form.email || !form.emailOtp) {
         notify("Enter email and OTP first");
         return;
@@ -350,7 +363,9 @@ export default function Register() {
       notify(res.data.message || "Email verified successfully");
     } catch (error) {
       console.error("VERIFY_EMAIL_OTP_FRONTEND_ERROR:", error);
-      notify(error.response?.data?.message || "Email OTP verification failed");
+      const message = error.response?.data?.message || "Email OTP verification failed";
+      setEmailError(message);
+      notify(message);
     }
   };
 
@@ -483,8 +498,8 @@ export default function Register() {
         return false;
       }
 
-      if (!editingApplication && (!form.password || form.password.length < 6)) {
-        notify("Please create a password with at least 6 characters.");
+      if (!editingApplication && !strongPasswordPattern.test(form.password)) {
+        notify("Password must be at least 8 characters and include one capital letter, one number and one special character.");
         return false;
       }
 
@@ -858,7 +873,7 @@ export default function Register() {
                       type="password"
                       value={form.password}
                       onChange={(v) => updateField("password", v)}
-                      placeholder="Minimum 6 characters"
+                      placeholder="8+ characters, capital, number & sign"
                     />
 
                     <Input
@@ -868,6 +883,11 @@ export default function Register() {
                       onChange={(v) => updateField("confirmPassword", v)}
                       placeholder="Re-enter password"
                     />
+                    {!editingApplication ? (
+                      <p className="sm:col-span-2 -mt-1 text-xs font-semibold text-black/55">
+                        Use at least 8 characters with one capital letter, one number and one special character.
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="mt-5 rounded-none border border-black/10 bg-[#fffaf3] p-4">
@@ -913,6 +933,7 @@ export default function Register() {
                         value={form.phone}
                         onChange={(v) => {
                           updateField("phone", v.replace(/\D/g, "").slice(0, 10));
+                          setMobileError("");
                           setMobileVerified(false);
                           setMobileOtpSent(false);
                         }}
@@ -920,6 +941,7 @@ export default function Register() {
                         maxLength={10}
                         inputMode="numeric"
                       />
+                      {mobileError ? <p role="alert" className="mt-2 text-sm font-bold text-rose-600">{mobileError}</p> : null}
 
                       <div className="mt-4 flex flex-wrap gap-3">
                         <button
@@ -964,9 +986,15 @@ export default function Register() {
                         label="Email"
                         type="email"
                         value={form.email}
-                        onChange={(v) => updateField("email", v)}
+                        onChange={(v) => {
+                          updateField("email", v);
+                          setEmailError("");
+                          setEmailVerified(false);
+                          setEmailOtpSent(false);
+                        }}
                         placeholder="you@example.com"
                       />
+                      {emailError ? <p role="alert" className="mt-2 text-sm font-bold text-rose-600">{emailError}</p> : null}
 
                       {!emailVerified ? (
                         <div className="mt-4 flex flex-wrap gap-3">

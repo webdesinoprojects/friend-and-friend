@@ -1,5 +1,5 @@
 import axios from "axios";
-import { clearQueryCache } from "../utils/queryCache";
+import { clearQueryCache, invalidateQueries } from "../utils/queryCache";
 
 const localApiUrl = typeof window === "undefined"
   ? "http://127.0.0.1:5000/api"
@@ -42,6 +42,11 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => {
     if (String(response?.config?.url || "") === "/auth/logout") clearQueryCache();
+    const responseUrl = String(response?.config?.url || "");
+    const responseMethod = String(response?.config?.method || "get").toLowerCase();
+    if (responseUrl.startsWith("/admin") && !["get", "head", "options"].includes(responseMethod)) {
+      invalidateQueries("admin:");
+    }
     const nextCsrfToken = response.headers?.["x-csrf-token"];
     if (nextCsrfToken) csrfTokenInMemory = nextCsrfToken;
     return response;

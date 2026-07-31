@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, Globe, Lock, Save, Server, ShieldAlert } from "lucide-react";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import AdminShell from "../../components/layout/AdminShell";
 
 const defaultSettings = {
@@ -31,8 +32,7 @@ export default function AdminSettings() {
       setAdmin({});
     }
 
-    api
-      .get("/admin/content", getAdminHeaders())
+    getAdminPage("/admin/content", getAdminHeaders())
       .then(({ data }) => {
         if (!mounted) return;
         const fetched = data?.data || data?.content || {};

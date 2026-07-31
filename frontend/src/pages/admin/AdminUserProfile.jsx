@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import { formatRs } from "../../utils/format";
 
 export default function AdminUserProfile() {
@@ -23,8 +24,7 @@ export default function AdminUserProfile() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get(`/admin/users/${userId}`, getAdminHeaders())
+    getAdminPage(`/admin/users/${userId}`, getAdminHeaders())
       .then(({ data }) => {
         if (mounted) setUser(data?.data || null);
       })

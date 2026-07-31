@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, FileText, Search, ShieldCheck, UserRound, X, XCircle } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import { EmptyState, SkeletonRows, confirmAction, notify } from "../../components/common/Feedback";
 
 const headers = () => ({});
@@ -13,7 +14,7 @@ export default function AdminKyc() {
   const [reason, setReason] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("ALL");
-  const load = useCallback(() => { setLoading(true); api.get("/admin/kyc", headers()).then(({ data }) => setRows(data?.data || [])).catch(() => notify("KYC records could not be loaded.", "error")).finally(() => setLoading(false)); }, []);
+  const load = useCallback(() => { setLoading(true); getAdminPage("/admin/kyc", headers()).then(({ data }) => setRows(data?.data || [])).catch(() => notify("KYC records could not be loaded.", "error")).finally(() => setLoading(false)); }, []);
   useEffect(load, [load]);
 
   const visible = useMemo(() => rows.filter((row) => {

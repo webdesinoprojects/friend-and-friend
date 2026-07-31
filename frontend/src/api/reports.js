@@ -1,4 +1,5 @@
 import api from "./api";
+import { getAdminPage } from "./admin";
 import {
   fetchQuery,
   getQueryData,
@@ -57,7 +58,7 @@ export function listMyReviews(options = {}) {
 }
 
 export async function listAdminReports() {
-  const { data } = await api.get("/admin/reports");
+  const { data } = await getAdminPage("/admin/reports");
   return Array.isArray(data?.data) ? data.data : [];
 }
 

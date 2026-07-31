@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Eye, X } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import { formatRs } from "../../utils/format";
 
 export default function AdminUsers() {
@@ -14,8 +15,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get("/admin/users", getAdminHeaders())
+    getAdminPage("/admin/users", getAdminHeaders())
       .then(({ data }) => {
         if (mounted) setUsers(data?.data || []);
       })

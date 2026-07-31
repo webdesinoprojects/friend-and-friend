@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
 import { formatRs } from "../../utils/format";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 
 export default function AdminBookings() {
   const [activeTab, setActiveTab] = useState("bookings");
@@ -12,8 +13,8 @@ export default function AdminBookings() {
   useEffect(() => {
     let mounted = true;
     Promise.all([
-      api.get("/admin/bookings", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
-      api.get("/admin/logins", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
+      getAdminPage("/admin/bookings", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
+      getAdminPage("/admin/logins", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
     ])
       .then(([bookingRes, loginRes]) => {
         if (!mounted) return;

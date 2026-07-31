@@ -15,6 +15,9 @@ import {
 import api from "../../api/api";
 import AdminShell from "../../components/layout/AdminShell";
 import { formatRupees } from "../../utils/format";
+import { fetchQuery, getQueryData } from "../../utils/queryCache";
+
+const summaryQueryKey = "admin:summary";
 
 const fallbackSummary = {
   metrics: {
@@ -25,15 +28,21 @@ const fallbackSummary = {
 };
 
 export default function AdminDashboard() {
-  const [summary, setSummary] = useState(fallbackSummary);
-  const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
+  const cachedSummary = getQueryData(summaryQueryKey);
+  const [summary, setSummary] = useState(() => cachedSummary || fallbackSummary);
+  const [loading,setLoading]=useState(!cachedSummary); const [error,setError]=useState(""); const [reload,setReload]=useState(0);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true); setError("");
-    api.get("/admin/summary").then(({ data }) => {
+    const hasCachedSummary = Boolean(getQueryData(summaryQueryKey));
+    setLoading(!hasCachedSummary); setError("");
+    fetchQuery(
+      summaryQueryKey,
+      () => api.get("/admin/summary").then(({ data }) => data?.data || fallbackSummary),
+      { staleTime: 60_000, force: reload > 0 }
+    ).then((data) => {
       if (!mounted) return;
-      setSummary({ ...fallbackSummary, ...(data?.data || {}) });
+      setSummary({ ...fallbackSummary, ...data });
     }).catch(() => {if(mounted)setError("Admin overview could not be loaded.");}).finally(()=>{if(mounted)setLoading(false);});
 
     return () => {

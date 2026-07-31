@@ -92,6 +92,19 @@ function normalizeProfileImage(image) {
   return normalized?.url || null;
 }
 
+async function registrationIdentityExists({ phone, email }) {
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
+  const identities = [
+    phone ? { phone } : null,
+    normalizedEmail ? { email: normalizedEmail } : null,
+  ].filter(Boolean);
+  const [user, application] = await Promise.all([
+    prisma.user.findFirst({ where: { OR: identities }, select: { id: true } }),
+    prisma.registrationApplication.findFirst({ where: { OR: identities }, select: { id: true } }),
+  ]);
+  return Boolean(user || application);
+}
+
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 function getPublicUser(user) {
@@ -148,6 +161,9 @@ exports.sendMobileOtp = async (req, res) => {
         message: "Enter a valid 10-digit mobile number.",
       });
     }
+    if (await registrationIdentityExists({ phone })) {
+      return res.status(409).json({ success: false, message: "This mobile number is already registered." });
+    }
 
     const otp = generateOtp();
 
@@ -193,6 +209,9 @@ exports.verifyMobileOtp = async (req, res) => {
         success: false,
         message: "Phone and OTP are required.",
       });
+    }
+    if (await registrationIdentityExists({ phone })) {
+      return res.status(409).json({ success: false, message: "This mobile number is already registered." });
     }
 
     const otpRecord = await prisma.otpToken.findFirst({
@@ -242,13 +261,16 @@ exports.verifyMobileOtp = async (req, res) => {
 
 exports.sendEmailOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
 
     if (!email) {
       return res.status(400).json({
         success: false,
         message: "Email is required.",
       });
+    }
+    if (await registrationIdentityExists({ email })) {
+      return res.status(409).json({ success: false, message: "This email address is already registered." });
     }
 
     const otp = generateOtp();
@@ -291,13 +313,17 @@ exports.sendEmailOtp = async (req, res) => {
 
 exports.verifyEmailOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
 
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
         message: "Email and OTP are required.",
       });
+    }
+    if (await registrationIdentityExists({ email })) {
+      return res.status(409).json({ success: false, message: "This email address is already registered." });
     }
 
     const otpRecord = await prisma.otpToken.findFirst({
@@ -458,10 +484,10 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Mobile number must contain exactly 10 digits." });
     }
 
-    if (!password || String(password).length < 6) {
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(String(password || ""))) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters.",
+        message: "Password must be at least 8 characters and include one capital letter, one number and one special character.",
       });
     }
 

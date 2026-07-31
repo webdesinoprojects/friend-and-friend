@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlignLeft, ArrowDown, ArrowUp, Image, ListFilter, PanelLeft, Quote, Save, Type } from "lucide-react";
 import api from "../../api/api";
+import { getAdminPage } from "../../api/admin";
 import AdminShell from "../../components/layout/AdminShell";
 import ImageField from "../../components/admin/ImageField";
 
@@ -109,8 +110,7 @@ export default function AdminContent() {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get("/admin/content", getAdminHeaders())
+    getAdminPage("/admin/content", getAdminHeaders())
       .then(({ data }) => {
         if (mounted) setContent(data?.data || data?.content || data || {});
       })

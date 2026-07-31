@@ -191,11 +191,12 @@ const getAdminSummary = async (req, res) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const thirtyDaysAgo = new Date(today); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
     const eightWeeksAgo = new Date(today); eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 55);
-    const [totalUsers, userCount, providerCount, verifiedProviders, pendingKyc, activeBookings, revenueAgg, bookings, recentReports] = await Promise.all([
+    const [totalUsers, userCount, providerCount, verifiedProviders, pendingProviders, pendingKyc, activeBookings, revenueAgg, bookings, recentReports, latestProviders] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: "USER" } }),
       prisma.user.count({ where: { role: "PROVIDER" } }),
       prisma.providerProfile.count({ where: { approved: true } }),
+      prisma.providerProfile.count({ where: { approved: false } }),
       prisma.user.count({
         where: {
           OR: [{ kycStatus: { not: "VERIFIED" } }, { faceStatus: { not: "VERIFIED" } }],
@@ -203,21 +204,28 @@ const getAdminSummary = async (req, res) => {
       }),
       prisma.booking.count({ where: { status: { in: ["CONFIRMED", "PAID", "ACCEPTED"] } } }),
       prisma.booking.aggregate({ _sum: { amount: true }, where: { paymentStatus: "PAID", createdAt: { gte: today } } }),
-      prisma.booking.findMany({ where: { createdAt: { gte: eightWeeksAgo } }, include: { user: true, provider: { include: { user: true } } }, orderBy: { createdAt: "desc" } }),
+      prisma.booking.findMany({
+        where: { createdAt: { gte: eightWeeksAgo } },
+        select: {
+          id: true, createdAt: true, paymentStatus: true, amount: true, service: true, status: true,
+          user: { select: { fullName: true } },
+          provider: { select: { user: { select: { fullName: true } } } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
       prisma.reviewReport.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+      prisma.providerProfile.findMany({
+        where: { approved: true },
+        select: {
+          id: true,
+          headline: true,
+          profession: true,
+          user: { select: { fullName: true, profileImage: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 4,
+      }),
     ]);
-
-    const latestProviders = await prisma.providerProfile.findMany({
-      where: { approved: true },
-      select: {
-        id: true,
-        headline: true,
-        profession: true,
-        user: { select: { fullName: true, profileImage: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 4,
-    });
 
     const bookingGrowth = Array.from({ length: 30 }, (_, index) => { const date = new Date(thirtyDaysAgo); date.setDate(date.getDate() + index); const key = date.toISOString().slice(0, 10); return { label: date.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), value: bookings.filter((booking) => booking.createdAt.toISOString().slice(0, 10) === key).length }; });
     const revenueByWeek = Array.from({ length: 8 }, (_, index) => { const start = new Date(eightWeeksAgo); start.setDate(start.getDate() + index * 7); const end = new Date(start); end.setDate(end.getDate() + 7); return { label: start.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), value: bookings.filter((booking) => booking.paymentStatus === "PAID" && booking.createdAt >= start && booking.createdAt < end).reduce((sum, booking) => sum + Number(booking.amount || 0), 0) }; });
@@ -243,7 +251,7 @@ const getAdminSummary = async (req, res) => {
         latestProviders,
         pendingApprovals: [
           { label: "KYC Verifications", count: pendingKyc },
-          { label: "Provider Applications", count: await prisma.providerProfile.count({ where: { approved: false } }) },
+          { label: "Provider Applications", count: pendingProviders },
           { label: "Content Reports", count: recentReports.filter((report) => report.status === "OPEN").length },
           { label: "Payout Requests", count: 0 },
         ],

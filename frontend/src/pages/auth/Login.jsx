@@ -276,13 +276,14 @@ export default function Login() {
 
               {/* GOOGLE LOGIN */}
               <div className="mt-7 overflow-hidden rounded-none border border-black/10 bg-white p-2">
-                <div className="login-google [&>div]:w-full [&>div]:max-w-full">
+                <div className="login-google flex w-full justify-center [&>div]:mx-auto [&>div]:max-w-full">
                   <GoogleLogin
                     onSuccess={handleGoogleLogin}
                     onError={() => alert("Google login was cancelled or failed.")}
                     text="continue_with"
                     shape="rectangular"
-                    width="400"
+                    width="100%"
+                    logo_alignment="center"
                   />
                 </div>
               </div>
