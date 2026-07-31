@@ -5,9 +5,12 @@ const localApiUrl = typeof window === "undefined"
   ? "http://127.0.0.1:5000/api"
   : `${window.location.protocol}//${window.location.hostname}:5000/api`;
 
+// In production, keep API requests on the frontend origin. Vercel proxies /api
+// to the backend, which keeps the HttpOnly session cookie first-party instead
+// of relying on cross-site cookies between two different vercel.app hosts.
 const apiBaseUrl = import.meta.env.DEV
   ? import.meta.env.VITE_LOCAL_API_URL || localApiUrl
-  : import.meta.env.VITE_API_URL || "/api";
+  : "/api";
 
 const api = axios.create({
   baseURL: apiBaseUrl,

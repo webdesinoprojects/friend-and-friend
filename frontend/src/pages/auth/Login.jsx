@@ -276,13 +276,13 @@ export default function Login() {
 
               {/* GOOGLE LOGIN */}
               <div className="mt-7 overflow-hidden rounded-none border border-black/10 bg-white p-2">
-                <div className="login-google flex w-full justify-center [&>div]:mx-auto [&>div]:max-w-full">
+                <div className="login-google flex w-full items-center justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleLogin}
                     onError={() => alert("Google login was cancelled or failed.")}
                     text="continue_with"
                     shape="rectangular"
-                    width="100%"
+                    width="320"
                     logo_alignment="center"
                   />
                 </div>
@@ -477,7 +477,7 @@ export default function Login() {
         </section>
       </main>
 
-      <style>{`.login-google > div{width:100% !important;max-width:100% !important}`}</style>
+      <style>{`.login-google>div{display:flex!important;width:320px!important;max-width:100%!important;justify-content:center!important;margin-inline:auto!important}.login-google iframe{display:block!important;margin-inline:auto!important}`}</style>
     </div>
   );
 }

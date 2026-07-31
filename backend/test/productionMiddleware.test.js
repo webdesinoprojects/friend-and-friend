@@ -70,7 +70,7 @@ test("user sessions are HttpOnly and CSRF cookies remain script-readable", () =>
   const csrf = cookies.find((cookie) => cookie.name === CSRF_COOKIE);
   assert.equal(session.options.httpOnly, true);
   assert.equal(session.options.secure, true);
-  assert.equal(session.options.sameSite, "none");
+  assert.equal(session.options.sameSite, "lax");
   assert.equal(csrf.options.httpOnly, false);
   if (previousSecret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = previousSecret;
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousNodeEnv;

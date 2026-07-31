@@ -14,7 +14,7 @@ function cookieOptions({ httpOnly = true, maxAge, path = "/" } = {}) {
   const configuredSameSite = String(process.env.COOKIE_SAME_SITE || "").toLowerCase();
   const sameSite = ["lax", "strict", "none"].includes(configuredSameSite)
     ? configuredSameSite
-    : isProduction() ? "none" : "lax";
+    : "lax";
   return {
     httpOnly,
     secure: isProduction(),
