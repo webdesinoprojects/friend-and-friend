@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   BriefcaseBusiness,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -312,15 +313,38 @@ function ActivityCard({ activity, featured }) {
 
 function BioPanel({ provider }) {
   const rows = buildBioRows(provider);
+  const [openQuestion, setOpenQuestion] = useState("");
   return (
     <section className="rounded-2xl border border-[#eadfca] bg-[#fffaf1] p-4">
       <h3 className="text-xl font-black">Bio</h3>
       <p className="mt-1 text-xs font-bold text-[#17213a]/45">Profile questions and answers.</p>
       <div className="mt-3 divide-y divide-[#17213a]/8">
-        {rows.map((row) => (
-          <div key={row.question} className="flex min-w-0 items-center justify-between gap-5 py-2.5">
-            <strong className="shrink-0 text-sm text-[#17213a]">{row.question}</strong>
-            <span title={row.answer} className="truncate text-right text-sm font-semibold text-[#17213a]/45">{row.answer}</span>
+        {rows.map((row) => row.collapsible ? (
+          <div key={row.question} className="py-1">
+            <button
+              type="button"
+              aria-expanded={openQuestion === row.question}
+              onClick={() => setOpenQuestion((current) => current === row.question ? "" : row.question)}
+              className="flex w-full min-w-0 items-center justify-between gap-3 py-2.5 text-left"
+            >
+              <strong className="min-w-0 flex-1 break-words text-sm leading-5 text-[#17213a]">{row.question}</strong>
+              <ChevronDown
+                size={18}
+                className={`shrink-0 text-[#17213a]/55 transition-transform duration-300 ${openQuestion === row.question ? "rotate-180" : ""}`}
+              />
+            </button>
+            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+              openQuestion === row.question ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}>
+              <div className="min-h-0 overflow-hidden">
+                <p className="break-words pb-3 pr-8 text-sm font-semibold leading-6 text-[#17213a]/65">{row.answer}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div key={row.question} className="flex min-w-0 items-start justify-between gap-4 py-2.5">
+            <strong className="min-w-0 break-words text-sm text-[#17213a]">{row.question}</strong>
+            <span className="min-w-0 break-words text-right text-sm font-semibold text-[#17213a]/45">{row.answer}</span>
           </div>
         ))}
       </div>
@@ -340,6 +364,7 @@ function buildBioRows(provider) {
     rows.push({
       question: rawQuestion.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
       answer: String(item.answer).trim(),
+      collapsible: true,
     });
   });
 

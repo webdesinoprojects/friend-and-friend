@@ -29,7 +29,6 @@ import {
 } from "../pages/provider/ProviderWorkspacePages";
 
 /* PUBLIC */
-const Home = lazy(() => import("../pages/public/Home"));
 const Activities = lazy(() => import("../pages/public/Activities"));
 const HowItWorks = lazy(() => import("../pages/public/HowItWorks"));
 const Safety = lazy(() => import("../pages/public/Safety"));
@@ -40,7 +39,7 @@ const PublicProviderProfile = lazy(() => import("../pages/public/PublicProviderP
 const NotFound = lazy(() => import("../pages/public/NotFound"));
 
 /* AUTH */
-const Login=lazy(()=>import("../pages/auth/Login")); const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
+const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
 const ApplicationReview=lazy(()=>import("../pages/auth/ApplicationReview"));
 
 /* ADMIN */
@@ -49,6 +48,9 @@ const AdminKyc = lazy(() => import("../pages/admin/AdminKyc"));
 const AdminOrders=lazy(()=>import("../pages/admin/AdminOrders")); const AdminReturns=lazy(()=>import("../pages/admin/AdminReturns")); const AdminContent=lazy(()=>import("../pages/admin/AdminContent")); const AdminUsers=lazy(()=>import("../pages/admin/AdminUsers")); const AdminUserProfile=lazy(()=>import("../pages/admin/AdminUserProfile")); const AdminProviders=lazy(()=>import("../pages/admin/AdminProviders")); const AdminBookings=lazy(()=>import("../pages/admin/AdminBookings")); const AdminPayments=lazy(()=>import("../pages/admin/AdminPayments")); const AdminSettings=lazy(()=>import("../pages/admin/AdminSettings")); const AdminReports=lazy(()=>import("../pages/admin/AdminReports"));
 import ProtectedAdminRoute from "../components/layout/ProtectedAdminRoute";
 import ProtectedRoleRoute from "../components/layout/ProtectedRoleRoute";
+import Login from "../pages/auth/Login";
+import Home from "../pages/public/Home";
+import OpeningSplash from "../components/common/OpeningSplash";
 
 export default function AppRoutes() {
   const userOnly = (element) => <ProtectedRoleRoute role="USER">{element}</ProtectedRoleRoute>;
@@ -57,7 +59,7 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#fffaf3] p-8 pt-28"><SkeletonRows count={7} /></div>}><Routes>
       {/* PUBLIC ROUTES */}
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<OpeningSplash><Home /></OpeningSplash>} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/activities" element={<Activities />} />
       <Route path="/safety" element={<Safety />} />
