@@ -54,7 +54,7 @@ export default function ProviderCard({
     : "Public meetup";
   const completedBookings = Number(provider.completedBookings || provider.bookingsCompleted || provider.reviews || 0);
   const bookingBadge = `${Math.max(2, (completedBookings % 4) + 2)}x booked Recently`;
-  const ratingValue = Number(provider.rating || 0);
+  const ratingValue = Number(provider.rating ?? provider.averageRating ?? 0);
 
   if (home) {
     return (
@@ -154,30 +154,32 @@ function HomeProviderCard({
             {provider.name?.[0] || "B"}
           </div>
         )}
-        <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
+        <span className="absolute right-0 top-0 max-w-[88%] rounded-bl-2xl bg-black px-3 py-2 text-right text-[11px] font-black leading-4 text-white sm:text-xs">
           {bookingBadge}
         </span>
       </div>
 
-      <div className="mt-3">
-        <h3 className="text-lg font-black text-black">
+      <div className="mt-3 flex min-h-[150px] flex-1 flex-col">
+        <h3 className="break-words text-lg font-black leading-6 text-black">
           {provider.name || "Verified Buddy"}
         </h3>
-        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 text-black">
-          {provider.bio ||
-            provider.headline ||
-            provider.profession ||
-            `${primaryActivity} with safe public meetups.`}
-        </p>
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-base font-black text-black">{formatRs(provider.price)}/hr</p>
-            <p className="mt-1 text-xs font-bold text-black/40">
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="max-w-full break-words rounded-full bg-[#fff3d8] px-2.5 py-1 text-xs font-black leading-4 text-[#8a5900]">
+            {provider.profession || "Verified companion"}
+          </span>
+          <span className="max-w-full break-words rounded-full bg-[#eef4ff] px-2.5 py-1 text-xs font-black leading-4 text-[#23436f]">
+            {primaryActivity}
+          </span>
+        </div>
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 gap-y-2 pt-3">
+          <div className="min-w-0">
+            <p className="break-words text-base font-black leading-5 text-black">{formatRs(provider.price)}/hr</p>
+            <p className="mt-1 break-words text-xs font-bold leading-4 text-black/40">
               {completedBookings || 0} bookings completed
             </p>
           </div>
-          <p className="flex items-center gap-1 text-base font-black text-black">
-            <Star size={18} fill="currentColor" />
+          <p className="flex shrink-0 items-center gap-1 text-base font-black text-black" aria-label={ratingValue ? `${ratingValue.toFixed(1)} star rating` : "No ratings yet"}>
+            <Star size={18} fill="currentColor" aria-hidden="true" />
             {ratingValue ? ratingValue.toFixed(1) : "New"}
           </p>
         </div>
@@ -185,7 +187,7 @@ function HomeProviderCard({
     </>
   );
 
-  const className = "group block h-full overflow-hidden rounded-2xl bg-white pb-3 text-black shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md";
+  const className = "group flex h-full flex-col overflow-hidden rounded-2xl bg-white pb-3 text-black shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md";
 
   return link ? (
     <Link to={link} className={className}>

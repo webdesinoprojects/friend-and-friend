@@ -5,6 +5,7 @@ import {
   Heart,
   Home,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageCircle,
   Search,
@@ -20,6 +21,8 @@ import { getCachedReportSummary, getMyReportSummary } from "../../api/reports";
 import { listChats } from "../../api/chats";
 import { NotificationBell } from "../common/HeaderActions";
 import Logo from "../common/Logo";
+import api from "../../api/api";
+import { clearQueryCache } from "../../utils/queryCache";
 
 const userLinks = [
   { label: "Dashboard", to: "/app/user/dashboard", icon: LayoutDashboard },
@@ -104,6 +107,15 @@ function UserAppLayoutShell({
     }
   };
 
+  const logout = async () => {
+    await api.post("/auth/logout").catch(() => {});
+    localStorage.removeItem("buddybook_auth_user");
+    clearQueryCache();
+    window.dispatchEvent(new Event("buddybook:auth-changed"));
+    setDrawerOpen(false);
+    navigate("/");
+  };
+
   return (
     <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
       <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -144,14 +156,6 @@ function UserAppLayoutShell({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setDrawerOpen(true)}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
-                    aria-label="Open user workspace menu"
-                  >
-                    <Menu size={18} />
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => navigate("/")}
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
                     aria-label="Go to home page"
@@ -164,9 +168,14 @@ function UserAppLayoutShell({
                 </h1>
                 <div className="flex items-center gap-2">
                   <NotificationBell />
-                  <div className="grid h-9 w-9 place-items-center rounded-full bg-[#ffe8bd] text-sm font-black text-[#ad5a18]">
-                    {getInitials(activeUser?.fullName)}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
+                    aria-label="Open user workspace menu"
+                  >
+                    <Menu size={19} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -252,7 +261,7 @@ function UserAppLayoutShell({
           {drawerOpen ? (
             <div className="fixed inset-0 z-[10000] bg-black/35 backdrop-blur-sm" onClick={() => setDrawerOpen(false)}>
               <aside
-                className="h-full w-[min(86vw,330px)] bg-white p-5 shadow-[20px_0_70px_rgba(0,0,0,0.2)]"
+                className="workspace-mobile-drawer absolute right-0 top-0 flex h-full w-[min(86vw,330px)] flex-col bg-white p-5 shadow-[-20px_0_70px_rgba(0,0,0,0.2)]"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center justify-between">
@@ -279,7 +288,7 @@ function UserAppLayoutShell({
                   </p>
                 </div>
 
-                <nav className="mt-6 grid gap-2">
+                <nav className="mt-6 grid min-h-0 flex-1 content-start gap-2 overflow-y-auto">
                   {userLinks.map(({ label, to, icon: Icon }) => {
                     const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
                     return (
@@ -299,6 +308,14 @@ function UserAppLayoutShell({
                     );
                   })}
                 </nav>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="mt-5 flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white"
+                >
+                  <LogOut size={19} />
+                  Logout
+                </button>
               </aside>
             </div>
           ) : null}
@@ -308,6 +325,7 @@ function UserAppLayoutShell({
           </main>
         </div>
       </div>
+      <style>{`@keyframes workspaceDrawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } } .workspace-mobile-drawer { animation: workspaceDrawerIn 260ms ease-out both; }`}</style>
     </div>
   );
 }

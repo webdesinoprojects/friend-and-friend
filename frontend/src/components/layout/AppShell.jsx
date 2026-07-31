@@ -3,6 +3,7 @@ import {
   Flag,
   Home,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageCircle,
   Search,
@@ -20,6 +21,8 @@ import { listChats } from "../../api/chats";
 import { useLocation, Link, Outlet, useNavigate } from "react-router-dom";
 import Logo from "../common/Logo";
 import { NotificationBell } from "../common/HeaderActions";
+import api from "../../api/api";
+import { clearQueryCache } from "../../utils/queryCache";
 
 const providerLinks = [
   { label: "Overview", to: "/app/provider/dashboard", icon: LayoutDashboard },
@@ -107,6 +110,15 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
     navigate(to);
   };
 
+  const logout = async () => {
+    await api.post("/auth/logout").catch(() => {});
+    localStorage.removeItem("buddybook_auth_user");
+    clearQueryCache();
+    window.dispatchEvent(new Event("buddybook:auth-changed"));
+    setDrawerOpen(false);
+    navigate("/");
+  };
+
   return (
     <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
       <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -147,14 +159,6 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setDrawerOpen(true)}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
-                    aria-label={`Open ${type} workspace menu`}
-                  >
-                    <Menu size={18} />
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => navigate("/")}
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-[#fffaf3]"
                     aria-label="Go to home page"
@@ -169,11 +173,14 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
                 </h1>
                 <div className="flex items-center gap-2">
                   <NotificationBell />
-                  <img
-                    src={getAvatar(storedUser)}
-                    alt={storedUser?.fullName || "Account"}
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(true)}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 bg-white text-black"
+                    aria-label={`Open ${type} workspace menu`}
+                  >
+                    <Menu size={19} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -261,7 +268,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
           {drawerOpen ? (
             <div className="fixed inset-0 z-[10000] bg-black/35 backdrop-blur-sm" onClick={() => setDrawerOpen(false)}>
               <aside
-                className="h-full w-[min(86vw,330px)] bg-white p-5 shadow-[20px_0_70px_rgba(0,0,0,0.2)]"
+                className="workspace-mobile-drawer absolute right-0 top-0 flex h-full w-[min(86vw,330px)] flex-col bg-white p-5 shadow-[-20px_0_70px_rgba(0,0,0,0.2)]"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center justify-between">
@@ -288,7 +295,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
                   </p>
                 </div>
 
-                <nav className="mt-6 grid gap-2">
+                <nav className="mt-6 grid min-h-0 flex-1 content-start gap-2 overflow-y-auto">
                   {links.map(({ label, to, icon: Icon }) => {
                     const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
                     return (
@@ -307,6 +314,14 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
                     );
                   })}
                 </nav>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="mt-5 flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white"
+                >
+                  <LogOut size={19} />
+                  Logout
+                </button>
               </aside>
             </div>
           ) : null}
@@ -316,6 +331,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
           </div>
         </main>
       </div>
+      <style>{`@keyframes workspaceDrawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } } .workspace-mobile-drawer { animation: workspaceDrawerIn 260ms ease-out both; }`}</style>
     </div>
   );
 }
