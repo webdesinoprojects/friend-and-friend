@@ -943,7 +943,7 @@ export default function Register() {
                       />
                       {mobileError ? <p role="alert" className="mt-2 text-sm font-bold text-rose-600">{mobileError}</p> : null}
 
-                      <div className="mt-4 flex flex-wrap gap-3">
+                      {!mobileVerified ? <div className="mt-4 flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={sendMobileOtp}
@@ -956,15 +956,14 @@ export default function Register() {
                           <button
                             type="button"
                             onClick={verifyMobileOtp}
-                            disabled={mobileVerified}
                             className="group relative overflow-hidden rounded-xl border-2 border-black bg-[#b5e48c] px-7 py-3 text-sm font-black text-black shadow-[0_12px_30px_rgba(111,171,70,0.3)] transition duration-300 hover:-translate-y-1 hover:scale-105 hover:bg-black hover:text-white disabled:translate-y-0 disabled:bg-emerald-600 disabled:text-white"
                           >
-                            <span className="relative inline-flex items-center gap-2"><CheckCircle2 size={18} />{mobileVerified ? "Mobile verified" : "Verify mobile now"}</span>
+                            <span className="relative inline-flex items-center gap-2"><CheckCircle2 size={18} />Verify mobile now</span>
                           </button>
                         )}
-                      </div>
+                      </div> : null}
 
-                      {mobileOtpSent && (
+                      {mobileOtpSent && !mobileVerified && (
                         <div className="mt-4">
                           <Input
                             label="Mobile OTP"

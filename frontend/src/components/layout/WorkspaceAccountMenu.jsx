@@ -190,12 +190,11 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-2 flex items-center">
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs font-black text-black">
                         <Star size={13} fill="#f59e0b" className="text-[#f59e0b]" />
                         {rating}
                       </div>
-                      <ChevronDown size={24} className="text-black/45 shrink-0" />
                     </div>
                   </div>
                 </div>

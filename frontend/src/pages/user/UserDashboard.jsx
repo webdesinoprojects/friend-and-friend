@@ -148,7 +148,7 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="grid items-start grid-cols-2 gap-4 pb-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mx-2 grid items-start grid-cols-2 gap-4 pb-6 md:grid-cols-2 xl:mx-3 xl:grid-cols-3">
               {providersLoading ? (
                 [1, 2, 3, 4].map((item) => (
                   <div key={item} className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">

@@ -159,7 +159,7 @@ function HomeProviderCard({
         </span>
       </div>
 
-      <div className="mt-3 flex min-h-[150px] flex-1 flex-col">
+      <div className="mx-3 mb-2 mt-3 flex min-h-[150px] flex-1 flex-col">
         <h3 className="break-words text-lg font-black leading-6 text-black">
           {provider.name || "Verified Buddy"}
         </h3>
