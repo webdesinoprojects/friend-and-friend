@@ -5,7 +5,7 @@ const CURRENT_USER_KEY = "auth:me";
 
 function readStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }
@@ -16,7 +16,7 @@ export function getCachedCurrentUser() {
 }
 
 export function setCurrentUser(user) {
-  if (user) localStorage.setItem("buddybook_auth_user", JSON.stringify(user));
+  if (user) localStorage.setItem("PPlusOne_auth_user", JSON.stringify(user));
   return setQueryData(CURRENT_USER_KEY, user || null);
 }
 
@@ -27,7 +27,7 @@ export function getCurrentUser(options = {}) {
       const response = await api.get("/auth/me");
       const user =
         response.data?.user || response.data?.data?.user || response.data?.data || null;
-      if (user) localStorage.setItem("buddybook_auth_user", JSON.stringify(user));
+      if (user) localStorage.setItem("PPlusOne_auth_user", JSON.stringify(user));
       return user;
     },
     { staleTime: 60_000, ...options }

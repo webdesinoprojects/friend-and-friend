@@ -16,12 +16,12 @@ body {
   color: #0f172a;
 }
 
-html.buddybook-mono body {
+html.PPlusOne-mono body {
   filter: grayscale(1) contrast(1.08);
 }
 
-html.buddybook-mono img,
-html.buddybook-mono video {
+html.PPlusOne-mono img,
+html.PPlusOne-mono video {
   filter: grayscale(1) contrast(1.05);
 }
 
@@ -134,6 +134,22 @@ textarea {
 }
 
 /* Shared mobile behavior for every admin data table and form control. */
+.admin-shell {
+  transform-origin: top left;
+}
+
+@media (min-width: 1024px) {
+  .admin-shell {
+    width: 111.111111%;
+    min-height: 111.111111vh;
+    transform: scale(0.9);
+  }
+
+  .admin-shell > aside {
+    height: 111.111111vh;
+  }
+}
+
 .admin-shell .overflow-x-auto {
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;

@@ -19,7 +19,7 @@ const footerGroups = [
       ["Login", "/login"],
       ["User account", "/register?role=user"],
       ["Provider account", "/register?role=provider"],
-      ["Earn with BuddyBOOK", "/earn-with-buddybook"],
+      ["Earn with PPlusOne", "/earn-with-PPlusOne"],
     ],
   },
   {
@@ -36,26 +36,24 @@ const footerGroups = [
 
 export default function PublicFooter() {
   return (
-    <footer className="w-full bg-[#292622] px-5 py-7 text-[#f5efe7] sm:py-10">
+    <footer className="w-full bg-[#57524d] px-5 py-7 text-[#f5efe7] sm:py-10">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 md:grid-cols-[1.2fr_2fr]">
           <div>
-            <div className="w-fit rounded-[1.25rem] bg-[#fffaf5] p-3 shadow-[0_18px_45px_rgba(255,250,245,0.14)] ring-1 ring-white/35">
-              <div className="rounded-2xl bg-white px-3 py-2 shadow-inner shadow-[#eaded3]/70">
-                <Logo />
-              </div>
+            <div className="w-fit">
+              <Logo size="large" />
             </div>
 
             <p className="mt-4 max-w-sm text-xs font-medium leading-6 text-[#d8c9bb]">
-              BuddyBOOK helps people plan verified, platonic public meetups
+              PPlusOne helps people plan verified, platonic public meetups
               with safer booking, chat and support flows.
             </p>
 
             <a
-              href="mailto:support@buddybook.in"
+              href="mailto:support@PPlusOne.in"
               className="mt-4 inline-block text-xs font-semibold text-[#fffaf5] underline-offset-4 hover:underline"
             >
-              support@buddybook.in
+              support@PPlusOne.in
             </a>
           </div>
 
@@ -83,7 +81,7 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-7 flex flex-col gap-3 border-t border-[#f5efe7]/12 pt-4 text-[11px] font-semibold text-[#b9aa9b] sm:mt-9 sm:flex-row sm:items-center sm:justify-between sm:pt-5">
-          <p>(c) {new Date().getFullYear()} BuddyBOOK. All rights reserved.</p>
+          <p>(c) {new Date().getFullYear()} PPlusOne. All rights reserved.</p>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Link to="/safety" className="hover:text-white">
@@ -95,7 +93,7 @@ export default function PublicFooter() {
             <Link to="/activities" className="hover:text-white">
               Activities
             </Link>
-            <Link to="/earn-with-buddybook" className="hover:text-white">
+            <Link to="/earn-with-PPlusOne" className="hover:text-white">
               Providers
             </Link>
           </div>

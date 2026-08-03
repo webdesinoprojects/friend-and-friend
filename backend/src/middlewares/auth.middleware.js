@@ -51,7 +51,7 @@ async function authenticate(req, res, next, { allowDisabled = false } = {}) {
         success: false,
         applicationPending: user.kycStatus === "PENDING",
         applicationRejected: user.kycStatus === "REJECTED",
-        message: "Your application must be approved by an administrator before you can use BuddyBOOK.",
+        message: "Your application must be approved by an administrator before you can use PPlusOne.",
       });
     }
     if (!allowDisabled && isAccountDisabled(user)) {

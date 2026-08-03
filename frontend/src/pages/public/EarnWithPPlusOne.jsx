@@ -33,7 +33,7 @@ const benefits = [
   {
     icon: ShieldCheck,
     title: "Verified safety flow",
-    text: "BuddyBOOK uses KYC, selfie verification, in-app safety rules and admin review systems.",
+    text: "PPlusOne uses KYC, selfie verification, in-app safety rules and admin review systems.",
   },
 ];
 
@@ -46,7 +46,7 @@ const steps = [
   "Receive payment and reviews",
 ];
 
-export default function EarnWithBuddyBook() {
+export default function EarnWithPPlusOne() {
   return (
     <div className="min-h-screen bg-[#fffaf3] text-black">
       <PublicNavbar />
@@ -70,7 +70,7 @@ export default function EarnWithBuddyBook() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-3xl text-base font-bold leading-8 text-black/65 md:text-lg">
-              BuddyBOOK lets verified providers offer friendly, strictly
+              PPlusOne lets verified providers offer friendly, strictly
               platonic companionship for public activities like coffee, dinner,
               shopping, events, gaming and city tours.
             </p>
@@ -106,7 +106,7 @@ export default function EarnWithBuddyBook() {
 
                 <p className="mt-5 max-w-xl text-base font-bold leading-8 text-black/65">
                   Many people want a trusted companion for public plans, but do
-                  not always have someone available. As a BuddyBOOK provider,
+                  not always have someone available. As a PPlusOne provider,
                   you can offer your time, personality and local knowledge in a
                   safe, verified way.
                 </p>
@@ -235,7 +235,7 @@ export default function EarnWithBuddyBook() {
                 </h2>
 
                 <p className="mt-4 max-w-lg text-sm font-semibold leading-7 text-white/65">
-                  BuddyBOOK is not random social networking. It is a structured
+                  PPlusOne is not random social networking. It is a structured
                   booking platform with KYC, public meetups, pricing and safety
                   controls.
                 </p>
@@ -280,7 +280,7 @@ export default function EarnWithBuddyBook() {
             </h2>
 
             <p className="mx-auto mt-4 max-w-2xl text-base font-bold leading-7 text-black/60">
-              Join BuddyBOOK as a verified provider and help people enjoy
+              Join PPlusOne as a verified provider and help people enjoy
               public experiences with confidence.
             </p>
 

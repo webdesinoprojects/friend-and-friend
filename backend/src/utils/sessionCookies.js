@@ -1,10 +1,10 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
-const USER_COOKIE = "buddybook_session";
-const ADMIN_COOKIE = "buddybook_admin_session";
-const APPLICATION_COOKIE = "buddybook_application_session";
-const CSRF_COOKIE = "buddybook_csrf";
+const USER_COOKIE = "PPlusOne_session";
+const ADMIN_COOKIE = "PPlusOne_admin_session";
+const APPLICATION_COOKIE = "PPlusOne_application_session";
+const CSRF_COOKIE = "PPlusOne_csrf";
 
 function isProduction() {
   return process.env.NODE_ENV === "production";
@@ -34,13 +34,13 @@ function issueCsrfCookie(res) {
   return token;
 }
 
-function issueUserSession(res, user) {
+function issueUserSession(res, user, { remember = true } = {}) {
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role, purpose: "user-session" },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
-  res.cookie(USER_COOKIE, token, cookieOptions({ maxAge: 7 * 24 * 60 * 60 * 1000 }));
+  res.cookie(USER_COOKIE, token, cookieOptions(remember ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}));
   issueCsrfCookie(res);
 }
 

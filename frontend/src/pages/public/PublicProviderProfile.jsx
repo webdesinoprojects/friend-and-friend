@@ -55,7 +55,7 @@ export default function PublicProviderProfile() {
         if (!mounted) return;
         const status = error?.response?.status;
         if (status === 401 || status === 403) {
-          localStorage.removeItem("buddybook_auth_user");
+          localStorage.removeItem("PPlusOne_auth_user");
         }
         setProvider(null);
         setSaved(false);
@@ -422,7 +422,7 @@ function ReviewsSection({ reviews, rating, total, activity, schedulePath, provid
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="truncate text-sm font-black">{review.reviewerName || "BuddyBOOK user"}</p>
+                    <p className="truncate text-sm font-black">{review.reviewerName || "PPlusOne user"}</p>
                     <Stars value={Number(review.rating || 0)} />
                     <span className="text-[10px] font-bold text-[#17213a]/40">{formatReviewDate(review.createdAt)}</span>
                   </div>
@@ -535,12 +535,12 @@ function formatReviewDate(value) {
 }
 
 function isLoggedIn() {
-  return Boolean(localStorage.getItem("buddybook_auth_user"));
+  return Boolean(localStorage.getItem("PPlusOne_auth_user"));
 }
 
 function isProviderAccount() {
   try {
-    const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    const user = JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
     return user?.role === "PROVIDER";
   } catch {
     return false;

@@ -38,7 +38,7 @@ export default function MeetingReportDialog({ booking, onClose, onSubmitted }) {
           <div><p className="text-xs font-black uppercase tracking-[.15em] text-rose-600">Meeting safety</p><h2 className="mt-1 text-2xl font-black">Report this person</h2></div>
           <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full bg-black text-white"><X size={17}/></button>
         </div>
-        <p className="mt-3 text-sm font-semibold text-slate-500">Meeting {booking.code || booking.id} · Your report goes directly to BuddyBOOK admins.</p>
+        <p className="mt-3 text-sm font-semibold text-slate-500">Meeting {booking.code || booking.id} · Your report goes directly to PPlusOne admins.</p>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {reasons.map(([value, label]) => <button key={value} type="button" onClick={() => setReason(value)} className={`rounded-xl border px-4 py-3 text-left text-sm font-black ${reason === value ? "border-rose-600 bg-rose-50 text-rose-700" : "border-black/10"}`}>{label}</button>)}
         </div>

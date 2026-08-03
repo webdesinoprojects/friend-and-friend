@@ -214,7 +214,7 @@ function parsePrice(value) {
 function readRemembered(providerId) {
   try {
     const provider = JSON.parse(
-      sessionStorage.getItem("buddybook_selected_provider") || "null"
+      sessionStorage.getItem("PPlusOne_selected_provider") || "null"
     );
     return provider?.id === providerId ? provider : null;
   } catch {

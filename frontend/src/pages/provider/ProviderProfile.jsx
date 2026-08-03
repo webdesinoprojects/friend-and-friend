@@ -30,7 +30,7 @@ export default function ProviderProfile() {
       setProvider(result.data);
       if (result.data?.user) {
         setUser(result.data.user);
-        localStorage.setItem("buddybook_auth_user", JSON.stringify(result.data.user));
+        localStorage.setItem("PPlusOne_auth_user", JSON.stringify(result.data.user));
       }
       setPhotoMessage("Profile photo updated.");
     } catch (uploadError) {
@@ -167,7 +167,7 @@ export default function ProviderProfile() {
                         )}
                         <div className="flex-1">
                           <div className="flex items-baseline justify-between mb-1">
-                            <h3 className="text-sm font-black">{review.reviewerName || "BuddyBOOK user"}</h3>
+                            <h3 className="text-sm font-black">{review.reviewerName || "PPlusOne user"}</h3>
                             <div className="flex items-baseline gap-1 text-[#e08c4c]">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star key={star} size={12} fill={star <= Number(review.rating || 0) ? "currentColor" : "none"} />
@@ -235,7 +235,7 @@ function getImageSrc(image) {
 
 function readUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }

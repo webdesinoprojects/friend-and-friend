@@ -77,10 +77,10 @@ export default function ProviderUserProfile({ self = false }) {
 
           <div className="flex flex-col justify-center p-5 text-white sm:p-7 xl:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ee9655]">BuddyBOOK community</p><h2 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">Meet the person behind your booking.</h2></div>
+              <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ee9655]">PPlusOne community</p><h2 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">Meet the person behind your booking.</h2></div>
               <Link to={self ? "/app/user/profile" : `/app/provider/chat${profile.bookings?.[0]?.id ? `?booking=${profile.bookings[0].id}` : ""}`} className="inline-flex items-center gap-2 rounded-xl bg-[#e88a48] px-4 py-2.5 text-xs font-black text-white transition hover:bg-white hover:text-black">{self ? <Sparkles size={16}/> : <MessageCircle size={16}/>} {self ? "Edit profile" : "Open chat"}</Link>
             </div>
-            <p className="mt-3 max-w-3xl line-clamp-2 text-sm font-semibold leading-6 text-white/65">{profile.profile?.bio || `${profile.fullName} has completed their verified BuddyBOOK profile and is ready for safe, thoughtful meetups.`}</p>
+            <p className="mt-3 max-w-3xl line-clamp-2 text-sm font-semibold leading-6 text-white/65">{profile.profile?.bio || `${profile.fullName} has completed their verified PPlusOne profile and is ready for safe, thoughtful meetups.`}</p>
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <HeroStat value={profile.age || "18+"} label="Age" />
               <HeroStat value={stats.bookingsTogether || 0} label="Bookings together" />
@@ -125,7 +125,7 @@ export default function ProviderUserProfile({ self = false }) {
             </Panel>
 
             <Panel icon={Star} title="Provider reviews" eyebrow={`${stats.reviewCount || 0} review${stats.reviewCount === 1 ? "" : "s"}`}>
-              {(profile.reviews || []).length ? <div className="grid max-h-[340px] gap-2 overflow-y-auto pr-1">{profile.reviews.map((review) => <article key={review.id} className="rounded-2xl border border-[#f0dfd0] bg-[#fffaf4] p-4"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{review.reviewerName}</strong><span className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs font-black text-[#d87937]"><Star size={12} fill="currentColor"/>{review.rating}</span></div><p className="mt-2 text-sm font-semibold leading-5 text-slate-600">{review.description || "A positive BuddyBOOK meetup."}</p>{review.service ? <p className="mt-2 text-[9px] font-black uppercase tracking-wider text-slate-400">{review.service}</p> : null}</article>)}</div> : <Empty text="This user is new and has no provider reviews yet." />}
+              {(profile.reviews || []).length ? <div className="grid max-h-[340px] gap-2 overflow-y-auto pr-1">{profile.reviews.map((review) => <article key={review.id} className="rounded-2xl border border-[#f0dfd0] bg-[#fffaf4] p-4"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{review.reviewerName}</strong><span className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs font-black text-[#d87937]"><Star size={12} fill="currentColor"/>{review.rating}</span></div><p className="mt-2 text-sm font-semibold leading-5 text-slate-600">{review.description || "A positive PPlusOne meetup."}</p>{review.service ? <p className="mt-2 text-[9px] font-black uppercase tracking-wider text-slate-400">{review.service}</p> : null}</article>)}</div> : <Empty text="This user is new and has no provider reviews yet." />}
             </Panel>
           </aside>
         </div>

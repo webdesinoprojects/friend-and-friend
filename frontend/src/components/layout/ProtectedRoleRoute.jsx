@@ -6,8 +6,8 @@ export default function ProtectedRoleRoute({ role, children }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const sync = () => setNow(Date.now());
-    window.addEventListener("buddybook:auth-changed", sync);
-    return () => window.removeEventListener("buddybook:auth-changed", sync);
+    window.addEventListener("PPlusOne:auth-changed", sync);
+    return () => window.removeEventListener("PPlusOne:auth-changed", sync);
   }, []);
   const user = readUser();
 
@@ -46,7 +46,7 @@ export default function ProtectedRoleRoute({ role, children }) {
 
 function readUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }

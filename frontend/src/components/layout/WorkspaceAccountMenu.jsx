@@ -66,20 +66,20 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
         const nextUser = data?.user || data?.data?.user || data?.data;
         if (!mounted || !(nextUser?.id || nextUser?._id)) return;
         setUser(nextUser);
-        localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
+        localStorage.setItem("PPlusOne_auth_user", JSON.stringify(nextUser));
       })
       .catch(() => {});
 
     const syncUser = () => setUser(readStoredUser());
     window.addEventListener("storage", syncUser);
-    window.addEventListener("buddybook:auth-changed", syncUser);
-    window.addEventListener("buddybook:profile-updated", syncUser);
+    window.addEventListener("PPlusOne:auth-changed", syncUser);
+    window.addEventListener("PPlusOne:profile-updated", syncUser);
 
     return () => {
       mounted = false;
       window.removeEventListener("storage", syncUser);
-      window.removeEventListener("buddybook:auth-changed", syncUser);
-      window.removeEventListener("buddybook:profile-updated", syncUser);
+      window.removeEventListener("PPlusOne:auth-changed", syncUser);
+      window.removeEventListener("PPlusOne:profile-updated", syncUser);
     };
   }, []);
 
@@ -104,10 +104,10 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("buddybook_auth_user");
+    localStorage.removeItem("PPlusOne_auth_user");
     setUser(null);
     close();
-    window.dispatchEvent(new Event("buddybook:auth-changed"));
+    window.dispatchEvent(new Event("PPlusOne:auth-changed"));
     navigate("/");
   };
 
@@ -136,7 +136,7 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
         />
         <div className="hidden min-w-0 text-left sm:block">
           <p className="max-w-[140px] truncate text-xs font-black text-[#111827]">
-            {user.fullName || "BuddyBOOK User"}
+            {user.fullName || "PPlusOne User"}
           </p>
           <p className="mt-0.5 text-[9px] font-bold text-[#6b7280]">
             {user.city || "Your city"}
@@ -183,7 +183,7 @@ export default function WorkspaceAccountMenu({ user: suppliedUser }) {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h2 className="truncate text-xl font-black text-black">
-                          {user.fullName || "BuddyBOOK User"}
+                          {user.fullName || "PPlusOne User"}
                         </h2>
                         <p className="mt-0.5 text-xs font-black text-black/45">
                           {isProvider ? "Provider account" : "User account"}
@@ -284,7 +284,7 @@ function SimpleLink({ icon: Icon, label, to, onClose }) {
 
 function readStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }
@@ -321,7 +321,7 @@ function getAccountRating(user) {
 
 function getLocalAccountRating(user) {
   try {
-    const reviews = JSON.parse(localStorage.getItem("buddybook_reviews") || "[]");
+    const reviews = JSON.parse(localStorage.getItem("PPlusOne_reviews") || "[]");
     const role = user?.role || "USER";
     const userIds = [user?.id, user?._id].filter(Boolean).map(String);
     const received = Array.isArray(reviews)

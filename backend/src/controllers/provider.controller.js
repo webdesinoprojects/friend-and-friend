@@ -6,7 +6,7 @@ const {
 } = require('../utils/imagekit');
 const { isAccountDisabled } = require('../utils/accountLifecycle');
 const TimedCache = require('../utils/timedCache');
-const REVIEW_REASON = '__BUDDYBOOK_REVIEW__';
+const REVIEW_REASON = '__PPlusOne_REVIEW__';
 const PUBLIC_CACHE_MS = 60 * 1000;
 const providerListCache = new TimedCache({ ttlMs: PUBLIC_CACHE_MS, maxEntries: 200 });
 const providerDetailCache = new TimedCache({ ttlMs: PUBLIC_CACHE_MS, maxEntries: 500 });
@@ -21,7 +21,7 @@ async function calculateProviderRating(userId) {
       targetRole: 'PROVIDER',
       reportedUserId: userId,
       rating: { not: null },
-      reason: '__BUDDYBOOK_REVIEW__',
+      reason: '__PPlusOne_REVIEW__',
       adminAction: null,
     },
     select: { rating: true },
@@ -310,7 +310,7 @@ async function loadPublicProviderReviews(userId, take = 20) {
       id: row.reviewId || row.id,
       bookingId: row.bookingId,
       reviewerId: row.reporterId,
-      reviewerName: row.reporterName || snapshot.reviewerName || 'BuddyBOOK user',
+      reviewerName: row.reporterName || snapshot.reviewerName || 'PPlusOne user',
       reviewerImage: row.reporter?.profileImage || snapshot.reviewerImage || '',
       rating: Number(row.rating || snapshot.rating || 0),
       description: row.reviewText || snapshot.description || '',

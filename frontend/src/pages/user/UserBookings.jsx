@@ -180,7 +180,7 @@ export default function UserBookings() {
                             {booking.service || "Buddy meetup"}
                           </h3>
                           <p className="truncate text-sm font-bold text-slate-500">
-                            with {booking.providerName || "BuddyBOOK provider"}
+                            with {booking.providerName || "PPlusOne provider"}
                           </p>
                         </div>
                       </div>

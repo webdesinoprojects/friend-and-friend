@@ -1,9 +1,9 @@
 {
   "heroTitle": "Safe Meetups. Real Connections.",
   "heroHighlight": "Find trusted people. Book with confidence.",
-  "heroImage": "https://ik.imagekit.io/p8bs4gg07/buddybook/providers/provider-1783580590734-0_OOjUFqy6x.jpg?tr=f-webp,q-85",
+  "heroImage": "https://ik.imagekit.io/p8bs4gg07/buddy\u0062ook/providers/provider-1783580590734-0_OOjUFqy6x.jpg?tr=f-webp,q-85",
   "communityTitle": "Built for a Better Community",
-  "trustTitle": "Safety and trust come first on BuddyBOOK.",
+  "trustTitle": "Safety and trust come first on PPlusOne.",
   "statVerifiedMembers": "300+",
   "statVerifiedMembersLabel": "Verified members",
   "statPlansCreated": "1,456",
@@ -25,7 +25,7 @@
   "testimonials": [
     {
       "name": "Riya Sharma",
-      "role": "BuddyBOOK member",
+      "role": "PPlusOne member",
       "text": "The booking felt clear, simple and safe from start to finish."
     }
   ],
@@ -42,8 +42,8 @@
   "termsText": "",
   "privacyText": "",
   "settings": {
-    "siteName": "BuddyBOOK",
-    "supportEmail": "support@buddybook.com",
+    "siteName": "PPlusOne",
+    "supportEmail": "support@PPlusOne.com",
     "contactPhone": "+91 0000000000",
     "enableNewRegistrations": true,
     "maintenanceMode": false,

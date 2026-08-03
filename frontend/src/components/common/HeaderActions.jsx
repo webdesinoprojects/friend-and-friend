@@ -48,12 +48,12 @@ export function NotificationBell() {
     refresh();
     const timer = window.setInterval(refresh, 15000);
     window.addEventListener("storage", refresh);
-    window.addEventListener("buddybook:data-changed", refresh);
+    window.addEventListener("PPlusOne:data-changed", refresh);
     return () => {
       mounted = false;
       window.clearInterval(timer);
       window.removeEventListener("storage", refresh);
-      window.removeEventListener("buddybook:data-changed", refresh);
+      window.removeEventListener("PPlusOne:data-changed", refresh);
     };
   }, []);
 

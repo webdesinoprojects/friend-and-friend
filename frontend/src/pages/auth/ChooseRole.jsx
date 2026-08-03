@@ -8,7 +8,7 @@ export default function ChooseRole() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_32%),#f8fafc] px-5 py-10">
       <div className="mx-auto max-w-5xl">
-        <Logo />
+        <Logo size="large" />
 
         <div className="mx-auto mt-16 max-w-3xl text-center">
           <p className="font-bold text-blue-600">Profile mode</p>

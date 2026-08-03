@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Bell,
   CalendarCheck,
@@ -31,16 +31,20 @@ const navItems = [
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];
 
-export default function AdminShell({ children, title = "Admin Overview", text = "Manage BuddyBOOK operations and website content" }) {
+export default function AdminShell({ children, title = "Admin Overview", text = "Manage PPlusOne operations and website content" }) {
+  const navigate = useNavigate();
   const admin = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("buddybook_admin_user") || "null");
+      return JSON.parse(localStorage.getItem("PPlusOne_admin_user") || "null");
     } catch {
       return null;
     }
   }, []);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState(() => getQueryData(notificationsQueryKey, []));
+  const [search, setSearch] = useState("");
+  const searchMatches = useMemo(() => search.trim() ? navItems.filter((item) => item.label.toLowerCase().includes(search.trim().toLowerCase())) : [], [search]);
+  const openSearchResult = (to) => { setSearch(""); navigate(to); };
 
   useEffect(() => {
     fetchQuery(
@@ -55,18 +59,9 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
   return (
     <div className="admin-shell min-h-screen overflow-x-hidden bg-[#fbfbfa] text-[#101828]">
       <aside className="fixed left-0 top-0 hidden h-screen w-[270px] border-r border-[#e8e4dc] bg-white px-4 py-7 lg:flex lg:flex-col">
-        <div className="flex items-center gap-3 px-2">
-          <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-[#0b2857] text-[#ffc21c]">
-            <ShieldCheck size={27} strokeWidth={2.4} />
-            <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-[#ffc21c]" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-2xl font-black tracking-tight">
-              Buddy<span className="text-[#f6b800]">BOOK</span>
-            </p>
-            <p className="text-[10px] font-semibold text-[#667085]">Safe Meetups. Real Connections.</p>
-          </div>
-        </div>
+        <Link to="/admin/dashboard" className="inline-flex w-fit items-center px-2" aria-label="PPlusOne admin dashboard">
+          <img src="/home-navbar-logo.png" alt="PPlusOne" className="h-20 w-auto max-w-[9.5rem] object-contain" width="833" height="629" />
+        </Link>
 
         <nav className="mt-8 flex-1 space-y-3">
           {navItems.map((item) => {
@@ -111,15 +106,19 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
             </div>
 
             <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-5 xl:justify-end">
-              <label className="order-last flex h-12 w-full min-w-0 items-center gap-3 rounded-lg border border-[#d7dce3] bg-white px-4 shadow-sm sm:h-14 xl:order-none xl:w-[430px]">
+              <label className="relative order-last flex h-12 w-full min-w-0 items-center gap-3 rounded-lg border border-[#d7dce3] bg-white px-4 shadow-sm sm:h-14 xl:order-none xl:w-[430px]">
                 <Search size={19} className="text-[#667085]" />
                 <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter" && searchMatches[0]) { event.preventDefault(); openSearchResult(searchMatches[0].to); } }}
                   className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-[#667085]"
                   placeholder="Search anything..."
                 />
                 <span className="rounded-md bg-[#f4f4f4] px-2 py-1 text-xs font-bold text-[#344054]">
                   ⌘ K
                 </span>
+                {searchMatches.length ? <span className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 grid gap-1 rounded-xl border border-black/10 bg-white p-2 shadow-xl">{searchMatches.map((item) => <button key={item.to} type="button" onClick={() => openSearchResult(item.to)} className="rounded-lg px-3 py-2 text-left text-sm font-bold hover:bg-[#fff3d8]">{item.label}</button>)}</span> : null}
               </label>
               <div className="relative">
                 <button
@@ -153,9 +152,11 @@ export default function AdminShell({ children, title = "Admin Overview", text = 
               </div>
               <div className="flex min-w-fit items-center gap-3">
                 <img
-                  src="/admin-logo.svg"
-                  alt="BuddyBOOK"
-                  className="h-11 w-11 rounded-2xl object-contain"
+                  src="/home-navbar-logo.png"
+                  alt="PPlusOne"
+                  className="h-14 w-auto max-w-24 object-contain sm:h-16 sm:max-w-28"
+                  width="833"
+                  height="629"
                 />
                 <Link to="/admin/settings" className="flex items-center gap-2 text-sm font-black sm:text-base">
                   <span className="max-w-24 truncate sm:max-w-40">{admin?.fullName || "Admin"}</span> <ChevronDown size={18} />

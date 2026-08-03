@@ -86,7 +86,7 @@ export default function Contact() {
       setToast({
         type: "success",
         title: "Message sent successfully",
-        text: data?.message || "Your message has been sent to BuddyBOOK support.",
+        text: data?.message || "Your message has been sent to PPlusOne support.",
       });
 
       setForm({
@@ -156,7 +156,7 @@ export default function Contact() {
             <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-[#17120f] sm:text-5xl lg:text-6xl">
               Contact{" "}
               <span className="rounded-2xl bg-[#e08c4c] px-4 py-1 text-black">
-                BuddyBOOK
+                PPlusOne
               </span>
             </h1>
 
@@ -174,7 +174,7 @@ export default function Contact() {
                 </h2>
                 <p className="mt-3 max-w-md text-sm font-semibold leading-6 text-[#75665b]">
                   Our team is available for support, safety concerns and
-                  BuddyBOOK business enquiries.
+                  PPlusOne business enquiries.
                 </p>
               </div>
 
@@ -248,7 +248,7 @@ export default function Contact() {
 
                   <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-[#75665b]">
                     Fill out the form and it will be delivered directly to the
-                    BuddyBOOK support inbox in a formatted email.
+                    PPlusOne support inbox in a formatted email.
                   </p>
                 </div>
 
@@ -322,7 +322,7 @@ export default function Contact() {
                   </div>
 
                   <p className="text-xs font-bold leading-5 text-[#75665b]">
-                    Messages are sent securely through BuddyBOOK backend using
+                    Messages are sent securely through PPlusOne backend using
                     Resend, then delivered to the support email inbox.
                   </p>
                 </div>
@@ -337,7 +337,7 @@ export default function Contact() {
                   Need to create an account?
                 </p>
                 <h3 className="mt-1 text-2xl font-black">
-                  Join BuddyBOOK and start safely.
+                  Join PPlusOne and start safely.
                 </h3>
               </div>
 

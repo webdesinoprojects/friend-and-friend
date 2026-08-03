@@ -201,7 +201,7 @@ export default function HowItWorks() {
                 </div>
 
                 <h1 className="mt-4 text-[clamp(2.1rem,4.8vw,4.8rem)] font-black leading-[0.98] tracking-tight text-[#17120f]">
-                  How BuddyBOOK keeps every meetup structured.
+                  How PPlusOne keeps every meetup structured.
                 </h1>
 
                 <p className="mt-4 max-w-md text-sm font-semibold leading-7 text-[#75665b] sm:text-base">

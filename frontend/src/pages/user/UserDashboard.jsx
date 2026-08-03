@@ -19,16 +19,17 @@ import ProviderCard from "../../components/users/ProviderCard";
 import UserAppLayout from "../../components/users/UserAppLayout";
 import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
-import { formatRs, formatRupees } from "../../utils/format";
-import { getCachedBookings, listBookings } from "../../api/bookings";
+import { formatRupees } from "../../utils/format";
+import { getCachedBookings, getUserDashboardSummary, listBookings } from "../../api/bookings";
 import { getCurrentUser } from "../../api/auth";
 
 export default function UserDashboard() {
   const [search, setSearch] = useState("");
-  const [user, setUser] = useState(() => readStorage("buddybook_auth_user", null));
+  const [user, setUser] = useState(() => readStorage("PPlusOne_auth_user", null));
   const [bookings, setBookings] = useState(() => getCachedBookings({ pageSize: 100 }));
   const [providers, setProviders] = useState(() => getCachedProviders());
   const [providersLoading, setProvidersLoading] = useState(false);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -41,6 +42,9 @@ export default function UserDashboard() {
         .catch(() => {});
       listBookings({ pageSize: 100 })
         .then((rows) => mounted && setBookings(rows))
+        .catch(() => {});
+      getUserDashboardSummary()
+        .then((summary) => mounted && setDashboardSummary(summary))
         .catch(() => {});
     }
 
@@ -74,12 +78,12 @@ export default function UserDashboard() {
     };
     const refreshProvidersFromCache = () => setProviders(getCachedProviders());
 
-    window.addEventListener("buddybook:providers-changed", refreshProviders);
-    window.addEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
+    window.addEventListener("PPlusOne:providers-changed", refreshProviders);
+    window.addEventListener("PPlusOne:providers-cache-updated", refreshProvidersFromCache);
 
     return () => {
-      window.removeEventListener("buddybook:providers-changed", refreshProviders);
-      window.removeEventListener("buddybook:providers-cache-updated", refreshProvidersFromCache);
+      window.removeEventListener("PPlusOne:providers-changed", refreshProviders);
+      window.removeEventListener("PPlusOne:providers-cache-updated", refreshProvidersFromCache);
     };
   }, []);
 
@@ -132,8 +136,8 @@ export default function UserDashboard() {
       <section className="grid min-h-full gap-6 xl:grid-cols-[minmax(0,1fr)_500px]">
         <div className="grid min-h-0 gap-6">
           <UserMetricStrip
-            totalSpent={totalSpent}
-            savedProviders={readStorage("buddybook_watchlist", []).length}
+            totalSpent={dashboardSummary?.totalSpending ?? totalSpent}
+            savedProviders={dashboardSummary?.savedProviders ?? 0}
             user={user}
           />
           <Statistics total={total} completed={completed} pending={pending} />
@@ -294,22 +298,21 @@ function WelcomeBanner({ user }) {
 
 function UserMetricStrip({ totalSpent, savedProviders, user }) {
   const cards = [
-    [Wallet, formatRs(totalSpent), "Total Spending", "View details", "/app/user/wallet", "bg-[#fff1e6] text-[#d67f3d]"],
+    [Wallet, formatFullRs(totalSpent), "Total Spending", "View details", "/app/user/wallet", "bg-[#fff1e6] text-[#d67f3d]"],
     [Heart, savedProviders, "Saved Providers", "View all", "/app/user/watchlist", "bg-[#fff1e6] text-[#d84e58]"],
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-[minmax(0,.85fr)_minmax(0,.85fr)_minmax(0,1.3fr)]">
       {cards.map(([Icon, value, label, action, to, tone]) => (
-        <article key={label} className="flex min-h-[104px] flex-col rounded-none border border-black/10 bg-white p-4 shadow-sm md:min-h-[150px] md:p-6">
-          <div className="flex min-w-0 items-center gap-3 md:gap-4">
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl md:h-14 md:w-14 ${tone}`}>
-              <Icon size={20} className="md:hidden" />
-              <Icon size={24} className="hidden md:block" />
+        <article key={label} className="flex h-[112px] min-w-0 flex-col rounded-none border border-black/10 bg-white p-4 shadow-sm md:h-[132px] md:p-5">
+          <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+            <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl md:h-11 md:w-11 ${tone}`}>
+              <Icon size={18} />
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-black md:text-2xl">{value}</p>
-              <p className="mt-0.5 text-xs font-semibold leading-4 text-[#667085] md:mt-1 md:text-sm">{label}</p>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="max-w-full break-words text-sm font-black leading-tight sm:text-base 2xl:text-lg">{value}</p>
+              <p className="mt-0.5 max-w-full text-xs font-semibold leading-4 text-[#667085] md:mt-1">{label}</p>
             </div>
           </div>
           <Link to={to} className="ml-auto mt-auto block pt-3 text-right text-xs font-black text-[#e08c4c] md:text-sm">{action}</Link>
@@ -317,14 +320,15 @@ function UserMetricStrip({ totalSpent, savedProviders, user }) {
       ))}
       <Link
         to="/app/user/profile-view"
-        className="group relative col-span-2 min-h-[150px] overflow-hidden border border-[#9e96ff]/35 bg-gradient-to-br from-[#171b30] via-[#25284c] to-[#665ec7] p-5 text-white shadow-[0_18px_45px_rgba(76,70,160,.24)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(76,70,160,.38)] xl:col-span-1"
+        className="group relative col-span-2 h-[112px] overflow-hidden border border-[#9e96ff]/35 bg-gradient-to-br from-[#171b30] via-[#25284c] to-[#665ec7] p-5 text-white shadow-[0_18px_45px_rgba(76,70,160,.24)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(76,70,160,.38)] md:h-[132px] xl:col-span-1"
       >
         <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full border border-white/15 transition duration-700 group-hover:scale-125" />
         <span className="pointer-events-none absolute -right-2 top-6 h-16 w-16 animate-pulse rounded-full bg-[#9e96ff]/25 blur-xl" />
         <div className="relative flex h-full items-center gap-4">
           <div className="relative shrink-0">
-            <span className="absolute -inset-2 rounded-full border border-[#aaa4ff]/45 transition duration-700 group-hover:rotate-180 group-hover:scale-110" />
-            <span className="absolute -inset-2 animate-ping rounded-full border border-[#aaa4ff]/20" />
+            <span className="absolute -inset-3 animate-[spin_5s_linear_infinite] rounded-full border-2 border-dashed border-[#c4c0ff]/70 shadow-[0_0_18px_rgba(170,164,255,.45)]" />
+            <span className="absolute -inset-5 animate-[spin_8s_linear_infinite_reverse] rounded-full border border-[#aaa4ff]/35" />
+            <span className="absolute -right-4 -top-4 h-2.5 w-2.5 animate-pulse rounded-full bg-white shadow-[0_0_14px_4px_rgba(196,192,255,.75)]" />
             {user?.profileImage ? (
               <img src={user.profileImage} alt={user.fullName || "Your profile"} className="relative h-16 w-16 rounded-full border-2 border-white object-cover shadow-xl" />
             ) : (
@@ -341,6 +345,11 @@ function UserMetricStrip({ totalSpent, savedProviders, user }) {
       </Link>
     </div>
   );
+}
+
+function formatFullRs(value) {
+  const amount = Number(value || 0);
+  return `Rs ${Number.isFinite(amount) ? Math.round(amount).toLocaleString("en-IN") : "0"}`;
 }
 
 function OverviewCard({ totalSpent, rating, dailyLimit, todayBookings, verified }) {

@@ -99,7 +99,7 @@ const fieldGroups = {
 };
 
 const emptyTestimonial = { name: "", role: "", rating: "5", image: "", text: "", published: true };
-const CONTENT_CACHE_KEY = "buddybook_site_content_preview";
+const CONTENT_CACHE_KEY = "PPlusOne_site_content_preview";
 
 export default function AdminContent() {
   const [content, setContent] = useState({});
@@ -112,12 +112,12 @@ export default function AdminContent() {
     let mounted = true;
     getAdminPage("/admin/content", getAdminHeaders())
       .then(({ data }) => {
-        if (mounted) setContent(data?.data || data?.content || data || {});
+        if (mounted) setContent(rebrandContent(data?.data || data?.content || data || {}));
       })
       .catch(() => {
         if (mounted) {
           const cached = readCachedContent();
-          if (cached) setContent(cached);
+          if (cached) setContent(rebrandContent(cached));
           setMessage(cached ? "Showing your locally saved website content." : "Login as admin again to manage content.");
         }
       })
@@ -165,11 +165,11 @@ export default function AdminContent() {
     const nextContent = { ...content, updatedAt: new Date().toISOString(), _previewUpdatedAt: Date.now() };
     setContent(nextContent);
     localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(nextContent));
-    window.dispatchEvent(new CustomEvent("buddybook:content-updated", { detail: nextContent }));
+    window.dispatchEvent(new CustomEvent("PPlusOne:content-updated", { detail: nextContent }));
 
     try {
       const { data } = await api.put("/admin/content", nextContent, getAdminHeaders());
-      const savedContent = data?.data || nextContent;
+      const savedContent = rebrandContent(data?.data || nextContent);
       setContent(savedContent);
       localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(savedContent));
       setMessage("Website content saved successfully.");
@@ -255,6 +255,13 @@ export default function AdminContent() {
       </form>
     </AdminShell>
   );
+}
+
+function rebrandContent(value) {
+  if (Array.isArray(value)) return value.map(rebrandContent);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, rebrandContent(item)]));
+  if (typeof value !== "string" || /^https?:\/\//i.test(value) || value.includes("@")) return value;
+  return value.replace(new RegExp(String.fromCharCode(66, 117, 100, 100, 121, 66, 79, 79, 75), "gi"), "PPlusOne").replace(new RegExp(String.fromCharCode(80, 112, 108, 117, 115, 79, 110, 101), "g"), "PPlusOne");
 }
 
 function readCachedContent() {

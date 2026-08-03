@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flag, ShieldAlert, Star } from "lucide-react";
+import { Flag, ShieldAlert } from "lucide-react";
 import AdminShell from "../../components/layout/AdminShell";
 import { deleteAdminReport, listAdminReports, updateAdminReport } from "../../api/reports";
 
@@ -47,10 +47,10 @@ export default function AdminReports() {
                 <div>
                   <div className="flex items-center gap-2">
                     <ShieldAlert size={18} className="text-[#d84e58]" />
-                    <p className="text-sm font-black">{report.reason}</p>
+                    <p className="text-sm font-black">{formatReportReason(report.reason)}</p>
                   </div>
                   <p className="mt-2 text-xs font-bold text-[#6b5d52]">
-                    Reported by {report.reporterName || "member"} ({report.reporterRole}) about {report.reportedName || "reviewer"}
+                    Reported by {report.reporterName || "member"} ({report.reporterRole}) about {report.reportedName || "member"} ({report.targetRole})
                   </p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-black ${report.status === "OPEN" ? "bg-rose-50 text-rose-700" : "bg-[#e8f6ef] text-[#16815f]"}`}>
@@ -59,10 +59,8 @@ export default function AdminReports() {
               </div>
 
               <div className="mt-4 rounded-xl bg-white p-4">
-                <p className="flex items-center gap-1 text-xs font-black text-[#e08c4c]">
-                  <Star size={14} fill="currentColor" /> {report.rating || "-"} / 5
-                </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-[#5d4a3c]">{report.reviewText || "No details included."}</p>
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#e08c4c]">Incident details</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm font-bold leading-6 text-[#5d4a3c]">{report.reviewText || "No details included."}</p>
                 <div className="mt-3 grid gap-2 text-xs font-bold text-[#6b5d52] sm:grid-cols-2">
                   <p>Booking: {report.bookingId || "Not linked"}</p>
                   <p>Meeting ID: {report.reviewSnapshot?.meetingCode || report.bookingId || "Not linked"}</p>
@@ -103,4 +101,11 @@ export default function AdminReports() {
       </section>
     </AdminShell>
   );
+}
+
+function formatReportReason(value) {
+  return String(value || "Safety report")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/^\w|\s\w/g, (letter) => letter.toUpperCase());
 }

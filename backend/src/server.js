@@ -16,6 +16,7 @@ const watchlistRoutes = require("./routes/watchlist.routes");
 const initializeChatSocket = require("./utils/chatSocket");
 const createRateLimit = require("./middlewares/rateLimit.middleware");
 const csrfProtection = require("./middlewares/csrf.middleware");
+const { maintenanceStatus, enforceMaintenance } = require("./middlewares/maintenance.middleware");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -56,13 +57,18 @@ app.use("/api", (req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "BuddyBOOK backend is running.",
+    message: "PPlusOne backend is running.",
   });
 });
 
+// This endpoint and every admin route remain available so administrators can
+// inspect and disable maintenance mode at any time.
+app.get("/api/system/maintenance", maintenanceStatus);
+app.use("/api/admin", adminRoutes);
+app.use("/api", enforceMaintenance);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/providers", providerRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/chats", chatRoutes);
@@ -83,7 +89,7 @@ if (process.env.VERCEL !== "1") {
   const server = http.createServer(app);
   initializeChatSocket(server, allowedOrigins);
   server.listen(PORT, () => {
-    console.log(`BuddyBOOK backend running on port ${PORT}`);
+    console.log(`PPlusOne backend running on port ${PORT}`);
   });
 }
 

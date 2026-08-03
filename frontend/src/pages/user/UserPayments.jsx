@@ -80,7 +80,7 @@ export default function UserPayments() {
                 Spending and transactions
               </h2>
               <p className="mt-1 text-sm font-semibold text-slate-500">
-                Every successful and pending BuddyBOOK payment is recorded here.
+                Every successful and pending PPlusOne payment is recorded here.
               </p>
             </div>
             <Link
@@ -157,7 +157,7 @@ export default function UserPayments() {
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider text-[#8b7563]">Activity</p>
                       <p className="truncate text-sm font-black text-black">
-                        {transaction.service || "BuddyBOOK meetup"}
+                        {transaction.service || "PPlusOne meetup"}
                       </p>
                     </div>
 

@@ -20,7 +20,7 @@ const commitments = [
   {
     icon: Lock,
     title: "Private by default",
-    text: "Your exact location, contact details and payments stay protected inside BuddyBOOK.",
+    text: "Your exact location, contact details and payments stay protected inside PPlusOne.",
   },
   {
     icon: Star,
@@ -30,13 +30,13 @@ const commitments = [
   {
     icon: UserX,
     title: "Strict account action",
-    text: "Admins can permanently block anyone who breaks the rules. Blocked accounts can no longer use BuddyBOOK.",
+    text: "Admins can permanently block anyone who breaks the rules. Blocked accounts can no longer use PPlusOne.",
   },
 ];
 
 const guidelines = [
   "Meet only in public, well-lit places for your first few meetups.",
-  "Keep all planning and payments inside the BuddyBOOK app.",
+  "Keep all planning and payments inside the PPlusOne app.",
   "Respect boundaries, consent and personal space at all times.",
   "Report suspicious behaviour, harassment or payment scams immediately.",
   "Never share OTPs, passwords or government IDs with another member.",
@@ -57,7 +57,7 @@ export default function TrustAndSafety() {
               A safe space for real, platonic connections.
             </h1>
             <p className="mt-5 max-w-2xl text-lg font-medium text-[#5b4a3a]">
-              BuddyBOOK is built around verification, transparency and community accountability. Here is
+              PPlusOne is built around verification, transparency and community accountability. Here is
               how we keep meetups safe and what happens when the rules are broken.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -124,7 +124,7 @@ export default function TrustAndSafety() {
                 “You have been blocked by the admin now you are not allowed to use this website again.”
               </div>
               <p className="mt-4 text-sm font-semibold leading-7 text-red-700/80">
-                Blocked users cannot log in, book meetups or host. This keeps the BuddyBOOK community safe for
+                Blocked users cannot log in, book meetups or host. This keeps the PPlusOne community safe for
                 everyone.
               </p>
             </div>

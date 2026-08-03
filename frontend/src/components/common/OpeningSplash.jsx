@@ -19,14 +19,14 @@ export default function OpeningSplash({ children }) {
   return (
     <div className="opening-splash fixed inset-0 z-[9999] grid min-h-[100dvh] place-items-center overflow-hidden bg-white">
       <video
-        src="/buddybook-opening.mp4"
+        src="/PPlusOne-opening.mp4"
         autoPlay
         muted
         playsInline
         preload="auto"
         disablePictureInPicture
         controls={false}
-        aria-label="BuddyBOOK opening animation"
+        aria-label="PPlusOne opening animation"
         className="pointer-events-none h-auto max-h-[72dvh] w-[82vw] max-w-[640px] select-none object-contain sm:w-[68vw] lg:w-[48vw]"
       />
       <style>{`

@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", bookingController.listMyBookings);
+router.get("/summary", bookingController.getUserDashboardSummary);
 router.get("/users/me/profile", (req, res) => {
   req.params.userId = req.user.id;
   return bookingController.getBookedUserProfile(req, res);

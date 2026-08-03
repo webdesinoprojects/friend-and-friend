@@ -9,18 +9,20 @@ export default function AdminBookings() {
   const [bookings, setBookings] = useState([]);
   const [logins, setLogins] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
     Promise.all([
-      getAdminPage("/admin/bookings", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
-      getAdminPage("/admin/logins", getAdminHeaders()).catch(() => ({ data: { data: [] } })),
+      getAdminPage("/admin/bookings", getAdminHeaders()),
+      getAdminPage("/admin/logins", getAdminHeaders()),
     ])
       .then(([bookingRes, loginRes]) => {
         if (!mounted) return;
         setBookings(bookingRes.data?.data || []);
         setLogins(loginRes.data?.data || []);
       })
+      .catch(() => { if (mounted) setError("Bookings and login activity could not be loaded."); })
       .finally(() => mounted && setLoading(false));
     return () => {
       mounted = false;
@@ -48,6 +50,8 @@ export default function AdminBookings() {
       <div className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_14px_45px_rgba(0,0,0,0.04)]">
         {loading ? (
           <div className="space-y-4 p-8">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-black/5" />)}</div>
+        ) : error ? (
+          <div role="alert" className="p-12 text-center text-sm font-black text-red-700">{error}</div>
         ) : activeTab === "bookings" ? (
           <BookingsTable rows={bookings} />
         ) : (

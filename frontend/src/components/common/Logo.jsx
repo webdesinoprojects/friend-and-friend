@@ -1,31 +1,20 @@
-import { HeartHandshake, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export default function Logo() {
+export default function Logo({ size = "navbar" }) {
   const goHome = () => {
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
   };
   return (
-    <Link to="/" onClick={goHome} className="flex items-center gap-3" aria-label="BuddyBOOK home">
-      <div className="grid h-9 w-9 place-items-center border-2 border-yellow-200 rounded-2xl bg-blue-950 text-yellow-100 shadow-md">
-        <HeartHandshake size={20} strokeWidth={2.2} />
-      </div>
-
-      <div className="leading-none">
-        <div className="flex items-center gap-1">
-          <span className="text-[23px] font-black tracking-tight text-slate-950">
-            Buddy
-          </span>
-          <span className="text-[23px] font-black tracking-tight text-blue-950">
-            BOOK
-          </span>
-        </div>
-
-        <div className="mt-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-700">
-          <ShieldCheck size={11} className="text-blue-950" />
-          Safe meetups
-        </div>
-      </div>
+    <Link to="/" onClick={goHome} className="inline-flex shrink-0 items-center" aria-label="PPlusOne home">
+      <img
+        src="/home-navbar-logo.png"
+        alt="PPlusOne"
+        className={size === "large"
+          ? "h-16 w-auto max-w-[7.5rem] object-contain sm:h-20 sm:max-w-[9.5rem]"
+          : "h-10 w-auto max-w-[4rem] object-contain sm:h-12 sm:max-w-[4.75rem]"}
+        width="833"
+        height="629"
+      />
     </Link>
   );
 }

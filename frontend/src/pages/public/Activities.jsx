@@ -108,7 +108,7 @@ export default function Activities() {
                 <div className="mt-7 flex items-center gap-4 border-t border-black/10 pt-5">
                   <div className="flex -space-x-3">
                     {["photo-1494790108377-be9c29b29330", "photo-1500648767791-00dcc994a43e", "photo-1534528741775-53994a69daeb"].map((photo) => (
-                      <img key={photo} src={`https://images.unsplash.com/${photo}?auto=format&fit=crop&w=100&q=80`} alt="BuddyBook community member" className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover" />
+                      <img key={photo} src={`https://images.unsplash.com/${photo}?auto=format&fit=crop&w=100&q=80`} alt="PPlusOne community member" className="h-11 w-11 rounded-full border-2 border-[#fffaf2] object-cover" />
                     ))}
                   </div>
                   <p className="text-xs font-extrabold leading-5 text-black/55">Real people.<br />Plans at your pace.</p>

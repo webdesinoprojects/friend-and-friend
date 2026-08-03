@@ -1,5 +1,6 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import api from "../api/api";
 import { SkeletonRows } from "../components/common/Feedback";
 import { UserWorkspaceRoute } from "../components/users/UserAppLayout";
 import { ProviderWorkspaceRoute } from "../components/layout/AppShell";
@@ -33,10 +34,11 @@ const Activities = lazy(() => import("../pages/public/Activities"));
 const HowItWorks = lazy(() => import("../pages/public/HowItWorks"));
 const Safety = lazy(() => import("../pages/public/Safety"));
 const Contact = lazy(() => import("../pages/public/Contact"));
-const EarnWithBuddyBook = lazy(() => import("../pages/public/EarnWithBuddyBook"));
+const EarnWithPPlusOne = lazy(() => import("../pages/public/EarnWithPPlusOne"));
 const TrustAndSafety = lazy(() => import("../pages/public/TrustAndSafety"));
 const PublicProviderProfile = lazy(() => import("../pages/public/PublicProviderProfile"));
 const NotFound = lazy(() => import("../pages/public/NotFound"));
+const Maintenance = lazy(() => import("../pages/public/Maintenance"));
 
 /* AUTH */
 const Register=lazy(()=>import("../pages/auth/Register")); const ChooseRole=lazy(()=>import("../pages/auth/ChooseRole"));
@@ -53,8 +55,48 @@ import Home from "../pages/public/Home";
 import OpeningSplash from "../components/common/OpeningSplash";
 
 export default function AppRoutes() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const [maintenance, setMaintenance] = useState(false);
+  const [checkingMaintenance, setCheckingMaintenance] = useState(!isAdminRoute);
+  const checkMaintenance = useCallback(async () => {
+    if (isAdminRoute) return;
+    setCheckingMaintenance(true);
+    try {
+      const { data } = await api.get("/system/maintenance", { suppressGlobalError: true });
+      setMaintenance(data?.maintenanceMode === true);
+    } catch {
+      // A status check must fail open so a temporary network issue does not hide the whole site.
+    } finally {
+      setCheckingMaintenance(false);
+    }
+  }, [isAdminRoute]);
+
+  useEffect(() => {
+    if (isAdminRoute) {
+      setCheckingMaintenance(false);
+      return undefined;
+    }
+    checkMaintenance();
+    const showMaintenance = () => {
+      setMaintenance(true);
+      setCheckingMaintenance(false);
+    };
+    window.addEventListener("PPlusOne:maintenance", showMaintenance);
+    return () => {
+      window.removeEventListener("PPlusOne:maintenance", showMaintenance);
+    };
+  }, [checkMaintenance, isAdminRoute]);
+
   const userOnly = (element) => <ProtectedRoleRoute role="USER">{element}</ProtectedRoleRoute>;
   const providerOnly = (element) => <ProtectedRoleRoute role="PROVIDER">{element}</ProtectedRoleRoute>;
+
+  if (!isAdminRoute && checkingMaintenance && !maintenance) {
+    return <div className="min-h-[100dvh] animate-pulse bg-[#fffaf4]" />;
+  }
+  if (!isAdminRoute && maintenance) {
+    return <Suspense fallback={<div className="min-h-[100dvh] bg-[#fffaf4]" />}><Maintenance onCheckAgain={checkMaintenance} checking={checkingMaintenance} /></Suspense>;
+  }
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#fffaf3] p-8 pt-28"><SkeletonRows count={7} /></div>}><Routes>
@@ -64,7 +106,7 @@ export default function AppRoutes() {
       <Route path="/activities" element={<Activities />} />
       <Route path="/safety" element={<Safety />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/earn-with-buddybook" element={<EarnWithBuddyBook />} />
+      <Route path="/earn-with-PPlusOne" element={<EarnWithPPlusOne />} />
       <Route path="/trust-safety" element={<TrustAndSafety />} />
       <Route path="/providers/:providerId" element={<PublicProviderProfile />} />
       <Route path="/404" element={<NotFound />} />
@@ -77,6 +119,7 @@ export default function AppRoutes() {
 
       {/* USER ROUTES */}
       <Route path="/app/user" element={userOnly(<UserWorkspaceRoute />)}>
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<UserDashboard />} />
         <Route path="search" element={<Navigate to="/app/user/dashboard" replace />} />
         <Route path="watchlist" element={<UserWatchlist />} />
@@ -99,6 +142,7 @@ export default function AppRoutes() {
 
       {/* PROVIDER ROUTES */}
       <Route path="/app/provider" element={providerOnly(<ProviderWorkspaceRoute />)}>
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<ProviderDashboard />} />
         <Route path="create" element={<ProviderCreate />} />
         <Route path="services" element={<ProviderServices />} />
@@ -114,6 +158,7 @@ export default function AppRoutes() {
       </Route>
 
       {/* ADMIN ROUTES */}
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={
         <ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>

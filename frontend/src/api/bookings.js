@@ -53,6 +53,11 @@ export function listBookings(params = {}, options = {}) {
   );
 }
 
+export async function getUserDashboardSummary() {
+  const { data } = await api.get("/bookings/summary");
+  return data?.data || { totalSpending: 0, savedProviders: 0 };
+}
+
 export async function getBookedUserProfile(userId) {
   const { data } = await api.get(`/bookings/users/${userId || "me"}/profile`, { timeout: 30000 });
   return data?.data || data;

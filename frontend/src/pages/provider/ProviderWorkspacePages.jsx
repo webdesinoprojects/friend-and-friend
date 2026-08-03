@@ -246,7 +246,7 @@ export function ProviderBookings() {
                           </a>
                           <div className="min-w-0">
                             <h3 className="truncate text-base font-black text-black">{booking.service || booking.activity || "Buddy meetup"}</h3>
-                            <p className="truncate text-sm font-bold text-slate-500">with <a href={`/app/provider/users/${booking.userId}`} className="text-slate-700 underline decoration-[#e08c4c]/50 underline-offset-2 hover:text-[#b8652d]">{booking.userName || booking.customerName || "BuddyBOOK user"}</a></p>
+                            <p className="truncate text-sm font-bold text-slate-500">with <a href={`/app/provider/users/${booking.userId}`} className="text-slate-700 underline decoration-[#e08c4c]/50 underline-offset-2 hover:text-[#b8652d]">{booking.userName || booking.customerName || "PPlusOne user"}</a></p>
                             <a href={`/app/provider/users/${booking.userId}`} className="mt-1 inline-block text-[10px] font-black uppercase tracking-[0.12em] text-blue-600 hover:text-blue-800">View profile →</a>
                           </div>
                         </div>

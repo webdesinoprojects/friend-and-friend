@@ -112,9 +112,9 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("buddybook_auth_user");
+    localStorage.removeItem("PPlusOne_auth_user");
     clearQueryCache();
-    window.dispatchEvent(new Event("buddybook:auth-changed"));
+    window.dispatchEvent(new Event("PPlusOne:auth-changed"));
     setDrawerOpen(false);
     navigate("/");
   };
@@ -123,7 +123,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
     <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
       <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 border-r border-black/10 bg-white p-6 lg:flex lg:flex-col">
-          <Logo />
+          <Logo size="large" />
           <nav className="mt-10 grid gap-2">
             {links.map(({ label, to, icon: Icon }) => {
               const active = location.pathname === to || (to.includes(pageName) && location.pathname.includes(to));
@@ -289,7 +289,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
                 </div>
 
                 <div className="mt-6 rounded-2xl bg-[#fffaf3] p-4">
-                  <p className="text-lg font-black">{storedUser?.fullName || (type === "provider" ? "Provider" : "BuddyBOOK User")}</p>
+                  <p className="text-lg font-black">{storedUser?.fullName || (type === "provider" ? "Provider" : "PPlusOne User")}</p>
                   <p className="mt-1 truncate text-sm font-semibold text-[#6b5d52]">
                     {storedUser?.email || storedUser?.phone || "Profile details"}
                   </p>
@@ -338,7 +338,7 @@ function AppShellView({ type, children, searchValue = "", onSearchChange }) {
 
 function readStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }

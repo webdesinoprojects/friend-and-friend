@@ -55,7 +55,7 @@ export default function AdminOrders() {
 }
 
 export function toOrder(booking) {
-  return { id: booking.id, image: booking.providerImage || "", name: booking.service || booking.activity || "BuddyBOOK booking", customerName: booking.userName || "Customer", providerName: booking.providerName || "Provider", quantity: Number(booking.durationHours || 1), price: Number(booking.amount || 0), date: booking.date || booking.createdAt, status: String(booking.status || "PENDING").toUpperCase(), paymentStatus: String(booking.paymentStatus || "PENDING").toUpperCase() };
+  return { id: booking.id, image: booking.providerImage || "", name: booking.service || booking.activity || "PPlusOne booking", customerName: booking.userName || "Customer", providerName: booking.providerName || "Provider", quantity: Number(booking.durationHours || 1), price: Number(booking.amount || 0), date: booking.date || booking.createdAt, status: String(booking.status || "PENDING").toUpperCase(), paymentStatus: String(booking.paymentStatus || "PENDING").toUpperCase() };
 }
 export function LoadingRows() { return <div className="space-y-3 rounded-2xl border bg-white p-6">{Array.from({length:6},(_,i)=><div key={i} className="h-12 animate-pulse rounded-xl bg-black/5" />)}</div>; }
 export function LoadError({ message, onRetry }) { return <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center"><p className="text-sm font-black text-red-700">{message}</p><button type="button" onClick={onRetry} className="mt-3 rounded-xl bg-black px-5 py-2.5 text-xs font-black text-white">Retry</button></div>; }

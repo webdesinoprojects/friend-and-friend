@@ -26,9 +26,9 @@ function buildContactEmail({ name, email, phone, service, message }) {
     <div style="margin:0;background:#fffaf3;padding:32px;font-family:Inter,Arial,sans-serif;color:#17120f">
       <div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #ead7c7;border-radius:22px;overflow:hidden;box-shadow:0 22px 70px rgba(80,45,30,.10)">
         <div style="background:#17120f;color:#fffaf3;padding:28px 30px">
-          <div style="font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#f5cac3">BuddyBOOK Contact</div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#f5cac3">PPlusOne Contact</div>
           <h1 style="margin:10px 0 0;font-size:28px;line-height:1.2">New message from ${escapeHtml(name)}</h1>
-          <p style="margin:8px 0 0;color:rgba(255,250,243,.72);font-size:14px">A visitor submitted the contact form on BuddyBOOK.</p>
+          <p style="margin:8px 0 0;color:rgba(255,250,243,.72);font-size:14px">A visitor submitted the contact form on PPlusOne.</p>
         </div>
 
         <div style="padding:26px 30px">
@@ -86,15 +86,15 @@ const sendContactMessage = async (req, res) => {
     const result = await sendTransactionalEmail({
       to: CONTACT_TO_EMAIL,
       replyTo: payload.email,
-      subject: `BuddyBOOK contact · ${payload.service} · ${payload.name}`,
+      subject: `PPlusOne contact · ${payload.service} · ${payload.name}`,
       html: buildContactEmail(payload),
-      text: `New BuddyBOOK contact\nName: ${payload.name}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nService: ${payload.service}\n\n${payload.message}`,
+      text: `New PPlusOne contact\nName: ${payload.name}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nService: ${payload.service}\n\n${payload.message}`,
       tag: "contact_form",
     });
 
     return res.json({
       success: true,
-      message: "Your message has been sent to BuddyBOOK support.",
+      message: "Your message has been sent to PPlusOne support.",
       id: result?.id,
     });
   } catch (error) {

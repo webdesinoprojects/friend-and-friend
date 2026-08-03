@@ -32,6 +32,42 @@ function extensionPrice(booking) {
   return Math.max(1, Math.round(previous * 0.9));
 }
 
+function minutesFromTime(value) {
+  const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (minute > 59 || (meridiem ? hour < 1 || hour > 12 : hour > 23)) return null;
+  if (meridiem) hour = (hour % 12) + (meridiem === "PM" ? 12 : 0);
+  return hour * 60 + minute;
+}
+
+async function bookingAvailabilityError(provider, { date, time, hours, excludeBookingId }) {
+  const selectedDate = new Date(`${date}T00:00:00`);
+  const start = minutesFromTime(time);
+  if (Number.isNaN(selectedDate.getTime()) || start === null) return "Choose a valid booking date and time.";
+  const weekly = Array.isArray(provider.profileQuestions)
+    ? provider.profileQuestions.find((item) => item?.type === "WEEKLY_AVAILABILITY")?.slots
+    : null;
+  if (Array.isArray(weekly) && weekly.length) {
+    const day = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
+    const slot = weekly.find((item) => String(item?.day).toLowerCase() === day.toLowerCase());
+    if (!slot?.enabled) return `This provider is not available on ${day}.`;
+    const [from, until] = String(slot.window || "").split(/\s+-\s+/).map(minutesFromTime);
+    if (from === null || until === null) return `The provider's ${day} availability window is invalid.`;
+    if (start < from || start + hours * 60 > until) return `Choose a time within the provider's ${day} availability (${slot.window}).`;
+  }
+  const rows = await prisma.booking.findMany({
+    where: { providerId: provider.id, date: String(date), status: { in: ["PENDING", "ACCEPTED", "CONFIRMED", "ACTIVE"] }, ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}) },
+    select: { time: true, durationHours: true },
+  });
+  if (rows.some((row) => { const otherStart = minutesFromTime(row.time); return otherStart !== null && start < otherStart + Number(row.durationHours || 1) * 60 && start + hours * 60 > otherStart; })) {
+    return "This provider already has a booking during that time.";
+  }
+  return "";
+}
+
 function serializeBooking(booking, viewerId) {
   const provider = booking.provider;
   const userUnavailable = booking.user?.isBlocked || isAccountDisabled(booking.user);
@@ -43,11 +79,11 @@ function serializeBooking(booking, viewerId) {
     id: booking.id,
     code: booking.code,
     userId: booking.userId,
-    userName: userUnavailable ? "Account unavailable" : booking.user?.fullName || "BuddyBOOK user",
+    userName: userUnavailable ? "Account unavailable" : booking.user?.fullName || "PPlusOne user",
     userImage: userUnavailable ? "" : booking.user?.profileImage || "",
     providerId: booking.providerId,
     providerUserId: booking.providerUserId,
-    providerName: providerUnavailable ? "Account unavailable" : provider?.user?.fullName || "BuddyBOOK provider",
+    providerName: providerUnavailable ? "Account unavailable" : provider?.user?.fullName || "PPlusOne provider",
     providerPhone: providerUnavailable ? "" : provider?.user?.phone || "",
     providerImage: providerUnavailable ? "" : getImageUrl(provider),
     userUnavailable,
@@ -130,6 +166,8 @@ exports.createBooking = async (req, res) => {
     }
 
     const hours = toInt(durationHours || duration, 1) || 1;
+    const availabilityError = await bookingAvailabilityError(provider, { date, time, hours });
+    if (availabilityError) return res.status(409).json({ success: false, message: availabilityError });
     const price = toInt(provider.hourlyPrice, 0);
     const finalAmount = price * hours;
     const code = `BBK-${Date.now()}`;
@@ -205,6 +243,8 @@ exports.createBookingRequest = async (req, res) => {
     const provider = await prisma.providerProfile.findUnique({ where: { id: providerId }, include: { user: true } });
     if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) return res.status(404).json({ success: false, message: "This provider profile is currently unavailable." });
     const hours = Math.min(6, Math.max(1, toInt(durationHours || duration, 1)));
+    const availabilityError = await bookingAvailabilityError(provider, { date, time, hours });
+    if (availabilityError) return res.status(409).json({ success: false, message: availabilityError });
     const amount = toInt(provider.hourlyPrice, 0) * hours;
     const booking = await prisma.$transaction(async (tx) => {
       const created = await tx.booking.create({
@@ -258,6 +298,8 @@ exports.createRazorpayOrder = async (req, res) => {
     const provider = await prisma.providerProfile.findUnique({ where: { id: providerId }, include: { user: true } });
     if (!provider || provider.user?.isBlocked || isAccountDisabled(provider.user)) return res.status(404).json({ success: false, message: "This provider profile is currently unavailable." });
     const hours = Math.min(6, Math.max(1, toInt(durationHours || duration, 1)));
+    const availabilityError = await bookingAvailabilityError(provider, { date, time, hours });
+    if (availabilityError) return res.status(409).json({ success: false, message: availabilityError });
     const amount = toInt(provider.hourlyPrice, 0) * hours;
     if (amount < 1) return res.status(400).json({ success: false, message: "This provider does not have a valid booking price." });
     const order = await razorpay.orders.create({
@@ -340,6 +382,34 @@ exports.listMyBookings = async (req, res) => {
   }
 };
 
+exports.getUserDashboardSummary = async (req, res) => {
+  try {
+    const [spending, savedProviders] = await Promise.all([
+      prisma.booking.aggregate({
+        where: {
+          userId: req.user.id,
+          paymentStatus: { in: ["PAID", "PARTIALLY_REFUNDED"] },
+        },
+        _sum: { amount: true, refundAmount: true },
+      }),
+      prisma.providerWatchlist.count({ where: { userId: req.user.id } }),
+    ]);
+
+    const paidAmount = Number(spending._sum.amount || 0);
+    const refundedAmount = Number(spending._sum.refundAmount || 0);
+    return res.json({
+      success: true,
+      data: {
+        totalSpending: Math.max(0, paidAmount - refundedAmount),
+        savedProviders,
+      },
+    });
+  } catch (error) {
+    console.error("USER_DASHBOARD_SUMMARY_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Dashboard summary could not be loaded." });
+  }
+};
+
 exports.getBookedUserProfile = async (req, res) => {
   try {
     const userId = String(req.params.userId || "");
@@ -363,7 +433,7 @@ exports.getBookedUserProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "This user profile is unavailable." });
     }
     const reviews = await prisma.reviewReport.findMany({
-      where: { reportedUserId: user.id, targetRole: "USER", reason: "__BUDDYBOOK_REVIEW__", adminAction: null },
+      where: { reportedUserId: user.id, targetRole: "USER", reason: "__PPlusOne_REVIEW__", adminAction: null },
       orderBy: { createdAt: "desc" },
       take: 20,
     });
@@ -413,7 +483,7 @@ exports.getBookedUserProfile = async (req, res) => {
         bookings: bookings.map((booking) => serializeBooking(booking, req.user.id)),
         reviews: reviews.map((review) => ({
           id: review.reviewId || review.id,
-          reviewerName: review.reporterName || "BuddyBOOK provider",
+          reviewerName: review.reporterName || "PPlusOne provider",
           rating: review.rating,
           description: review.reviewText || "",
           service: review.reviewSnapshot?.service || "",

@@ -10,8 +10,8 @@ export default function AdminAuthLayout({ title, subtitle, children }) {
             ← Back to home
           </Link>
 
-          <div className="mb-6 rounded-xl bg-black/5 p-3 w-fit">
-            <Logo />
+          <div className="mb-6 w-fit">
+            <Logo size="large" />
           </div>
 
           <h1 className="text-3xl font-black text-black">{title}</h1>

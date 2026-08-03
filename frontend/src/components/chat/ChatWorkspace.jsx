@@ -50,7 +50,7 @@ const MAX_VOICE_SECONDS = 120;
 
 function storedUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null") || {};
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null") || {};
   } catch {
     return {};
   }
@@ -125,7 +125,7 @@ export default function ChatWorkspace({ role }) {
   const [voiceSending, setVoiceSending] = useState(false);
   const [liveSharing, setLiveSharing] = useState(false);
   const [clock, setClock] = useState(() => Date.now());
-  const bottomRef = useRef(null);
+  const messagesRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -269,7 +269,9 @@ export default function ChatWorkspace({ role }) {
   }, [currentChatId, initialPeerOnline]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const messages = messagesRef.current;
+    if (!messages) return;
+    messages.scrollTo({ top: messages.scrollHeight, behavior: "smooth" });
   }, [active?.messages?.length, activeId]);
 
   useEffect(() => {
@@ -569,8 +571,8 @@ export default function ChatWorkspace({ role }) {
   const peerImage = active ? (role === "PROVIDER" ? active.userImage : active.providerImage) : "";
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
-      <div className="grid h-[calc(100vh-10rem)] min-h-[620px] grid-cols-1 md:grid-cols-[340px_minmax(0,1fr)]">
+    <section className="h-full min-h-0 overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm">
+      <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[340px_minmax(0,1fr)]">
         <aside className={`${mobileOpen ? "hidden md:flex" : "flex"} min-h-0 flex-col border-r border-black/10 bg-[#fffaf5]`}>
           <div className="border-b border-black/10 p-5">
             <div className="flex items-center justify-between">
@@ -609,7 +611,7 @@ export default function ChatWorkspace({ role }) {
               <div className="relative"><button onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 hover:bg-black/5" aria-label="Conversation menu"><MoreVertical /></button>{menuOpen && <div className="absolute right-0 top-11 z-30 w-52 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"><button onClick={() => { setPinnedOpen((open) => !open); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black hover:bg-black/5"><Pin size={16}/> Pinned messages</button><button onClick={hideChat} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete messages</button></div>}</div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+            <div ref={messagesRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {pinnedOpen ? <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-wider text-amber-800">Pinned messages</p><button onClick={() => setPinnedOpen(false)}><X size={15}/></button></div><div className="mt-2 grid gap-1">{(active.messages || []).filter((message) => message.pinnedAt && !message.deletedAt).map((message) => <button type="button" key={message.id} onClick={() => document.getElementById(`message-${message.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="truncate rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-black/60">{message.text || message.type}</button>)}{!(active.messages || []).some((message) => message.pinnedAt && !message.deletedAt) ? <p className="py-2 text-xs font-semibold text-amber-800/60">No pinned messages in the loaded history.</p> : null}</div></div> : null}
               {active.hasMore && <div className="mb-5 text-center"><button disabled={loadingOlder} onClick={loadOlder} className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-black disabled:opacity-50">{loadingOlder ? "Loading…" : "Load older messages"}</button></div>}
               {!active.messages?.length && <div className="grid h-full place-items-center text-center"><div><MessageCircle className="mx-auto text-black/20" size={40} /><p className="mt-3 font-black">Say hello to {peerName}</p><p className="mt-1 text-sm font-semibold text-black/40">Messages are saved securely to your account.</p></div></div>}
@@ -621,7 +623,7 @@ export default function ChatWorkspace({ role }) {
                 const repliedMessage = message.replyToId ? active.messages.find((row) => row.id === message.replyToId) : null;
                 return <div key={message.id} id={`message-${message.id}`}>{showDate && <div className="my-5 text-center"><span className="rounded-full bg-black/5 px-3 py-1 text-[10px] font-black text-black/45">{dateLabel(message.createdAt)}</span></div>}<MessageBubble message={message} repliedMessage={repliedMessage} mine={mine} canEdit={canEdit} reactionOpen={reactionOpenId === message.id} onToggleReactions={() => setReactionOpenId((current) => current === message.id ? "" : message.id)} onReact={(emoji) => reactToMessage(message, emoji)} onReply={() => setReplyTo(message)} onPin={() => pinMessage(message)} onEdit={() => setEditing({ message, text: message.text })} onDelete={() => removeMessage(message)} onRetry={() => retryMessage(message)} /></div>;
               })}
-              <div ref={bottomRef} />
+              <div />
             </div>
 
             <footer className="border-t border-black/10 bg-white p-3 sm:p-4">

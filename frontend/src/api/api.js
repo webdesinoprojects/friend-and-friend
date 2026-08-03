@@ -23,7 +23,7 @@ let csrfRequest = null;
 api.interceptors.request.use(async (config) => {
   let csrfToken = document.cookie
     .split("; ")
-    .find((row) => row.startsWith("buddybook_csrf="))
+    .find((row) => row.startsWith("PPlusOne_csrf="))
     ?.split("=")
     .slice(1)
     .join("=") || csrfTokenInMemory;
@@ -58,20 +58,24 @@ api.interceptors.response.use(
     const nextCsrfToken = error?.response?.headers?.["x-csrf-token"];
     if (nextCsrfToken) csrfTokenInMemory = nextCsrfToken;
     const status = error?.response?.status;
-    if ((!status || status >= 500) && !error?.config?.suppressGlobalError) {
+    const maintenanceResponse = status === 503 && error?.response?.data?.code === "MAINTENANCE_MODE";
+    if (maintenanceResponse) {
+      window.dispatchEvent(new Event("PPlusOne:maintenance"));
+    }
+    if ((!status || status >= 500) && !maintenanceResponse && !error?.config?.suppressGlobalError) {
       const message = error?.response?.data?.message ||
         (!status ? "Cannot reach the server. Check your connection and try again." : "The server could not complete this request.");
-      window.dispatchEvent(new CustomEvent("buddybook:toast", {
+      window.dispatchEvent(new CustomEvent("PPlusOne:toast", {
         detail: { id: Date.now(), message, type: "error" },
       }));
     }
     if (status === 423 && error?.response?.data?.accountDisabled) {
       try {
-        const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+        const user = JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
         if (user) {
           const nextUser = { ...user, ...error.response.data };
-          localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
-          window.dispatchEvent(new Event("buddybook:auth-changed"));
+          localStorage.setItem("PPlusOne_auth_user", JSON.stringify(nextUser));
+          window.dispatchEvent(new Event("PPlusOne:auth-changed"));
           const settingsPath = nextUser.role === "PROVIDER" ? "/app/provider/settings" : "/app/user/settings";
           if (window.location.pathname !== settingsPath) window.location.assign(settingsPath);
         }
@@ -83,9 +87,9 @@ api.interceptors.response.use(
       clearQueryCache();
       const isAdmin = String(error?.config?.url || "").startsWith("/admin");
       if (isAdmin) {
-        localStorage.removeItem("buddybook_admin_user");
+        localStorage.removeItem("PPlusOne_admin_user");
       } else {
-        localStorage.removeItem("buddybook_auth_user");
+        localStorage.removeItem("PPlusOne_auth_user");
       }
     }
     return Promise.reject(error);

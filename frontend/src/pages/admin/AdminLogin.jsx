@@ -24,7 +24,7 @@ const submit = async (event) => {
       throw new Error("Invalid admin login response.");
     }
 
-    localStorage.setItem("buddybook_admin_user", JSON.stringify(user));
+    localStorage.setItem("PPlusOne_admin_user", JSON.stringify(user));
 
     navigate("/admin/dashboard");
   } catch (error) {

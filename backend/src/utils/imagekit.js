@@ -2,11 +2,11 @@ const ImageKit = require("imagekit");
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const IMAGEKIT_PROVIDER_FOLDER = "/buddybook/providers";
-const IMAGEKIT_KYC_FOLDER = "/buddybook/kyc";
+const IMAGEKIT_PROVIDER_FOLDER = "/PPlusOne/providers";
+const IMAGEKIT_KYC_FOLDER = "/PPlusOne/kyc";
 const MAX_KYC_DOCUMENT_BYTES = 5 * 1024 * 1024;
 const ALLOWED_KYC_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
-const IMAGEKIT_CHAT_VOICE_FOLDER = "/buddybook/chat/voice";
+const IMAGEKIT_CHAT_VOICE_FOLDER = "/PPlusOne/chat/voice";
 const MAX_VOICE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_VOICE_MIME_TYPES = new Set([
   "audio/webm",

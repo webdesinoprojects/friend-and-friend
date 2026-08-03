@@ -15,16 +15,27 @@ export default function AdminUsers() {
 
   useEffect(() => {
     let mounted = true;
-    getAdminPage("/admin/users", getAdminHeaders())
-      .then(({ data }) => {
-        if (mounted) setUsers(data?.data || []);
-      })
-      .catch(() => setUsers([]))
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+    const loadUsers = ({ showLoading = false } = {}) => {
+      if (showLoading) setLoading(true);
+      return getAdminPage("/admin/users", getAdminHeaders(), { force: true, staleTime: 0 })
+        .then(({ data }) => {
+          if (mounted) setUsers(data?.data || []);
+        })
+        .catch(() => {
+          if (mounted && showLoading) setUsers([]);
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+    };
+    loadUsers({ showLoading: true });
+    const refreshTimer = window.setInterval(() => loadUsers(), 15_000);
+    const refreshOnFocus = () => loadUsers();
+    window.addEventListener("focus", refreshOnFocus);
     return () => {
       mounted = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", refreshOnFocus);
     };
   }, []);
 

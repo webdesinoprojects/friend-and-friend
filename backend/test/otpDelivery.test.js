@@ -22,7 +22,7 @@ test.afterEach(() => {
 test("sendEmailOtp sends the registration code through Resend", async () => {
   process.env.RESEND_TRANSACTIONAL_API_KEY = "test-api-key";
   process.env.RESEND_FROM_EMAIL = "otp@example.com";
-  process.env.RESEND_FROM_NAME = "BuddyBOOK";
+  process.env.RESEND_FROM_NAME = "PPlusOne";
   process.env.RESEND_TEST_MODE = "false";
 
   let request;
@@ -37,7 +37,7 @@ test("sendEmailOtp sends the registration code through Resend", async () => {
   assert.equal(request.url, "https://api.resend.com/emails");
   assert.equal(request.options.method, "POST");
   assert.equal(request.options.headers.authorization, "Bearer test-api-key");
-  assert.equal(body.from, "BuddyBOOK <otp@example.com>");
+  assert.equal(body.from, "PPlusOne <otp@example.com>");
   assert.deepEqual(body.to, ["member@example.com"]);
   assert.match(body.subject, /482913/);
   assert.match(body.html, /482913/);

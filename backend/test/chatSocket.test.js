@@ -21,7 +21,7 @@ function emitAck(socket, event, payload) {
 function connect(url, token) {
   return new Promise((resolve, reject) => {
     const socket = createClient(url, {
-      extraHeaders: token ? { Cookie: `buddybook_session=${encodeURIComponent(token)}` } : {},
+      extraHeaders: token ? { Cookie: `PPlusOne_session=${encodeURIComponent(token)}` } : {},
       transports: ["websocket"],
       forceNew: true,
       reconnection: false,

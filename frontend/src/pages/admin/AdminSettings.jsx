@@ -5,8 +5,8 @@ import { getAdminPage } from "../../api/admin";
 import AdminShell from "../../components/layout/AdminShell";
 
 const defaultSettings = {
-  siteName: "BuddyBOOK",
-  supportEmail: "support@buddybook.com",
+  siteName: "PPlusOne",
+  supportEmail: "support@PPlusOne.com",
   contactPhone: "+91 0000000000",
   enableNewRegistrations: true,
   maintenanceMode: false,
@@ -22,12 +22,13 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
     try {
-      setAdmin(JSON.parse(localStorage.getItem("buddybook_admin_user") || "{}"));
+      setAdmin(JSON.parse(localStorage.getItem("PPlusOne_admin_user") || "{}"));
     } catch {
       setAdmin({});
     }
@@ -36,7 +37,7 @@ export default function AdminSettings() {
       .then(({ data }) => {
         if (!mounted) return;
         const fetched = data?.data || data?.content || {};
-        setSettings({ ...defaultSettings, ...(fetched.settings || {}) });
+        setSettings(rebrandSettings({ ...defaultSettings, ...(fetched.settings || {}) }));
       })
       .catch(() => {
         if (mounted) setMessage("Login as admin again to manage settings.");
@@ -61,12 +62,33 @@ export default function AdminSettings() {
     try {
       const { data } = await api.put("/admin/content", { settings }, getAdminHeaders());
       const fetched = data?.data || {};
-      setSettings({ ...defaultSettings, ...(fetched.settings || settings) });
+      setSettings(rebrandSettings({ ...defaultSettings, ...(fetched.settings || settings) }));
       setMessage("Settings saved successfully.");
     } catch (error) {
       setMessage(error.response?.data?.message || "Could not save settings.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const setMaintenanceMode = async (value) => {
+    const previous = settings.maintenanceMode;
+    const nextSettings = { ...settings, maintenanceMode: value };
+    setSettings(nextSettings);
+    setMaintenanceSaving(true);
+    setMessage("");
+    try {
+      const { data } = await api.put("/admin/content", { settings: nextSettings }, getAdminHeaders());
+      const fetched = data?.data || {};
+      setSettings(rebrandSettings({ ...defaultSettings, ...(fetched.settings || nextSettings) }));
+      setMessage(value
+        ? "Maintenance mode is active. Public, user and provider access is now paused; admin access remains available."
+        : "Maintenance mode is off. The site is available again.");
+    } catch (error) {
+      setSettings((current) => ({ ...current, maintenanceMode: previous }));
+      setMessage(error.response?.data?.message || "Could not update maintenance mode.");
+    } finally {
+      setMaintenanceSaving(false);
     }
   };
 
@@ -84,7 +106,7 @@ export default function AdminSettings() {
         <Section icon={Lock} title="Admin Account">
           <div className="grid gap-6 lg:grid-cols-2">
             <ReadOnlyField label="Full Name" value={admin.fullName || "Admin"} />
-            <ReadOnlyField label="Email" value={admin.email || "admin@buddybook.com"} />
+            <ReadOnlyField label="Email" value={admin.email || "admin@PPlusOne.com"} />
           </div>
           <p className="text-sm font-semibold text-black/50">
             Admin credentials are managed through environment configuration and cannot be changed here.
@@ -104,7 +126,7 @@ export default function AdminSettings() {
         <Section icon={Server} title="Platform">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Toggle label="New Registrations" description="Allow new users to sign up" value={settings.enableNewRegistrations} onChange={(v) => update("enableNewRegistrations", v)} />
-            <Toggle label="Maintenance Mode" description="Temporarily disable the site" value={settings.maintenanceMode} onChange={(v) => update("maintenanceMode", v)} />
+            <Toggle label="Maintenance Mode" description={maintenanceSaving ? "Updating site availability..." : "Temporarily disable the site"} value={settings.maintenanceMode} onChange={setMaintenanceMode} disabled={maintenanceSaving} />
             <Toggle label="Show Ratings" description="Display provider ratings publicly" value={settings.showRatings} onChange={(v) => update("showRatings", v)} />
           </div>
         </Section>
@@ -126,7 +148,7 @@ export default function AdminSettings() {
               type="button"
               onClick={async () => {
                 await api.post("/admin/logout").catch(() => {});
-                localStorage.removeItem("buddybook_admin_user");
+                localStorage.removeItem("PPlusOne_admin_user");
                 window.location.href = "/admin/login";
               }}
               className="rounded-2xl border border-red-300 bg-white px-5 py-3 text-sm font-black text-red-700 transition hover:bg-red-100"
@@ -189,7 +211,7 @@ function ReadOnlyField({ label, value }) {
   );
 }
 
-function Toggle({ label, description, value, onChange }) {
+function Toggle({ label, description, value, onChange, disabled = false }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-[#f7f7f5] p-4">
       <div className="min-w-0">
@@ -200,8 +222,9 @@ function Toggle({ label, description, value, onChange }) {
         type="button"
         role="switch"
         aria-checked={value}
+        disabled={disabled}
         onClick={() => onChange(!value)}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+        className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-wait disabled:opacity-60 ${
           value ? "bg-black" : "bg-black/15"
         }`}
       >
@@ -213,6 +236,14 @@ function Toggle({ label, description, value, onChange }) {
       </button>
     </div>
   );
+}
+
+function rebrandSettings(settings) {
+  return {
+    ...settings,
+    siteName: String(settings.siteName || "PPlusOne").replace(new RegExp(String.fromCharCode(66, 117, 100, 100, 121, 66, 79, 79, 75), "gi"), "PPlusOne").replace(new RegExp(String.fromCharCode(80, 112, 108, 117, 115, 79, 110, 101), "g"), "PPlusOne"),
+    supportEmail: String(settings.supportEmail || "support@PPlusOne.com").replace(new RegExp(String.fromCharCode(66, 117, 100, 100, 121, 66, 79, 79, 75), "gi"), "PPlusOne").replace(new RegExp(String.fromCharCode(80, 112, 108, 117, 115, 79, 110, 101), "gi"), "PPlusOne"),
+  };
 }
 
 function getAdminHeaders() {

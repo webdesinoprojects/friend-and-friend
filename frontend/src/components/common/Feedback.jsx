@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw, X } from "lucide-react";
 
 export function notify(message, type = "success") {
-  window.dispatchEvent(new CustomEvent("buddybook:toast", { detail: { id: Date.now(), message, type } }));
+  window.dispatchEvent(new CustomEvent("PPlusOne:toast", { detail: { id: Date.now(), message, type } }));
 }
 
 export function confirmAction({ title, message, confirmLabel = "Confirm", danger = false }) {
-  return new Promise((resolve) => window.dispatchEvent(new CustomEvent("buddybook:confirm", { detail: { title, message, confirmLabel, danger, resolve } })));
+  return new Promise((resolve) => window.dispatchEvent(new CustomEvent("PPlusOne:confirm", { detail: { title, message, confirmLabel, danger, resolve } })));
 }
 
 export function FeedbackHost() {
@@ -18,9 +18,9 @@ export function FeedbackHost() {
       window.setTimeout(() => setToasts((rows) => rows.filter((item) => item.id !== detail.id)), 4200);
     };
     const confirm = ({ detail }) => setConfirmation(detail);
-    window.addEventListener("buddybook:toast", toast);
-    window.addEventListener("buddybook:confirm", confirm);
-    return () => { window.removeEventListener("buddybook:toast", toast); window.removeEventListener("buddybook:confirm", confirm); };
+    window.addEventListener("PPlusOne:toast", toast);
+    window.addEventListener("PPlusOne:confirm", confirm);
+    return () => { window.removeEventListener("PPlusOne:toast", toast); window.removeEventListener("PPlusOne:confirm", confirm); };
   }, []);
   const answer = (value) => { confirmation?.resolve(value); setConfirmation(null); };
   return <>

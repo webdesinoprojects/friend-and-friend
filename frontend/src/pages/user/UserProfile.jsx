@@ -46,7 +46,7 @@ export default function UserProfile() {
         if (!mounted || !nextUser) return;
         setUser((current) => ({ ...current, ...nextUser }));
         setForm(userToForm({ ...readUser(), ...nextUser }));
-        localStorage.setItem("buddybook_auth_user", JSON.stringify({ ...readUser(), ...nextUser }));
+        localStorage.setItem("PPlusOne_auth_user", JSON.stringify({ ...readUser(), ...nextUser }));
       })
       .catch(() => {if(mounted)setError("Your profile could not be loaded.");}).finally(()=>{if(mounted)setLoading(false);});
     return () => {
@@ -108,16 +108,16 @@ export default function UserProfile() {
     });
     const optimistic = { ...user, profileImage };
     setUser(optimistic);
-    localStorage.setItem("buddybook_auth_user", JSON.stringify(optimistic));
-    window.dispatchEvent(new CustomEvent("buddybook:profile-updated", { detail: optimistic }));
+    localStorage.setItem("PPlusOne_auth_user", JSON.stringify(optimistic));
+    window.dispatchEvent(new CustomEvent("PPlusOne:profile-updated", { detail: optimistic }));
     try {
       setPhotoSaving(true);
       const response = await api.patch("/auth/me", { profileImage });
       invalidateCurrentUser();
       const savedUser = response.data?.user || response.data?.data || optimistic;
       setUser(savedUser);
-      localStorage.setItem("buddybook_auth_user", JSON.stringify(savedUser));
-      window.dispatchEvent(new CustomEvent("buddybook:profile-updated", { detail: savedUser }));
+      localStorage.setItem("PPlusOne_auth_user", JSON.stringify(savedUser));
+      window.dispatchEvent(new CustomEvent("PPlusOne:profile-updated", { detail: savedUser }));
     } catch (error) {
       alert(error.response?.data?.message || "Profile photo could not be saved.");
     } finally { setPhotoSaving(false); }
@@ -143,7 +143,7 @@ export default function UserProfile() {
       invalidateCurrentUser();
       const nextUser = response.data?.user || response.data?.data || { ...user, ...payload, userProfile: payload.userProfile };
       setUser(nextUser);
-      localStorage.setItem("buddybook_auth_user", JSON.stringify(nextUser));
+      localStorage.setItem("PPlusOne_auth_user", JSON.stringify(nextUser));
       setEditing(false);
     } catch (error) {
       alert(error.response?.data?.message || "Profile could not be saved.");
@@ -168,7 +168,7 @@ export default function UserProfile() {
             </div>
             <p className="mt-4 text-xs font-bold text-[#8b7563]">{photoSaving ? "Saving photo…" : "Tap the camera to change your photo everywhere instantly."}</p>
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-black text-black">{user?.fullName || "BuddyBOOK User"}</h2>
+              <h2 className="text-2xl font-black text-black">{user?.fullName || "PPlusOne User"}</h2>
               <button type="button" onClick={() => setEditing((value) => !value)} className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-2 text-[10px] font-black text-[#fffaf3]">
                 <Edit3 size={12} /> {editing ? "Close" : "Edit"}
               </button>
@@ -335,7 +335,7 @@ function normalizeQuestions(questions, bio) {
 
 function readUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }

@@ -3,7 +3,7 @@ const { parsePagination, paginationMeta } = require("../utils/pagination");
 const { clearProviderListCache } = require("./provider.controller");
 const crypto = require("crypto");
 const { sendTransactionalEmail } = require("../utils/email");
-const REVIEW_REASON = "__BUDDYBOOK_REVIEW__";
+const REVIEW_REASON = "__PPlusOne_REVIEW__";
 const REPORT_LIMIT = 10;
 const MEETING_REPORT_REASONS = new Set([
   "ABUSE_OR_THREATS",
@@ -64,7 +64,7 @@ exports.createReviewReport = async (req, res) => {
         reporterRole: req.user.role,
         reporterName: req.user.fullName,
         reportedUserId: storedReview.reporterId,
-        reportedName: storedReview.reporterName || snapshot.reviewerName || "BuddyBOOK member",
+        reportedName: storedReview.reporterName || snapshot.reviewerName || "PPlusOne member",
         targetRole: storedReview.reporterRole,
         rating: storedReview.rating,
         reviewText: storedReview.reviewText,
@@ -145,9 +145,9 @@ exports.createMeetingReport = async (req, res) => {
         try {
           await sendTransactionalEmail({
             to: target.email,
-            subject: "Your BuddyBOOK account has been permanently banned",
-            text: `Hi ${target.fullName}, your BuddyBOOK account has been permanently banned after receiving 10 meeting reports. You can no longer access or use BuddyBOOK.`,
-            html: `<p>Hi <strong>${target.fullName}</strong>,</p><p>Your BuddyBOOK account has been <strong>permanently banned</strong> after receiving 10 meeting reports. You can no longer access or use BuddyBOOK.</p>`,
+            subject: "Your PPlusOne account has been permanently banned",
+            text: `Hi ${target.fullName}, your PPlusOne account has been permanently banned after receiving 10 meeting reports. You can no longer access or use PPlusOne.`,
+            html: `<p>Hi <strong>${target.fullName}</strong>,</p><p>Your PPlusOne account has been <strong>permanently banned</strong> after receiving 10 meeting reports. You can no longer access or use PPlusOne.</p>`,
             tag: "report_limit_ban",
           });
           emailDelivered = true;

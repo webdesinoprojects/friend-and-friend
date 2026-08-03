@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import AdminShell from "../../components/layout/AdminShell";
 import { getAdminPage } from "../../api/admin";
+import { formatRs } from "../../utils/format";
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -12,7 +14,7 @@ export default function AdminPayments() {
       .then(({ data }) => {
         if (mounted) setPayments(data?.data || []);
       })
-      .catch(() => setPayments([]))
+      .catch(() => setError("Payment records could not be loaded."))
       .finally(() => {
         if (mounted) setLoading(false);
       });
@@ -34,6 +36,8 @@ export default function AdminPayments() {
               <div key={i} className="h-12 animate-pulse rounded-xl bg-black/5" />
             ))}
           </div>
+        ) : error ? (
+          <div role="alert" className="p-12 text-center text-sm font-black text-red-700">{error}</div>
         ) : payments.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] text-left text-sm">
@@ -53,7 +57,7 @@ export default function AdminPayments() {
                     <td className="px-5 py-4 font-black text-black">{payment.id}</td>
                     <td className="font-semibold text-black/65">{payment.userName || "System"}</td>
                     <td className="font-bold text-black">
-                      ${payment.amount}
+                      {formatRs(Number(payment.amount || 0))}
                     </td>
                     <td>
                       <span className="inline-flex items-center rounded-full bg-black/5 px-3 py-1 text-xs font-black text-black">

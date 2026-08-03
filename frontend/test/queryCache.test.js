@@ -59,7 +59,7 @@ test("persists allowed page data per account without persisting auth queries", a
   const previousLocalStorage = globalThis.localStorage;
   const previousSessionStorage = globalThis.sessionStorage;
   const localRows = new Map([
-    ["buddybook_auth_user", JSON.stringify({ id: "user-1", role: "USER" })],
+    ["PPlusOne_auth_user", JSON.stringify({ id: "user-1", role: "USER" })],
   ]);
   const sessionRows = new Map();
   const storage = (rows) => ({
@@ -76,7 +76,7 @@ test("persists allowed page data per account without persisting auth queries", a
     first.setQueryData("bookings:{}", ["booking-1"]);
     first.setQueryData("auth:me", { id: "user-1" });
 
-    const raw = sessionRows.get("buddybook_page_cache_v1:user-1");
+    const raw = sessionRows.get("PPlusOne_page_cache_v1:user-1");
     assert.match(raw, /booking-1/);
     assert.doesNotMatch(raw, /auth:me/);
 

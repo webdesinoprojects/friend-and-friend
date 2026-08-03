@@ -53,7 +53,6 @@ export default function ProviderCard({
     ? provider.activities[0]
     : "Public meetup";
   const completedBookings = Number(provider.completedBookings || provider.bookingsCompleted || provider.reviews || 0);
-  const bookingBadge = `${Math.max(2, (completedBookings % 4) + 2)}x booked Recently`;
   const ratingValue = Number(provider.rating ?? provider.averageRating ?? 0);
 
   if (home) {
@@ -63,7 +62,6 @@ export default function ProviderCard({
         link={link}
         primaryActivity={primaryActivity}
         completedBookings={completedBookings}
-        bookingBadge={bookingBadge}
         ratingValue={ratingValue}
         carouselImages={carouselImages}
       />
@@ -74,9 +72,6 @@ export default function ProviderCard({
     <>
       <div className={`relative overflow-hidden rounded-[1.35rem] bg-[#f2f2f2] ${compact ? "h-[150px]" : small ? "h-[230px]" : "h-[320px]"}`}>
         <ProviderImageCarousel images={carouselImages} alt={provider.name} />
-        <div className="absolute right-0 top-0 rounded-bl-2xl bg-black px-4 py-2 text-xs font-black text-white sm:text-sm">
-          {bookingBadge}
-        </div>
         {typeof onSave === "function" ? (
           <button
             type="button"
@@ -131,7 +126,6 @@ function HomeProviderCard({
   link,
   primaryActivity,
   completedBookings,
-  bookingBadge,
   ratingValue,
   carouselImages,
 }) {
@@ -154,9 +148,6 @@ function HomeProviderCard({
             {provider.name?.[0] || "B"}
           </div>
         )}
-        <span className="absolute right-0 top-0 max-w-[88%] rounded-bl-2xl bg-black px-3 py-2 text-right text-[11px] font-black leading-4 text-white sm:text-xs">
-          {bookingBadge}
-        </span>
       </div>
 
       <div className="mx-3 mb-2 mt-3 flex min-h-[150px] flex-1 flex-col">

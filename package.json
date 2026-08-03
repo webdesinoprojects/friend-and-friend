@@ -1,5 +1,5 @@
 {
-  "name": "buddybook-monorepo",
+  "name": "PPlusOne-monorepo",
   "private": true,
   "workspaces": [
     "frontend"

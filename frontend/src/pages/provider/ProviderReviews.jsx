@@ -70,7 +70,7 @@ function ReviewCard({ review, canReport = false }) {
     <article className="rounded-2xl bg-[#fffaf3] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black">{(canReport ? review.reviewerName : review.targetName) || "BuddyBOOK member"}</p>
+          <p className="text-sm font-black">{(canReport ? review.reviewerName : review.targetName) || "PPlusOne member"}</p>
           <p className="mt-1 flex items-center gap-1 text-[10px] font-black text-[#8b7563]"><CalendarCheck size={12} /> {date}</p>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-1 text-xs font-black text-[#fffaf3]">

@@ -78,7 +78,7 @@ export default function UserActiveMeet() {
         key: checkout.keyId,
         amount: checkout.order.amount,
         currency: checkout.order.currency,
-        name: "BuddyBOOK",
+        name: "PPlusOne",
         description: `One-hour meeting extension · ${checkout.extension.sequence * 10}% cumulative saving path`,
         order_id: checkout.order.id,
         theme: { color: "#171b30" },

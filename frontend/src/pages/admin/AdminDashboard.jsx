@@ -57,7 +57,7 @@ export default function AdminDashboard() {
   }, [summary.latestProviders]);
 
   return (
-    <AdminShell title="Admin Overview" text="Manage BuddyBOOK operations and website content">
+    <AdminShell title="Admin Overview" text="Manage PPlusOne operations and website content">
       {error ? <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-black text-red-700">{error}<button type="button" onClick={()=>setReload(v=>v+1)} className="ml-3 rounded-lg bg-black px-3 py-2 text-xs text-white">Retry</button></div> : null}
       {loading ? <div className="mb-5 h-24 animate-pulse rounded-xl bg-black/5" /> : null}
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(5,minmax(0,1fr))_minmax(180px,1fr)]">
@@ -112,9 +112,6 @@ export default function AdminDashboard() {
           </Panel>
           <Panel title="Latest Providers" link="View all" linkTo="/admin/providers">
             <ProviderList providers={latestProviders} />
-          </Panel>
-          <Panel title="Safety Alerts" link="View all" linkTo="/admin/reports">
-            <SafetyAlerts rows={summary.safetyAlerts || []} />
           </Panel>
         </aside>
       </section>
@@ -260,22 +257,6 @@ function ProviderList({ providers }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function SafetyAlerts({ rows = [] }) {
-  return (
-    <div className="space-y-4">
-      {rows.length ? rows.map((row) => (
-        <div key={row.id} className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-md bg-[#fff1f1] text-[#d92d20]">
-            <AlertTriangle size={17} />
-          </span>
-          <span className="flex-1 text-sm font-semibold">{row.label}</span>
-          <span className="text-xs font-medium text-[#667085]">{new Date(row.createdAt).toLocaleDateString("en-IN")}</span>
-        </div>
-      )) : <p className="text-sm font-semibold text-[#667085]">No open safety alerts.</p>}
     </div>
   );
 }

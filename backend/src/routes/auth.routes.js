@@ -10,6 +10,7 @@ const {
   verifyAadhaarOtp,
   sendLoginMobileOtp,
   loginWithMobileOtp,
+  resetPasswordWithMobileOtp,
   register,
   login,
   googleLogin,
@@ -90,6 +91,7 @@ router.post("/google/register-profile", googleRegisterProfile);
 // new OTP login
 router.post("/send-login-mobile-otp", sendLoginMobileOtp);
 router.post("/login-mobile-otp", loginWithMobileOtp);
+router.post("/reset-password-mobile", resetPasswordWithMobileOtp);
 router.get("/application", getApplication);
 router.patch("/application", updateApplication);
 

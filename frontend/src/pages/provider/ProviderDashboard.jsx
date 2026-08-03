@@ -512,7 +512,7 @@ function getCompletion(provider) {
 
 function readUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }
@@ -520,7 +520,7 @@ function readUser() {
 
 function readCachedProviderProfile() {
   try {
-    return JSON.parse(sessionStorage.getItem("buddybook_my_provider_profile_cache") || "null");
+    return JSON.parse(sessionStorage.getItem("PPlusOne_my_provider_profile_cache") || "null");
   } catch {
     return null;
   }

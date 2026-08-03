@@ -19,7 +19,7 @@ test("matches providers when any selected activity is offered", () => {
 
 test("carries every selected activity into a provider link", () => {
   const link = buildProviderProfileLink("provider-1", ["Cafe meet", "Events", "Cricket"]);
-  const url = new URL(link, "https://buddybook.test");
+  const url = new URL(link, "https://PPlusOne.test");
   assert.deepEqual(url.searchParams.getAll("activities"), ["Cafe meet", "Events", "Cricket"]);
 });
 

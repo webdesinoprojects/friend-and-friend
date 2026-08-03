@@ -49,7 +49,7 @@ function publicApplication(application) {
 async function calculateUserRating(userId, role) {
   const reviews = await prisma.reviewReport.findMany({
     where: {
-      reason: '__BUDDYBOOK_REVIEW__',
+      reason: '__PPlusOne_REVIEW__',
       adminAction: null,
       targetRole: role,
       reportedUserId: userId,
@@ -748,7 +748,7 @@ const passwordMatched = await bcrypt.compare(password, user.passwordHash);
       return applicationBlockedResponse(res, applicationUser);
     }
 
-    issueUserSession(res, user);
+    issueUserSession(res, user, { remember: Boolean(req.body?.rememberMe) });
 
     await prisma.loginAttempt.create({
       data: {
@@ -838,7 +838,7 @@ exports.googleLogin = async (req, res) => {
       return res.status(404).json({
         success: false,
         needsRegistration: true,
-        message: "No BuddyBOOK account found. Complete registration first.",
+        message: "No PPlusOne account found. Complete registration first.",
         profile: googleUser,
       });
     }
@@ -873,7 +873,7 @@ exports.googleLogin = async (req, res) => {
       },
     });
 
-    issueUserSession(res, user);
+    issueUserSession(res, user, { remember: Boolean(req.body?.rememberMe) });
     return res.json({
       success: true,
       message: "Google login successful.",
@@ -1065,7 +1065,7 @@ const loginWithMobileOtp = async (req, res) => {
       },
     });
 
-    issueUserSession(res, user);
+    issueUserSession(res, user, { remember: Boolean(req.body?.rememberMe) });
 
     const { referenceSelfie, ...safeUser } = user;
 
@@ -1194,6 +1194,29 @@ const sendLoginMobileOtp = async (req, res) => {
   }
 };
 
+const resetPasswordWithMobileOtp = async (req, res) => {
+  try {
+    const phone = String(req.body?.phone || "").replace(/\D/g, "");
+    const otp = String(req.body?.otp || "").trim();
+    const password = String(req.body?.password || "");
+    if (!/^\d{10}$/.test(phone) || !otp) return res.status(400).json({ success: false, message: "Phone number and OTP are required." });
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) return res.status(400).json({ success: false, message: "Password must have 8 characters, one capital letter, one number and one special character." });
+    const token = await prisma.otpToken.findFirst({ where: { phone, otp, type: "LOGIN_MOBILE", verified: false, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
+    if (!token) return res.status(400).json({ success: false, message: "OTP is invalid or expired." });
+    const user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) return res.status(404).json({ success: false, message: "No account found with this phone number." });
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+      prisma.otpToken.update({ where: { id: token.id }, data: { verified: true } }),
+    ]);
+    return res.json({ success: true, message: "Password reset successfully. You can now log in." });
+  } catch (error) {
+    console.error("RESET_PASSWORD_ERROR:", error);
+    return res.status(500).json({ success: false, message: "Password could not be reset." });
+  }
+};
+
 module.exports = {
   sendMobileOtp: exports.sendMobileOtp,
   verifyMobileOtp: exports.verifyMobileOtp,
@@ -1216,4 +1239,5 @@ module.exports = {
 
   sendLoginMobileOtp,
   loginWithMobileOtp,
+  resetPasswordWithMobileOtp,
 };

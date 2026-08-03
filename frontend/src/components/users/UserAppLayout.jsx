@@ -109,9 +109,9 @@ function UserAppLayoutShell({
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("buddybook_auth_user");
+    localStorage.removeItem("PPlusOne_auth_user");
     clearQueryCache();
-    window.dispatchEvent(new Event("buddybook:auth-changed"));
+    window.dispatchEvent(new Event("PPlusOne:auth-changed"));
     setDrawerOpen(false);
     navigate("/");
   };
@@ -120,7 +120,7 @@ function UserAppLayoutShell({
     <div className="h-dvh overflow-hidden bg-[#fbfaf7] text-[#0f172a]">
       <div className="grid h-full min-h-0 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 border-r border-black/10 bg-white p-6 lg:flex lg:flex-col">
-          <Logo />
+          <Logo size="large" />
           <nav className="mt-10 grid gap-2">
             {userLinks.map(({ label, to, icon: Icon }) => {
               const active = location.pathname === to || (to.includes("dashboard") && location.pathname.endsWith("dashboard"));
@@ -251,7 +251,7 @@ function UserAppLayoutShell({
                   {getInitials(activeUser?.fullName)}
                 </div>
                 <div className="hidden xl:block">
-                  <p className="text-sm font-black">{activeUser?.fullName || "BuddyBOOK User"}</p>
+                  <p className="text-sm font-black">{activeUser?.fullName || "PPlusOne User"}</p>
                   <p className="text-xs font-black text-[#16815f]">Verified Member</p>
                 </div>
               </div>
@@ -282,7 +282,7 @@ function UserAppLayoutShell({
                 </div>
 
                 <div className="mt-6 rounded-2xl bg-[#fffaf3] p-4">
-                  <p className="text-lg font-black">{activeUser?.fullName || "BuddyBOOK User"}</p>
+                  <p className="text-lg font-black">{activeUser?.fullName || "PPlusOne User"}</p>
                   <p className="mt-1 truncate text-sm font-semibold text-[#6b5d52]">
                     {activeUser?.email || activeUser?.phone || "Profile details"}
                   </p>
@@ -340,7 +340,7 @@ function getPageName(pathname, fallback) {
 
 function readStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }

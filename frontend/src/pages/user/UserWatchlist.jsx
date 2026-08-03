@@ -97,5 +97,5 @@ function WatchlistCard({ provider, onRemove }) {
 }
 
 function readUser() {
-  try { return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null"); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null"); } catch { return null; }
 }

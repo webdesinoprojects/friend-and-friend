@@ -120,7 +120,7 @@ export default function UserBookingPayment() {
         key: orderData.keyId,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
-        name: "BuddyBOOK",
+        name: "PPlusOne",
         description: `${service} with ${provider.name}`,
         order_id: orderData.order.id,
         prefill: { name: user?.fullName || "", email: user?.email || "", contact: user?.phone || "" },
@@ -174,7 +174,7 @@ export default function UserBookingPayment() {
     <UserAppLayout title="Secure Checkout" user={user}>
       <section className="custom-scrollbar h-full min-w-0 overflow-x-auto bg-[#fffaf3] p-3 text-[#171b30] sm:p-5">
         <div className="mb-4 border-2 border-[#171b30] bg-[#171b30] p-4 text-white">
-          <div><p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">BuddyBOOK secure payments</p><h1 className="mt-1 text-xl font-black sm:text-2xl">Complete your verified booking</h1></div>
+          <div><p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">PPlusOne secure payments</p><h1 className="mt-1 text-xl font-black sm:text-2xl">Complete your verified booking</h1></div>
         </div>
 
         <div className="grid min-w-0 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -252,7 +252,7 @@ export default function UserBookingPayment() {
           </button>
           {paymentError ? <p role="alert" className="mt-5 border-2 border-[#e08c4c] bg-[#ffeedd] p-3 text-xs font-black text-[#a95820]">Payment notice: {paymentError}</p> : null}
           <div className="mt-3 flex items-center justify-center gap-2 text-center text-[10px] font-bold text-[#171b30]/55"><Lock size={12} /> Razorpay test mode · No real money is charged.</div>
-          <p className="mx-auto mt-2 max-w-xl text-center text-xs font-semibold leading-5 text-[#171b30]/45">Order amount is calculated by BuddyBOOK and the payment signature is verified before your booking is created.</p>
+          <p className="mx-auto mt-2 max-w-xl text-center text-xs font-semibold leading-5 text-[#171b30]/45">Order amount is calculated by PPlusOne and the payment signature is verified before your booking is created.</p>
         </div>
         </div>
       </section>
@@ -319,7 +319,7 @@ function hasInvalidBookingParams(params, provider) {
 }
 
 function readUser() {
-  try { return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null"); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null"); } catch { return null; }
 }
 
 function loadRazorpayCheckout() {

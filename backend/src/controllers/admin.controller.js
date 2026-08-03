@@ -11,7 +11,7 @@ const contentPath = path.join(__dirname, "../../data/adminContent.json");
 const defaultContent = {
   heroTitle: "Safe Meetups.",
   heroHighlight: "Real Connections.",
-  heroDescription: "BuddyBOOK helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings.",
+  heroDescription: "PPlusOne helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings.",
   heroImage: "",
   heroImageAlt: "Verified companions enjoying a public meetup",
   heroTrustItems: "KYC profiles,Public places,Private chat,Secure payments",
@@ -20,7 +20,7 @@ const defaultContent = {
   heroLocationValue: "Public meetup",
   heroLocationLabel: "Location selected",
   communityTitle: "Built for a Better Community",
-  trustTitle: "Safety and trust come first on BuddyBOOK.",
+  trustTitle: "Safety and trust come first on PPlusOne.",
   statVerifiedMembers: "300+",
   statVerifiedMembersLabel: "Verified members",
   statPlansCreated: "1,456",
@@ -56,21 +56,21 @@ const defaultContent = {
   providerCardBadgeText: "booked Recently",
   providerCardPriceSuffix: "/hr",
   faqTitle: "Questions, answered clearly",
-  faqSubtitle: "Everything you need to know before planning a safe BuddyBOOK meetup.",
-  faq1Question: "How does BuddyBOOK verify members and providers?",
+  faqSubtitle: "Everything you need to know before planning a safe PPlusOne meetup.",
+  faq1Question: "How does PPlusOne verify members and providers?",
   faq1Answer: "Profiles go through identity and safety checks before verification indicators are shown.",
   faq2Question: "How do payments and bookings work?",
   faq2Answer: "Choose a verified provider, select your plan details and complete the protected checkout to confirm your booking.",
   faq3Question: "Where should a first meetup happen?",
-  faq3Answer: "Always choose a busy public place, keep your booking chat on BuddyBOOK and share your plan with someone you trust.",
+  faq3Answer: "Always choose a busy public place, keep your booking chat on PPlusOne and share your plan with someone you trust.",
   faq4Question: "Can I cancel or report a booking?",
   faq4Answer: "Yes. Booking controls and safety reporting remain available from your dashboard and booking history.",
   faq5Question: "How is my personal information protected?",
-  faq5Answer: "BuddyBOOK keeps booking records and platform communication together so you do not need to share unnecessary personal details.",
+  faq5Answer: "PPlusOne keeps booking records and platform communication together so you do not need to share unnecessary personal details.",
   testimonials: [
     {
       name: "Riya Sharma",
-      role: "BuddyBOOK member",
+      role: "PPlusOne member",
       rating: "5",
       image: "",
       text: "The booking felt clear, simple and safe from start to finish.",
@@ -91,8 +91,8 @@ const defaultContent = {
   termsText: "",
   privacyText: "",
   settings: {
-    siteName: "BuddyBOOK",
-    supportEmail: "support@buddybook.com",
+    siteName: "PPlusOne",
+    supportEmail: "support@PPlusOne.com",
     contactPhone: "+91 0000000000",
     enableNewRegistrations: true,
     maintenanceMode: false,
@@ -156,6 +156,11 @@ const logoutAdmin = (req, res) => {
   return res.json({ success: true, message: "Admin logout successful." });
 };
 
+const getAdminSession = (req, res) => res.json({
+  success: true,
+  admin: { id: req.admin.id, email: req.admin.email, role: req.admin.role, fullName: req.admin.fullName || "Admin" },
+});
+
 const getAdminContent = async (req, res) => {
   try {
     const rows = await prisma.$queryRawUnsafe('SELECT "content" FROM "SiteContent" WHERE "id" = $1 LIMIT 1', "website");
@@ -167,10 +172,22 @@ const getAdminContent = async (req, res) => {
 };
 
 const updateAdminContent = async (req, res) => {
+  let current = readContent();
+  try {
+    const rows = await prisma.$queryRawUnsafe('SELECT "content" FROM "SiteContent" WHERE "id" = $1 LIMIT 1', "website");
+    current = { ...defaultContent, ...(rows[0]?.content || current) };
+  } catch {
+    // The database write below provides the actionable error if storage is unavailable.
+  }
   const next = {
-    ...readContent(),
+    ...current,
     ...req.body,
-    testimonials: Array.isArray(req.body?.testimonials) ? req.body.testimonials.slice(0, 15) : readContent().testimonials,
+    settings: {
+      ...defaultContent.settings,
+      ...(current.settings || {}),
+      ...(req.body?.settings || {}),
+    },
+    testimonials: Array.isArray(req.body?.testimonials) ? req.body.testimonials.slice(0, 15) : current.testimonials,
     updatedAt: new Date().toISOString(),
   };
   try {
@@ -319,21 +336,43 @@ const getAdminUsers = async (req, res) => {
       prisma.user.count({ where: { role: "USER" } }),
       prisma.accountDeletionAudit.count({ where: { role: "USER" } }),
     ]);
+    const userIds = users.map((user) => user.id);
+    const [bookingActivity, paidSpending] = userIds.length ? await Promise.all([
+      prisma.booking.groupBy({
+        by: ["userId"],
+        where: { userId: { in: userIds } },
+        _count: { _all: true },
+        _min: { createdAt: true },
+        _max: { createdAt: true },
+      }),
+      prisma.booking.groupBy({
+        by: ["userId"],
+        where: {
+          userId: { in: userIds },
+          paymentStatus: { in: ["PAID", "PARTIALLY_REFUNDED"] },
+        },
+        _sum: { amount: true, refundAmount: true },
+      }),
+    ]) : [[], []];
+    const activityByUser = new Map(bookingActivity.map((row) => [row.userId, row]));
+    const spendingByUser = new Map(paidSpending.map((row) => [row.userId, row]));
     const formatted = users.map((user) => ({
+      ...(() => {
+        const activity = activityByUser.get(user.id);
+        const spending = spendingByUser.get(user.id);
+        const paidAmount = Number(spending?._sum?.amount || 0);
+        const refundedAmount = Number(spending?._sum?.refundAmount || 0);
+        const summary = {
+          firstBooking: activity?._min?.createdAt || null,
+          lastBooking: activity?._max?.createdAt || null,
+          totalBookings: Number(activity?._count?._all || 0),
+          totalEarning: null,
+          totalSpending: Math.max(0, paidAmount - refundedAmount),
+        };
+        return { ...summary, bookingSummary: summary };
+      })(),
       ...user,
       accountDisabled: Boolean(user.disabledUntil && new Date(user.disabledUntil) > new Date()),
-      firstBooking: null,
-      lastBooking: null,
-      totalBookings: 0,
-      totalEarning: user.role === "PROVIDER" ? 0 : null,
-      totalSpending: user.role === "USER" ? 0 : null,
-      bookingSummary: {
-        firstBooking: null,
-        lastBooking: null,
-        totalBookings: 0,
-        totalEarning: user.role === "PROVIDER" ? 0 : null,
-        totalSpending: user.role === "USER" ? 0 : null,
-      },
     }));
 
     const deletedRows = deletedAccounts.map((item) => ({
@@ -612,10 +651,10 @@ function formatAdminBooking(booking) {
     id: booking.id,
     code: booking.code,
     userId: booking.userId,
-    userName: booking.user?.fullName || "BuddyBOOK user",
+    userName: booking.user?.fullName || "PPlusOne user",
     providerId: booking.providerId,
     providerUserId: booking.providerUserId,
-    providerName: booking.provider?.user?.fullName || "BuddyBOOK provider",
+    providerName: booking.provider?.user?.fullName || "PPlusOne provider",
     activity: booking.service,
     service: booking.service,
     date: booking.date,
@@ -808,6 +847,7 @@ const reviewKyc = async (req, res) => {
 module.exports = {
   loginAdmin,
   logoutAdmin,
+  getAdminSession,
   getAdminContent,
   updateAdminContent,
   getAdminSummary,

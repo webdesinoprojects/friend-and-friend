@@ -1,5 +1,4 @@
 import api from "./api";
-import { getAdminPage } from "./admin";
 import {
   fetchQuery,
   getQueryData,
@@ -58,8 +57,25 @@ export function listMyReviews(options = {}) {
 }
 
 export async function listAdminReports() {
-  const { data } = await getAdminPage("/admin/reports");
-  return Array.isArray(data?.data) ? data.data : [];
+  const meetingReportReasons = new Set([
+    "ABUSE_OR_THREATS",
+    "SEXUAL_HARASSMENT",
+    "PHYSICAL_SAFETY",
+    "FRAUD_OR_THEFT",
+    "DISCRIMINATION_OR_HATE",
+  ]);
+  const reports = [];
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const { data } = await api.get("/admin/reports", { params: { page, pageSize: 100 } });
+    if (Array.isArray(data?.data)) reports.push(...data.data);
+    hasNextPage = Boolean(data?.pagination?.hasNextPage);
+    page += 1;
+  }
+
+  return reports.filter((report) => meetingReportReasons.has(String(report?.reason || "").toUpperCase()));
 }
 
 export async function updateAdminReport(reportId, payload) {

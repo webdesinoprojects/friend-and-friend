@@ -7,10 +7,10 @@ import { confirmAction, notify } from "../common/Feedback";
 
 function clearAccountStorage() {
   [
-    "buddybook_auth_user", "buddybook_bookings",
-    "buddybook_payments", "buddybook_reviews", "buddybook_watchlist",
-    "buddybook_explore_providers_cache", "buddybook_my_provider_profile_cache",
-    "buddybook_selected_provider",
+    "PPlusOne_auth_user", "PPlusOne_bookings",
+    "PPlusOne_payments", "PPlusOne_reviews", "PPlusOne_watchlist",
+    "PPlusOne_explore_providers_cache", "PPlusOne_my_provider_profile_cache",
+    "PPlusOne_selected_provider",
   ].forEach((key) => {
     localStorage.removeItem(key);
     sessionStorage.removeItem(key);
@@ -19,11 +19,11 @@ function clearAccountStorage() {
 
 function updateStoredAccount(status) {
   try {
-    const user = JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    const user = JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
     if (!user) return;
-    localStorage.setItem("buddybook_auth_user", JSON.stringify({ ...user, ...status }));
-    window.dispatchEvent(new Event("buddybook:auth-changed"));
-    window.dispatchEvent(new Event("buddybook:profile-updated"));
+    localStorage.setItem("PPlusOne_auth_user", JSON.stringify({ ...user, ...status }));
+    window.dispatchEvent(new Event("PPlusOne:auth-changed"));
+    window.dispatchEvent(new Event("PPlusOne:profile-updated"));
   } catch {
     // The backend remains authoritative if browser storage is unavailable.
   }
@@ -99,7 +99,7 @@ export default function AccountLifecyclePanel() {
       await new Promise((resolve) => window.setTimeout(resolve, 1200));
       clearProviderCaches();
       clearAccountStorage();
-      window.dispatchEvent(new Event("buddybook:auth-changed"));
+      window.dispatchEvent(new Event("PPlusOne:auth-changed"));
       navigate("/", { replace: true });
       notify("Your account was permanently deleted.", "success");
     } catch (error) {

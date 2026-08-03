@@ -7,8 +7,8 @@ import {
   invalidateQueries,
 } from '../utils/queryCache';
 
-const PROVIDER_CACHE_KEY = 'buddybook_explore_providers_cache';
-const MY_PROVIDER_CACHE_KEY = 'buddybook_my_provider_profile_cache';
+const PROVIDER_CACHE_KEY = 'PPlusOne_explore_providers_cache';
+const MY_PROVIDER_CACHE_KEY = 'PPlusOne_my_provider_profile_cache';
 const providerImageCache = new Map();
 
 export function getCachedProviders() {

@@ -23,17 +23,17 @@ const options = [
   ["Payment records", "Invoices, refunds and deductions", CreditCard, "/app/provider/earnings"],
   ["KYC and safety", "Identity records and provider agreement", ShieldCheck, "/app/provider/profile"],
   ["Blocked users", "Restrict messages to booked users", UserX, "restrictContacts"],
-  ["Help and support", "Contact BuddyBOOK operations", Headphones, "/contact"],
+  ["Help and support", "Contact PPlusOne operations", Headphones, "/contact"],
 ];
 
 export default function ProviderSettings() {
   const navigate = useNavigate();
-  const [preferences,setPreferences]=useState(()=>{try{return JSON.parse(localStorage.getItem("buddybook_provider_preferences")||"{}");}catch{return {};}});
-  const handleOption=(action)=>{if(action.startsWith("/")){navigate(action);return;}if(action==="lifecycle"){document.getElementById("account-lifecycle")?.scrollIntoView({behavior:"smooth"});return;}setPreferences((current)=>{const next={...current,[action]:!current[action]};localStorage.setItem("buddybook_provider_preferences",JSON.stringify(next));return next;});};
+  const [preferences,setPreferences]=useState(()=>{try{return JSON.parse(localStorage.getItem("PPlusOne_provider_preferences")||"{}");}catch{return {};}});
+  const handleOption=(action)=>{if(action.startsWith("/")){navigate(action);return;}if(action==="lifecycle"){document.getElementById("account-lifecycle")?.scrollIntoView({behavior:"smooth"});return;}setPreferences((current)=>{const next={...current,[action]:!current[action]};localStorage.setItem("PPlusOne_provider_preferences",JSON.stringify(next));return next;});};
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("buddybook_auth_user");
+    localStorage.removeItem("PPlusOne_auth_user");
     navigate("/login");
   };
 

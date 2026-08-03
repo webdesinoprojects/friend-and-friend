@@ -25,7 +25,7 @@ import PublicFooter from "../../components/layout/PublicFooter";
 import safetyHero from "../../assets/safety-cafe-hero.jpg";
 
 const essentials = [
-  [UserCheck, "Adults only", "BuddyBook is strictly for people aged 18+."],
+  [UserCheck, "Adults only", "PPlusOne is strictly for people aged 18+."],
   [BadgeCheck, "Verified identity", "Review the complete profile before booking."],
   [MessageCircle, "In-app planning", "Keep timing, place and expectations in chat."],
   [CircleDollarSign, "Platform payments", "Never send money or accept side deals."],
@@ -35,14 +35,14 @@ const essentials = [
 const sharedRules = [
   "Use your real identity and accurate details.",
   "Choose a visible, public meeting place.",
-  "Keep conversation and planning in BuddyBook.",
+  "Keep conversation and planning in PPlusOne.",
   "Respect personal, physical and emotional boundaries.",
   "Never share passwords, OTPs or private documents.",
 ];
 
 const userRules = [
   "Review photos, verification, activities and reviews.",
-  "Book and pay only through BuddyBook.",
+  "Book and pay only through PPlusOne.",
   "Share the plan with someone you trust.",
   "Do not request services outside the listed activity.",
   "Report pressure, misconduct or suspicious requests.",
@@ -57,7 +57,7 @@ const providerRules = [
   "Keep your profile, photos and services truthful.",
   "Accept only clearly agreed platonic activities.",
   "Never request tips, gifts or off-platform payment.",
-  "Do not move the chat away from BuddyBook.",
+  "Do not move the chat away from PPlusOne.",
   "End and report unsafe or disrespectful bookings.",
   "Meet only at the agreed public location.",
   "Respect physical and emotional boundaries.",
@@ -153,7 +153,7 @@ export default function Safety() {
               <h1 className="mt-6 max-w-[48rem] font-sans text-[2.7rem] font-extrabold leading-[.96] tracking-[-.055em] text-[#1d1d1b] sm:text-6xl xl:text-[4.7rem]">
                 Meet confidently.<br /><span className="text-[#ff745f]">Stay in control.</span>
               </h1>
-              <p className="mt-5 max-w-[44rem] text-sm font-medium leading-6 text-black/58 sm:text-base sm:leading-7">BuddyBook is designed for platonic companionship and public social activities. Respect boundaries, communicate clearly and follow the safety rules before, during and after every meetup.</p>
+              <p className="mt-5 max-w-[44rem] text-sm font-medium leading-6 text-black/58 sm:text-base sm:leading-7">PPlusOne is designed for platonic companionship and public social activities. Respect boundaries, communicate clearly and follow the safety rules before, during and after every meetup.</p>
               <div className="mt-7 grid max-w-[47rem] grid-cols-3 gap-x-3 gap-y-5 border-y border-black/8 py-5 sm:grid-cols-6 sm:gap-x-5">
                 {[
                   [UserCheck, "Adults only", "18+"], [BadgeCheck, "Identity", "checks"], [MessageCircle, "In-app", "chat"],
@@ -167,7 +167,7 @@ export default function Safety() {
               </div>
 
               <div className="mt-6 flex max-w-[47rem] items-center gap-3 rounded-xl border border-[#f1c9c0] bg-white/80 px-4 py-3.5 text-xs font-semibold leading-5 text-black/55 shadow-[0_10px_26px_rgba(43,33,25,.04)]">
-                <AlertTriangle size={18} className="shrink-0 text-[#ff745f]" /> BuddyBook is not a dating, escort, medical, transport or accommodation platform.
+                <AlertTriangle size={18} className="shrink-0 text-[#ff745f]" /> PPlusOne is not a dating, escort, medical, transport or accommodation platform.
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function Safety() {
             <aside className="absolute bottom-0 left-1/2 z-10 w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 translate-y-1/2 rounded-xl border border-black/8 bg-[#fffdf9]/96 p-3.5 text-[#1d1d1b] shadow-[0_18px_48px_rgba(35,27,20,.16)] backdrop-blur sm:bottom-5 sm:translate-y-0 sm:p-5">
               <p className="text-sm font-extrabold">Before every meetup</p>
                 <ol className="mt-3 space-y-2 sm:mt-4 sm:space-y-2.5">
-                {["Review the complete profile", "Keep communication in BuddyBook", "Select a public location", "Share the plan with someone you trust", "Leave immediately if uncomfortable"].map((item, index) => (
+                {["Review the complete profile", "Keep communication in PPlusOne", "Select a public location", "Share the plan with someone you trust", "Leave immediately if uncomfortable"].map((item, index) => (
                   <li key={item} className="flex items-center gap-3 text-[11px] font-semibold text-black/65"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#fff0ed] text-[9px] font-black text-[#d85f48]">{index + 1}</span>{item}</li>
                 ))}
               </ol>
@@ -242,7 +242,7 @@ export default function Safety() {
           <div className="mx-auto max-w-7xl">
             <div className="max-w-3xl">
               <p className="text-xs font-black uppercase tracking-[.22em] text-[#ff947f]">Zero tolerance</p>
-              <h2 className="mt-2 text-3xl font-extrabold tracking-[-.035em] sm:text-4xl">Never acceptable on BuddyBook</h2>
+              <h2 className="mt-2 text-3xl font-extrabold tracking-[-.035em] sm:text-4xl">Never acceptable on PPlusOne</h2>
               <p className="mt-3 max-w-2xl text-xs font-medium leading-6 text-white/55">These behaviours can lead to immediate restriction or permanent removal.</p>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -301,7 +301,7 @@ export default function Safety() {
             <div className="max-w-3xl">
               <div className="flex items-center gap-3">
                 <ShieldCheck size={27} className="text-[#e66b4f]" />
-                <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">What BuddyBook does</p>
+                <p className="text-xs font-black uppercase tracking-[.22em] text-[#d85f48]">What PPlusOne does</p>
               </div>
               <h2 className="mt-3 max-w-3xl text-3xl font-extrabold leading-tight tracking-[-.04em] sm:text-5xl">Safety tools from us. Safe choices from you.</h2>
               <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-black/55">We provide identity checks, activity records, reporting and account enforcement. You remain responsible for checking profiles, choosing public places, protecting your information and leaving any unsafe situation.</p>
@@ -323,11 +323,11 @@ export default function Safety() {
             <div className="mt-6 grid gap-3 lg:grid-cols-[.9fr_1.1fr]">
               <article className="rounded-xl bg-[#1d1d1b] p-5 text-white sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[.18em] text-[#ff947f]">Responsibility & legal notice</p>
-                <p className="mt-3 rounded-lg border border-white/10 bg-white/[.06] p-3 text-xs font-extrabold leading-5 text-white/85">Your personal safety remains in your hands. BuddyBook supplies platform tools but cannot guarantee another member's identity, intentions, behaviour or actions outside reasonable platform controls.</p>
+                <p className="mt-3 rounded-lg border border-white/10 bg-white/[.06] p-3 text-xs font-extrabold leading-5 text-white/85">Your personal safety remains in your hands. PPlusOne supplies platform tools but cannot guarantee another member's identity, intentions, behaviour or actions outside reasonable platform controls.</p>
                 <ul className="mt-5 space-y-3 text-xs font-semibold leading-5 text-white/60">
-                  <li>• BuddyBook helps independent adults discover, communicate and arrange lawful platonic activities.</li>
+                  <li>• PPlusOne helps independent adults discover, communicate and arrange lawful platonic activities.</li>
                   <li>• Verification confirms information at a point in time and is not a guarantee of future conduct.</li>
-                  <li>• BuddyBook is not an emergency service and does not provide transport, accommodation, escort or medical services.</li>
+                  <li>• PPlusOne is not an emergency service and does not provide transport, accommodation, escort or medical services.</li>
                   <li>• Members remain responsible for personal judgement, boundaries and lawful behaviour.</li>
                   <li>• Serious violations may lead to restriction or permanent account removal.</li>
                 </ul>
@@ -338,13 +338,13 @@ export default function Safety() {
                   <div>
                     <p className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">Grievance contact</p>
                     <p className="mt-4 text-sm font-black">Safety and account concerns</p>
-                    <p className="mt-2 text-xs font-semibold leading-5 text-black/50">Use BuddyBook’s Contact page and include your booking or report reference. For immediate danger, call emergency services first.</p>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-black/50">Use PPlusOne’s Contact page and include your booking or report reference. For immediate danger, call emergency services first.</p>
                     <Link to="/contact" className="mt-4 inline-flex rounded-full bg-[#e66b4f] px-4 py-2.5 text-xs font-black text-white">Open contact support</Link>
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-[.18em] text-[#d85f48]">Safety acknowledgement</p>
                     <ul className="mt-4 space-y-2 text-[11px] font-semibold leading-5 text-black/55">
-                      {["I am 18 or older.", "I will use BuddyBook only for lawful platonic activities.", "I will respect boundaries, privacy and consent.", "I will meet in public and report unsafe behaviour."].map((item) => <li key={item} className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#e66b4f]" />{item}</li>)}
+                      {["I am 18 or older.", "I will use PPlusOne only for lawful platonic activities.", "I will respect boundaries, privacy and consent.", "I will meet in public and report unsafe behaviour."].map((item) => <li key={item} className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-[#e66b4f]" />{item}</li>)}
                     </ul>
                   </div>
                 </div>

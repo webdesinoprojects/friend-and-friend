@@ -258,8 +258,8 @@ export default function ProviderCreate() {
       });
       if (result.rawProvider) setForm(providerToForm(result.rawProvider));
       setMessage({ type: "success", text: "Profile published. Users can now find you in Explore." });
-      window.dispatchEvent(new Event("buddybook:providers-changed"));
-      window.dispatchEvent(new Event("buddybook:data-changed"));
+      window.dispatchEvent(new Event("PPlusOne:providers-changed"));
+      window.dispatchEvent(new Event("PPlusOne:data-changed"));
     } catch (error) {
       setMessage({
         type: "error",
@@ -282,7 +282,7 @@ export default function ProviderCreate() {
               Create a profile users want to book
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#6b5d52]">
-              Turn your activities, photos and availability into a polished public BuddyBOOK listing.
+              Turn your activities, photos and availability into a polished public PPlusOne listing.
             </p>
           </div>
           <div className="absolute -right-12 -top-16 h-64 w-64 rounded-full border-[34px] border-white/10" />
@@ -728,7 +728,7 @@ function getImageSrc(image) {
 
 function readUser() {
   try {
-    return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+    return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
   } catch {
     return null;
   }
@@ -736,7 +736,7 @@ function readUser() {
 
 function readCachedProviderProfile() {
   try {
-    return JSON.parse(sessionStorage.getItem("buddybook_my_provider_profile_cache") || "null");
+    return JSON.parse(sessionStorage.getItem("PPlusOne_my_provider_profile_cache") || "null");
   } catch {
     return null;
   }

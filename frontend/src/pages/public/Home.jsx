@@ -30,7 +30,7 @@ import { getCachedProviders, listProviders } from "../../api/providers";
 import { hasAuthToken } from "../../utils/authSession";
 import { formatRs, formatRupees } from "../../utils/format";
 import { buildProviderProfileLink, providerMatchesActivities, readPublicFilters, sameText } from "../../utils/providerFilters";
-import friendsHero from "../../assets/buddybook-friends-hero.webp";
+import friendsHero from "../../assets/PPlusOne-friends-hero.webp";
 import heroHome1 from "../../assets/hero-home-1-arch.jpg";
 import heroHome2 from "../../assets/hero-home-2-arch.jpg";
 import heroHome3 from "../../assets/hero-home-3-arch.jpg";
@@ -58,7 +58,7 @@ const safetyItems = [
   {
     icon: MessageCircle,
     title: "Private communication",
-    text: "Plan inside BuddyBOOK without sharing personal contact details.",
+    text: "Plan inside PPlusOne without sharing personal contact details.",
   },
   {
     icon: CreditCard,
@@ -75,7 +75,7 @@ const safetyItems = [
 const steps = [
   ["1", "Create your profile", "Join as a member or provider and complete basic verification."],
   ["2", "Browse verified companions", "Filter by activity, city, availability, price and community rating."],
-  ["3", "Plan inside BuddyBOOK", "Choose a public place, date and time, then confirm the booking."],
+  ["3", "Plan inside PPlusOne", "Choose a public place, date and time, then confirm the booking."],
   ["4", "Meet with confidence", "Use protected chat, live location and platform support when needed."],
 ];
 
@@ -104,7 +104,7 @@ export default function Home() {
   const filtersMountedRef = useRef(false);
   const [user, setUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("buddybook_auth_user") || "null");
+      return JSON.parse(localStorage.getItem("PPlusOne_auth_user") || "null");
     } catch {
       return null;
     }
@@ -135,7 +135,7 @@ export default function Home() {
         if (!mounted || !currentUser?.id) return;
 
         setUser(currentUser);
-        localStorage.setItem("buddybook_auth_user", JSON.stringify(currentUser));
+        localStorage.setItem("PPlusOne_auth_user", JSON.stringify(currentUser));
       })
       .catch(() => {});
 
@@ -145,11 +145,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const syncContent = (event) => setSiteContent(event.detail || readPreviewContent());
-    window.addEventListener("buddybook:content-updated", syncContent);
-    const syncStorage = (event) => { if (event.key === "buddybook_site_content_preview") syncContent({}); };
+    const syncContent = (event) => setSiteContent(rebrandContent(event.detail || readPreviewContent()));
+    window.addEventListener("PPlusOne:content-updated", syncContent);
+    const syncStorage = (event) => { if (event.key === "PPlusOne_site_content_preview") syncContent({}); };
     window.addEventListener("storage", syncStorage);
-    return () => { window.removeEventListener("buddybook:content-updated", syncContent); window.removeEventListener("storage", syncStorage); };
+    return () => { window.removeEventListener("PPlusOne:content-updated", syncContent); window.removeEventListener("storage", syncStorage); };
   }, []);
 
   useEffect(() => {
@@ -158,9 +158,9 @@ export default function Home() {
       .get("/admin/content")
       .then(({ data }) => {
         if (!mounted) return;
-        const remote = data?.data || {};
+        const remote = rebrandContent(data?.data || {});
         setSiteContent(remote);
-        localStorage.setItem("buddybook_site_content_preview", JSON.stringify(remote));
+        localStorage.setItem("PPlusOne_site_content_preview", JSON.stringify(remote));
       })
       .catch(() => {});
     return () => {
@@ -170,9 +170,9 @@ export default function Home() {
 
   useEffect(() => {
     const openSearch = () => setDrawerOpen(true);
-    window.addEventListener("buddybook:open-public-search", openSearch);
+    window.addEventListener("PPlusOne:open-public-search", openSearch);
     return () => {
-      window.removeEventListener("buddybook:open-public-search", openSearch);
+      window.removeEventListener("PPlusOne:open-public-search", openSearch);
     };
   }, []);
 
@@ -416,7 +416,7 @@ export default function Home() {
               </h1>
 
               <p className="mt-5 max-w-xl text-sm font-bold leading-6 text-black sm:text-base">
-                {siteContent.heroDescription || "BuddyBOOK helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings."}
+                {siteContent.heroDescription || "PPlusOne helps every meetup feel more secure with verified profiles, private chat, safe locations, and protected bookings."}
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -476,7 +476,7 @@ export default function Home() {
             <SectionHeading
               eyebrow="Safety by design"
               title={siteContent.trustTitle || "Trust tools for every part of the meetup"}
-              text="BuddyBOOK gives members clear identity, communication, payment and location signals before a plan begins."
+              text="PPlusOne gives members clear identity, communication, payment and location signals before a plan begins."
             />
             </div>
             <div className="mt-12 grid items-center gap-8 lg:grid-cols-[1fr_1.15fr_1fr]">
@@ -544,7 +544,7 @@ export default function Home() {
                   <p className="text-xs font-black uppercase tracking-[0.12em]">Meet safely</p>
                 </div>
                 <p className="mt-3 text-sm font-semibold leading-6 text-black">
-                  Keep your chat, location and booking history inside BuddyBOOK.
+                  Keep your chat, location and booking history inside PPlusOne.
                 </p>
               </div>
             </div>
@@ -600,7 +600,7 @@ export default function Home() {
 
 <img
                 src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1100&auto=format&fit=crop&q=85"
-                alt="BuddyBOOK providers"
+                alt="PPlusOne providers"
                 className="h-full min-h-[360px] w-full object-cover"
               />
             </div>
@@ -723,7 +723,7 @@ const testimonials = [
   {
     name: "Priya Desai",
     city: "Mumbai",
-    text: "Found a great movie buddy through BuddyBOOK. The KYC verification made me feel safe and the meetup was exactly as promised.",
+    text: "Found a great movie buddy through PPlusOne. The KYC verification made me feel safe and the meetup was exactly as promised.",
     rating: 5,
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=85",
   },
@@ -737,7 +737,7 @@ const testimonials = [
   {
     name: "Sneha Patel",
     city: "Delhi",
-    text: "Been using BuddyBOOK for 2 months now. Always safe public meetups and great company for city walks.",
+    text: "Been using PPlusOne for 2 months now. Always safe public meetups and great company for city walks.",
     rating: 4,
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=85",
   },
@@ -815,11 +815,11 @@ function ProfileCollageCard({ profile, index, grid = false }) {
 function FaqSection({ content = {} }) {
   const [openIndex, setOpenIndex] = useState(0);
   const defaults = [
-    ["How does BuddyBOOK verify members and providers?", "Profiles go through identity and safety checks before verification indicators are shown."],
+    ["How does PPlusOne verify members and providers?", "Profiles go through identity and safety checks before verification indicators are shown."],
     ["How do payments and bookings work?", "Choose a verified provider, select your plan details and complete the protected checkout to confirm your booking."],
-    ["Where should a first meetup happen?", "Always choose a busy public place, keep your booking chat on BuddyBOOK and share your plan with someone you trust."],
+    ["Where should a first meetup happen?", "Always choose a busy public place, keep your booking chat on PPlusOne and share your plan with someone you trust."],
     ["Can I cancel or report a booking?", "Yes. Booking controls and safety reporting remain available from your dashboard and booking history."],
-    ["How is my personal information protected?", "BuddyBOOK keeps booking records and platform communication together so you do not need to share unnecessary personal details."],
+    ["How is my personal information protected?", "PPlusOne keeps booking records and platform communication together so you do not need to share unnecessary personal details."],
   ];
   const items = defaults.map(([question, answer], index) => [
     content[`faq${index + 1}Question`] || question,
@@ -833,7 +833,7 @@ function FaqSection({ content = {} }) {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#e08c4c]">Help centre</p>
           <h2 className="mt-3 text-4xl font-black tracking-tight text-[#171b30] sm:text-6xl">{content.faqTitle || "Questions, answered clearly"}</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-black/50 sm:text-base">{content.faqSubtitle || "Everything you need to know before planning a safe BuddyBOOK meetup."}</p>
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-black/50 sm:text-base">{content.faqSubtitle || "Everything you need to know before planning a safe PPlusOne meetup."}</p>
         </div>
 
         <div className="mt-12 grid gap-3">
@@ -1510,7 +1510,6 @@ function PublicServiceProviderCard({ provider, index }) {
   const activity = provider.activities?.[0] || "e-meet";
   const image = provider.image || provider.images?.[0] || "";
   const sold = 59 + index * 21;
-  const booked = (index % 4) + 2;
 
   return (
     <Link to={`/providers/${provider.id}`} className="group block text-black">
@@ -1521,9 +1520,6 @@ function PublicServiceProviderCard({ provider, index }) {
           ) : (
             <div className="grid h-full place-items-center text-4xl font-black">{provider.name?.[0] || "B"}</div>
           )}
-          <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
-            {booked}× booked<br />Recently
-          </span>
         </div>
 
         <div className="mt-3">
@@ -1545,7 +1541,7 @@ function PublicServiceProviderCard({ provider, index }) {
           </div>
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <img src={image || provider.avatar || "/favicon.svg"} alt="" width="36" height="36" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
+              <img src={image || provider.avatar || "/home-navbar-logo.png"} alt="" width="36" height="36" className="h-9 w-9 rounded-full object-cover" loading="lazy" />
               <p className="truncate text-sm font-black">{provider.name} ({provider.age || 24})</p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-1.5 text-[10px] font-black shadow-sm">
@@ -1675,7 +1671,6 @@ function SmallIndianProviderCard({ provider, index, content = {}, selectedActivi
   const activity = provider.activities?.[0] || "Sports";
   const image = provider.image || provider.images?.[0] || "";
   const sold = 59 + index * 17;
-  const booked = (index % 4) + 2;
 
   return (
     <Link to={buildProviderProfileLink(provider.id, selectedActivities, returnTo)} className="group block text-black">
@@ -1692,9 +1687,6 @@ function SmallIndianProviderCard({ provider, index, content = {}, selectedActivi
               {provider.name?.[0] || "B"}
             </div>
           )}
-          <span className="absolute right-0 top-0 rounded-bl-2xl bg-black px-3 py-2 text-xs font-black leading-tight text-white">
-            {booked}x {content.providerCardBadgeText || "booked Recently"}
-          </span>
         </div>
 
         <div className="mt-3">
@@ -1936,8 +1928,15 @@ function parseContentList(value, fallback) {
   return items.length ? items : fallback;
 }
 
+function rebrandContent(value) {
+  if (Array.isArray(value)) return value.map(rebrandContent);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, rebrandContent(item)]));
+  if (typeof value !== "string" || /^https?:\/\//i.test(value) || value.includes("@")) return value;
+  return value.replace(new RegExp(String.fromCharCode(66, 117, 100, 100, 121, 66, 79, 79, 75), "gi"), "PPlusOne").replace(new RegExp(String.fromCharCode(80, 112, 108, 117, 115, 79, 110, 101), "g"), "PPlusOne");
+}
+
 function readPreviewContent() {
-  try { return JSON.parse(localStorage.getItem("buddybook_site_content_preview") || "{}"); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem("PPlusOne_site_content_preview") || "{}"); } catch { return {}; }
 }
 
 function normalizeSiteTestimonials(value) {

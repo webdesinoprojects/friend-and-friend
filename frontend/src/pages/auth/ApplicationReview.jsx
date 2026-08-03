@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { Check, Clock3, Mail, MoreHorizontal, ShieldCheck, X } from "lucide-react";
-import heroImage from "../../assets/buddybook-friends-hero.webp";
+import heroImage from "../../assets/PPlusOne-friends-hero.webp";
 import Logo from "../../components/common/Logo";
 
 export default function ApplicationReview() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#fffaf4] text-[#0f1e3b] [&>span]:hidden [background-image:linear-gradient(rgba(226,140,75,.075)_1px,transparent_1px),linear-gradient(90deg,rgba(226,140,75,.075)_1px,transparent_1px)] [background-size:48px_48px] lg:h-screen lg:overflow-hidden">
       <header className="relative z-20 mx-auto flex h-[64px] max-w-[1500px] items-center justify-between gap-3 px-4 sm:h-[68px] sm:px-[5vw] lg:absolute lg:inset-x-0 lg:top-0">
-        <Link to="/" aria-label="BuddyBOOK home" className="min-w-0 rounded-full bg-white/90 px-2 py-1.5 shadow-sm backdrop-blur sm:px-3 sm:py-2"><Logo /></Link>
+        <div className="min-w-0"><Logo size="large" /></div>
         <Link to="/login" className="shrink-0 rounded-full border border-[#efc5a4] bg-white/95 px-3 py-2 text-xs font-black shadow-sm transition hover:bg-black hover:text-white sm:px-5 sm:py-2.5 sm:text-sm">Back to login</Link>
       </header>
 
@@ -29,7 +29,7 @@ export default function ApplicationReview() {
 
           <p className="mt-[clamp(10px,1.8vh,20px)] text-[clamp(14px,1.35vw,21px)] font-semibold leading-[1.45] text-[#293750]">
             Our admin team is verifying your details to keep<span className="hidden sm:inline"><br /></span>{" "}
-            BuddyBOOK safe and trusted for everyone.<span className="hidden sm:inline"><br /></span>{" "}
+            PPlusOne safe and trusted for everyone.<span className="hidden sm:inline"><br /></span>{" "}
             This usually takes a short while.
           </p>
 
@@ -42,7 +42,7 @@ export default function ApplicationReview() {
           <div className="mt-[clamp(10px,1.7vh,17px)] flex items-start gap-3 rounded-2xl border border-[#efb27f] bg-white/55 px-4 py-[clamp(10px,1.6vh,16px)] shadow-sm sm:items-center sm:gap-5 sm:px-5">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#efbd92] text-[#df7b31] sm:h-14 sm:w-14"><ShieldCheck size={26} /></span>
             <div className="space-y-2 text-[clamp(12px,1.05vw,15px)] font-semibold leading-5">
-              <p className="flex items-start gap-2"><Check size={19} className="shrink-0 text-[#218b61]" /><span><b className="text-[#218b61]">If approved,</b> you can log in with your ID and start using BuddyBOOK.</span></p>
+              <p className="flex items-start gap-2"><Check size={19} className="shrink-0 text-[#218b61]" /><span><b className="text-[#218b61]">If approved,</b> you can log in with your ID and start using PPlusOne.</span></p>
               <p className="flex items-start gap-2"><X size={19} className="shrink-0 text-[#f04452]" /><span><b className="text-[#f04452]">If rejected,</b> please re-upload or refill the required details to get verified.</span></p>
             </div>
           </div>

@@ -32,6 +32,7 @@ export default function Login() {
     password: "",
     phone: "",
     otp: "",
+    newPassword: "",
   });
 
   const [loginMode, setLoginMode] = useState("password");
@@ -39,6 +40,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [otpNotice, setOtpNotice] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
 
   const showOtpNotice = (message) => {
     setOtpNotice(message);
@@ -57,9 +60,9 @@ export default function Login() {
 
   const completeAuth = (data) => {
     clearQueryCache();
-    localStorage.setItem("buddybook_auth_user", JSON.stringify(data.user));
+    localStorage.setItem("PPlusOne_auth_user", JSON.stringify(data.user));
     setCurrentUser(data.user);
-    localStorage.removeItem("buddybook_pending_application");
+    localStorage.removeItem("PPlusOne_pending_application");
     if (data.user?.role === "USER") {
       listChats().catch(() => {});
       listBookings({ pageSize: 100 }).catch(() => {});
@@ -81,6 +84,7 @@ export default function Login() {
       setIsLoading(true);
       const res = await api.post("/auth/google", {
         credential: credentialResponse.credential,
+        rememberMe,
       });
 
       completeAuth(res.data);
@@ -89,7 +93,7 @@ export default function Login() {
 
       if (data?.needsRegistration) {
         sessionStorage.setItem(
-          "buddybook_google_profile",
+          "PPlusOne_google_profile",
           JSON.stringify({
             credential: credentialResponse.credential,
             ...data.profile,
@@ -124,6 +128,7 @@ export default function Login() {
       const res = await api.post("/auth/login", {
         ...(identifier.includes("@") ? { email: identifier } : { phone: identifier }),
         password: form.password,
+        rememberMe,
       });
 
       completeAuth(res.data);
@@ -177,6 +182,7 @@ export default function Login() {
       const res = await api.post("/auth/login-mobile-otp", {
         phone: form.phone.replace(/\D/g, ""),
         otp: form.otp.trim(),
+        rememberMe,
       });
 
       completeAuth(res.data);
@@ -187,6 +193,23 @@ export default function Login() {
         return;
       }
       alert(error.response?.data?.message || "OTP login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!form.phone || !form.otp || !form.newPassword) return alert("Enter your mobile number, OTP and new password.");
+    try {
+      setIsLoading(true);
+      const { data } = await api.post("/auth/reset-password-mobile", { phone: form.phone, otp: form.otp, password: form.newPassword });
+      alert(data?.message || "Password reset successfully.");
+      setResetMode(false);
+      setOtpSent(false);
+      setLoginMode("password");
+      setForm((current) => ({ ...current, password: "", otp: "", newPassword: "" }));
+    } catch (error) {
+      alert(error.response?.data?.message || "Password could not be reset.");
     } finally {
       setIsLoading(false);
     }
@@ -213,8 +236,8 @@ export default function Login() {
           <div className="absolute inset-0 opacity-[0.14] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:9px_9px]" />
 
           <div className="relative z-10 flex min-h-screen flex-col justify-between p-10 text-white">
-            <div className="inline-block w-max rounded-none bg-white p-3 shadow-sm">
-              <Logo />
+            <div className="inline-block w-max">
+              <Logo size="large" />
             </div>
 
             <div className="max-w-lg">
@@ -257,8 +280,8 @@ export default function Login() {
         <section className="flex min-h-screen items-start justify-center overflow-y-auto bg-[#fbfaf7] px-4 py-8 sm:items-center sm:px-6 sm:py-10">
           <div className="w-full max-w-[480px]">
             <div className="mb-8 lg:hidden">
-              <div className="inline-block rounded-none bg-white p-3 shadow-sm">
-                <Logo />
+              <div className="inline-block">
+                <Logo size="large" />
               </div>
             </div>
 
@@ -432,19 +455,28 @@ export default function Login() {
                       </div>
                     </div>
                   ) : null}
+                  {resetMode && otpSent ? (
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-black">New password</label>
+                      <div className="flex items-center gap-3 border border-black/10 bg-[#fbfaf7] px-5 py-4 focus-within:border-black">
+                        <Lock size={18} className="text-black/35" />
+                        <input type="password" value={form.newPassword} onChange={(event) => setForm((prev) => ({ ...prev, newPassword: event.target.value }))} placeholder="8+ characters, capital, number & sign" className="w-full bg-transparent text-sm font-semibold outline-none" />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
 
               <div className="mt-4 flex items-center justify-between gap-3 text-sm">
                 <label className="flex cursor-pointer items-center gap-2 font-semibold text-black/55">
-                  <input type="checkbox" className="rounded-none border-black/20" />
+                  <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} className="rounded-none border-black/20" />
                   Remember me
                 </label>
 
                 <button
                   type="button"
                   className="font-black text-black underline"
-                  onClick={() => alert("Forgot password flow will be added later.")}
+                  onClick={() => { setResetMode(true); setLoginMode("otp"); setOtpSent(false); setForm((current) => ({ ...current, otp: "", newPassword: "" })); }}
                 >
                   Forgot password?
                 </button>
@@ -452,7 +484,7 @@ export default function Login() {
 
               <button
                 type="button"
-                onClick={loginMode === "password" ? handleLogin : otpSent ? handleOtpLogin : sendLoginOtp}
+                onClick={loginMode === "password" ? handleLogin : resetMode && otpSent ? resetPassword : otpSent ? handleOtpLogin : sendLoginOtp}
                 disabled={isLoading}
                 className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-none bg-black px-7 py-4 text-sm font-black text-white shadow-sm transition hover:bg-[#3f37ff] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -460,6 +492,8 @@ export default function Login() {
                   ? "Please wait..."
                   : loginMode === "password"
                     ? "Login to existing account"
+                    : resetMode && otpSent
+                      ? "Reset password"
                     : otpSent
                       ? "Verify OTP and login"
                       : "Send login OTP"}
@@ -467,7 +501,7 @@ export default function Login() {
               </button>
 
               <p className="mt-6 text-center text-sm font-semibold text-black/55">
-                New to BuddyBOOK?{" "}
+                New to PPlusOne?{" "}
                 <Link to="/register" className="font-black text-black underline">
                   Create account
                 </Link>
